@@ -1,2 +1,3 @@
-data/
+data/*.pptx
+data/$*
 inital_versions/

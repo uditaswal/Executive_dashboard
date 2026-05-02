@@ -8,6 +8,7 @@
     <link rel='stylesheet' href='css/style.css'>
     <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/pptxgenjs/dist/pptxgen.bundle.js'></script>
 </head>
 
 <body>
@@ -17,43 +18,112 @@
     </header>
     <div class='layout'>
         <aside class='side'>
-            <h3>Filters</h3>
-            <input type='file' id='fileInput' accept='.xlsx,.xls,.csv'>
-            <select id='fMonth'>
-                <option value=''>All Month</option>
-            </select>
-            <select id='fPartner'>
-                <option value=''>All Partner</option>
-            </select>
-            <select id='fStatus'>
-                <option value=''>All Status</option>
-            </select>
-            <select id='fPriority'>
-                <option value=''>All Priority</option>
-            </select>
-            <select id='fRegion'>
-                <option value=''>All Region</option>
-            </select>
-            <input id='search' placeholder='Search...'>
-            <button id='btnLoad'>Auto Load</button>
-            <button id='btnApply'>Apply</button>
-            <button id='btnReset'>Reset</button>
+            <div class="filter-panel-title">
+                <span>Filters</span>
+                <small id="filterRecordHint">Live view</small>
+            </div>
+
+            <label class="filter-field upload-field">
+                <span>Workbook</span>
+                <input type='file' id='fileInput' accept='.xlsx,.xls,.csv'>
+            </label>
+
+            <label class="filter-field">
+                <span>Month</span>
+                <select id='fMonth'>
+                    <option value=''>All Month</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Partner</span>
+                <select id='fPartner'>
+                    <option value=''>All Partner</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Status</span>
+                <select id='fStatus'>
+                    <option value=''>All Status</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Priority</span>
+                <select id='fPriority'>
+                    <option value=''>All Priority</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Region</span>
+                <select id='fRegion'>
+                    <option value=''>All Region</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Receive Country</span>
+                <select id='fCountry'>
+                    <option value=''>All Country</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Issue Owner</span>
+                <select id='fOwner'>
+                    <option value=''>All Owner</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Category</span>
+                <select id='fCategory'>
+                    <option value=''>All Category</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Impact Type</span>
+                <select id='fImpact'>
+                    <option value=''>All Impact</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Search</span>
+                <input id='search' placeholder='Search all fields...'>
+            </label>
+
+            <div class="filter-actions">
+                <button id='btnLoad'>Auto Load</button>
+                <button id='btnApply'>Apply</button>
+                <button id='btnReset'>Reset</button>
+            </div>
         </aside>
         <main class='main'>
             <div class='tabs'>
                 <button class='tab active' data-view='overview'>Overview</button>
                 <button class='tab' data-view='analytics'>Analytics</button>
+                <button class='tab' data-view='tables'>Tables</button>
                 <button class='tab' data-view='incidents'>Incidents</button>
             </div>
             <section id='overview' class='view'>
                 <div class="card summary-box">
                     <h3>Executive Summary</h3>
-                    <p id="execSummary"></p>
+                    <div id="execSummary"></div>
                 </div>
                 <br>
                 <div class="card section-box">
                     <h3>KEY PERFORMANCE INDICATORS</h3>
                     <div id="kpis" class="grid"></div>
+                </div>
+                <br>
+
+                <div class="card section-box">
+                    <h3>Priority Breakdown</h3>
+                    <div id="priorityBreakdown" class="priority-grid"></div>
                 </div>
                 <br>
 
@@ -73,9 +143,6 @@
                     </table>
                 </div>
                 <br>
-                <div id='kpis' class='grid'></div>
-                <br>
-
                 <div class="card section-box">
                     <h3>SUGGESTIONS</h3>
                     <ul id="suggestions"></ul>
@@ -84,31 +151,26 @@
 
             </section>
             <section id='analytics' class='view hide'>
-                <div class="filter-bar">
-                    <div class="filter-title">Month Filter</div>
-                    <div class="filter-group">
-                        <label>
-                            <input type="checkbox" id="mAll" checked>
-                            <span class="filter-pill">All</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" class="mchk" value="Jan">
-                            <span class="filter-pill">Jan</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" class="mchk" value="Feb">
-                            <span class="filter-pill">Feb</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" class="mchk" value="Mar">
-                            <span class="filter-pill">Mar</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" class="mchk" value="Apr">
-                            <span class="filter-pill">Apr</span>
-                        </label>
+                <div class="card export-panel">
+                    <div class="export-head">
+                        <div>
+                            <h3>Export Charts</h3>
+                            <p>Select the graphs you want to export from the current filtered view.</p>
+                        </div>
+                        <div class="export-actions">
+                            <label class="chart-options-toggle">
+                                <input type="checkbox" id="toggleChartLabels">
+                                <span>Show counts on charts</span>
+                            </label>
+                            <button id="btnSelectCharts">Select All</button>
+                            <button id="btnClearCharts">Clear</button>
+                            <button id="btnExportJpg">JPG</button>
+                            <button id="btnExportPpt">PPT</button>
+                        </div>
                     </div>
+                    <div id="chartExportList" class="chart-export-list"></div>
                 </div>
+                <br>
                 <div class='charts'>
                     <div class='card wide'><canvas id='c1'></canvas></div>
                     <div class='card'><canvas id='c2'></canvas></div>
@@ -117,6 +179,9 @@
                 <br>
                 <div class='charts'>
                     <div class='card wide'><canvas id='c4'></canvas></div>
+                    <div class='card'><canvas id='c5'></canvas></div>
+                    <div class='card'><canvas id='c6'></canvas></div>
+                    <div class='card wide'><canvas id='c7'></canvas></div>
                     <div class='card wide'><canvas id='c10'></canvas></div>
                     <div class='card'><canvas id='c12'></canvas></div>
                     <div class='card'><canvas id='c13'></canvas></div>
@@ -124,6 +189,12 @@
                     <div class='card wide'><canvas id='c15'></canvas></div>
                     <div class='card'><canvas id='c16'></canvas></div>
                     <div class='card'><canvas id='c17'></canvas></div>
+                    <div class='card'><canvas id='c18'></canvas></div>
+                    <div class='card'><canvas id='c19'></canvas></div>
+                    <div class='card wide'><canvas id='c20'></canvas></div>
+                    <div class='card'><canvas id='c21'></canvas></div>
+                    <div class='card'><canvas id='c22'></canvas></div>
+                    <div class='card wide'><canvas id='c23'></canvas></div>
                 </div>
 
                 <div class="card chart-card tall">
@@ -131,19 +202,51 @@
                 </div>
 
             </section>
+            <section id='tables' class='view hide'>
+                <div class="card section-box">
+                    <div class="table-section-head">
+                        <div>
+                            <h3>Graph Data Tables</h3>
+                            <p>Tabular export of the same filtered data used by the graphs.</p>
+                        </div>
+                        <button id="btnExportTablesExcel">Export Excel</button>
+                    </div>
+                    <div id="analyticsTables" class="table-grid"></div>
+                </div>
+            </section>
             <section id='incidents' class='view hide'>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Incident</th>
-                            <th>Month</th>
-                            <th>Partner</th>
-                            <th>Status</th>
-                            <th>P</th>
-                        </tr>
-                    </thead>
-                    <tbody id='tbody'></tbody>
-                </table>
+                <div class="incident-toolbar">
+                    <div>
+                        <h3>Incident Register</h3>
+                        <p>Filtered operational incident list with partner, impact, ownership, and transaction impact details.</p>
+                    </div>
+                    <div class="incident-stats">
+                        <span id="incidentShown">0 shown</span>
+                        <span id="incidentOpen">0 open</span>
+                        <span id="incidentMajor">0 major</span>
+                    </div>
+                </div>
+                <div class="card column-panel">
+                    <div class="column-panel-head">
+                        <div>
+                            <h3>Incident Columns</h3>
+                            <p>Select columns from the uploaded Excel data to show in the register.</p>
+                        </div>
+                        <div class="column-actions">
+                            <button id="btnDefaultColumns">Default</button>
+                            <button id="btnAllColumns">All</button>
+                            <button id="btnClearColumns">Clear</button>
+                        </div>
+                    </div>
+                    <div id="incidentColumnList" class="column-list"></div>
+                </div>
+                <br>
+                <div class="incident-table-wrap">
+                    <table class="incident-table">
+                        <thead id="incidentHead"></thead>
+                        <tbody id='tbody'></tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>

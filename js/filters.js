@@ -10,27 +10,26 @@ APP.populate = () => {
     APP.fill("fStatus", APP.u(APP.RAW.map((x) => x.Status)));
     APP.fill("fPriority", APP.u(APP.RAW.map((x) => x.PRIORITY)));
     APP.fill("fRegion", APP.u(APP.RAW.map((x) => x.Region)));
+    APP.fill("fCountry", APP.u(APP.RAW.map((x) => x["Receive Country"])));
+    APP.fill("fOwner", APP.u(APP.RAW.map((x) => APP.issueOwner(x))));
+    APP.fill("fCategory", APP.u(APP.RAW.map((x) => x["issue category"] || x["Issue subcategory"])));
+    APP.fill("fImpact", APP.u(APP.RAW.map((x) => x["Impact type"])));
 };
 APP.apply = () => {
-    const selectedMonths =
-        [...document.querySelectorAll(".mchk:checked")]
-            .map(x => x.value);
-
     const q = APP.g("search").value.toLowerCase();
 
     APP.DATA = APP.RAW.filter(
         (r) => {
-            const analyticsMonthOk =
-                selectedMonths.length === 0 ||
-                selectedMonths.includes(r.Month);
-
             return (
-                analyticsMonthOk &&
                 (!fMonth.value || r.Month == fMonth.value) &&
                 (!fPartner.value || r.Partner == fPartner.value) &&
                 (!fStatus.value || r.Status == fStatus.value) &&
                 (!fPriority.value || String(r.PRIORITY) == fPriority.value) &&
                 (!fRegion.value || r.Region == fRegion.value) &&
+                (!fCountry.value || r["Receive Country"] == fCountry.value) &&
+                (!fOwner.value || APP.issueOwner(r) == fOwner.value) &&
+                (!fCategory.value || (r["issue category"] || r["Issue subcategory"]) == fCategory.value) &&
+                (!fImpact.value || r["Impact type"] == fImpact.value) &&
                 (!q || JSON.stringify(r).toLowerCase().includes(q))
             );
         }
@@ -39,43 +38,9 @@ APP.apply = () => {
     APP.render();
 };
 APP.reset = () => {
-    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "search"].forEach(
+    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "search"].forEach(
         (x) => (APP.g(x).value = ""),
     );
 
-    APP.g("mAll").checked = true;
-    document
-        .querySelectorAll(".mchk")
-        .forEach(c => c.checked = false);
-
     APP.apply();
-};
-APP.bindMonthFilter = () => {
-
-    const all =
-        document.getElementById("mAll");
-
-    const checks =
-        document.querySelectorAll(".mchk");
-
-    all.onchange = () => {
-        all.checked = true;
-
-        checks.forEach(
-            c => c.checked = false
-        );
-
-        APP.apply();
-    };
-
-    checks.forEach(c => {
-
-        c.onchange = () => {
-
-            all.checked =
-                ![...checks].some(x => x.checked);
-
-            APP.apply();
-        };
-    });
 };

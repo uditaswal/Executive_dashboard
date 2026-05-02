@@ -7,7 +7,8 @@ window.APP = {
     CONFIG: [],
     SUGGESTIONS: [],
     REROUTE: [],
-    VOLUME: []
+    VOLUME: [],
+    showChartLabels: false
 };
 APP.g = (id) => document.getElementById(id);
 APP.u = (arr) => [
