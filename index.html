@@ -8,6 +8,7 @@
     <link rel='stylesheet' href='css/style.css'>
     <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/pptxgenjs/dist/pptxgen.bundle.js'></script>
 </head>
 
@@ -30,70 +31,70 @@
 
             <label class="filter-field">
                 <span>Month</span>
-                <select id='fMonth'>
+                <select id='fMonth' multiple>
                     <option value=''>All Month</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Partner</span>
-                <select id='fPartner'>
+                <select id='fPartner' multiple>
                     <option value=''>All Partner</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Status</span>
-                <select id='fStatus'>
+                <select id='fStatus' multiple>
                     <option value=''>All Status</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Priority</span>
-                <select id='fPriority'>
+                <select id='fPriority' multiple>
                     <option value=''>All Priority</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Region</span>
-                <select id='fRegion'>
+                <select id='fRegion' multiple>
                     <option value=''>All Region</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Receive Country</span>
-                <select id='fCountry'>
+                <select id='fCountry' multiple>
                     <option value=''>All Country</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Issue Owner</span>
-                <select id='fOwner'>
+                <select id='fOwner' multiple>
                     <option value=''>All Owner</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Category</span>
-                <select id='fCategory'>
+                <select id='fCategory' multiple>
                     <option value=''>All Category</option>
                 </select>
             </label>
 
             <label class="filter-field">
                 <span>Impact Type</span>
-                <select id='fImpact'>
+                <select id='fImpact' multiple>
                     <option value=''>All Impact</option>
                 </select>
             </label>
 
             <label class="filter-field">
-                <span>Search</span>
-                <input id='search' placeholder='Search all fields...'>
+                <span>Search Incident</span>
+                <input id='search' placeholder='Search all Incidents'>
             </label>
 
             <div class="filter-actions">
@@ -103,47 +104,65 @@
             </div>
         </aside>
         <main class='main'>
-            <div class='tabs'>
-                <button class='tab active' data-view='overview'>Overview</button>
-                <button class='tab' data-view='analytics'>Analytics</button>
-                <button class='tab' data-view='tables'>Tables</button>
-                <button class='tab' data-view='incidents'>Incidents</button>
+            <div class='main-head'>
+                <div class='tabs'>
+                    <button class='tab active' data-view='overview'>Overview</button>
+                    <button class='tab' data-view='analytics'>Analytics</button>
+                    <button class='tab' data-view='tables'>Tables</button>
+                    <button class='tab' data-view='incidents'>Incidents</button>
+                </div>
+                <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
             </div>
             <section id='overview' class='view'>
-                <div class="card summary-box">
-                    <h3>Executive Summary</h3>
+                <div id="overviewSummarySection" class="card summary-box">
+                    <h3>Summary</h3>
                     <div id="execSummary"></div>
                 </div>
                 <br>
-                <div class="card section-box">
+                <div id="overviewKpiSection" class="card section-box">
                     <h3>KEY PERFORMANCE INDICATORS</h3>
                     <div id="kpis" class="grid"></div>
                 </div>
                 <br>
 
-                <div class="card section-box">
+                <div id="overviewPrioritySection" class="card section-box">
                     <h3>Priority Breakdown</h3>
                     <div id="priorityBreakdown" class="priority-grid"></div>
                 </div>
                 <br>
 
-                <div class="card section-box">
-                    <h3>Metrics Summary</h3>
-
-                    <table class="metrics-table">
-                        <thead>
-                            <tr>
-                                <th>Metric</th>
-                                <th>Value</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-
-                        <tbody id="metricsBody"></tbody>
-                    </table>
+                <div id="overviewImpactSection" class="card section-box">
+                    <h3>Resolution & Impact Breakdown</h3>
+                    <div class="secondary-breakdowns">
+                        <div class="breakdown-panel">
+                            <h4>Time Taken to Resolve</h4>
+                            <div id="resolutionBreakdown" class="mini-breakdown"></div>
+                        </div>
+                        <div class="breakdown-panel">
+                            <h4>Impact Breakdown</h4>
+                            <div id="impactBreakdown" class="mini-breakdown"></div>
+                        </div>
+                    </div>
                 </div>
                 <br>
-                <div class="card section-box">
+
+                <div id="overviewBuilderSection" class="card section-box overview-builder">
+                    <div class="overview-builder-head">
+                        <h3>Overview</h3>
+                        <div class="overview-subtabs" role="tablist" aria-label="Executive overview tables">
+                            <button class="overview-subtab active" type="button"
+                                data-overview-tab="insights">Insights</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="metrics"><span
+                                    id="overviewPeriodTabLabel">Period</span> View</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="platform">Platform
+                                RCA</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="vendor">Vendor RCA</button>
+                        </div>
+                    </div>
+                    <div id="overviewTabContent"></div>
+                </div>
+                <br>
+                <div id="overviewSuggestionsSection" class="card section-box">
                     <h3>SUGGESTIONS</h3>
                     <ul id="suggestions"></ul>
                 </div>
@@ -154,21 +173,16 @@
                 <div class="card export-panel">
                     <div class="export-head">
                         <div>
-                            <h3>Export Charts</h3>
-                            <p>Select the graphs you want to export from the current filtered view.</p>
+                            <h3>Chart Options</h3>
+                            <p>These charts stay synchronized with the current filtered view.</p>
                         </div>
                         <div class="export-actions">
                             <label class="chart-options-toggle">
                                 <input type="checkbox" id="toggleChartLabels">
                                 <span>Show counts on charts</span>
                             </label>
-                            <button id="btnSelectCharts">Select All</button>
-                            <button id="btnClearCharts">Clear</button>
-                            <button id="btnExportJpg">JPG</button>
-                            <button id="btnExportPpt">PPT</button>
                         </div>
                     </div>
-                    <div id="chartExportList" class="chart-export-list"></div>
                 </div>
                 <br>
                 <div class='charts'>
@@ -195,6 +209,7 @@
                     <div class='card'><canvas id='c21'></canvas></div>
                     <div class='card'><canvas id='c22'></canvas></div>
                     <div class='card wide'><canvas id='c23'></canvas></div>
+                    <div class='card wide'><canvas id='c24'></canvas></div>
                 </div>
 
                 <div class="card chart-card tall">
@@ -209,7 +224,6 @@
                             <h3>Graph Data Tables</h3>
                             <p>Tabular export of the same filtered data used by the graphs.</p>
                         </div>
-                        <button id="btnExportTablesExcel">Export Excel</button>
                     </div>
                     <div id="analyticsTables" class="table-grid"></div>
                 </div>
@@ -218,7 +232,8 @@
                 <div class="incident-toolbar">
                     <div>
                         <h3>Incident Register</h3>
-                        <p>Filtered operational incident list with partner, impact, ownership, and transaction impact details.</p>
+                        <p>Filtered operational incident list with partner, impact, ownership, and transaction impact
+                            details.</p>
                     </div>
                     <div class="incident-stats">
                         <span id="incidentShown">0 shown</span>
@@ -249,6 +264,28 @@
                 </div>
             </section>
         </main>
+    </div>
+    <div id="exportModal" class="modal-backdrop hide" role="dialog" aria-modal="true"
+        aria-labelledby="exportModalTitle">
+        <div class="export-modal">
+            <div class="export-modal-head">
+                <div>
+                    <h3 id="exportModalTitle">Export Dashboard</h3>
+                    <p>Select all builder tables, one builder table, or any filtered chart/table.</p>
+                </div>
+                <button id="btnCloseExportModal" class="icon-btn" type="button" aria-label="Close export">X</button>
+            </div>
+            <div class="export-modal-actions">
+                <button id="btnExportSelectAll" type="button">Select All</button>
+                <button id="btnExportClearAll" type="button">Clear</button>
+            </div>
+            <div id="globalExportList" class="global-export-list"></div>
+            <div class="export-modal-foot">
+                <button id="btnExportPngGlobal" type="button">PNG</button>
+                <button id="btnExportPptGlobal" type="button">PPT</button>
+                <button id="btnExportExcelGlobal" type="button">Excel</button>
+            </div>
+        </div>
     </div>
     <script src='js/data.js'></script>
     <script src='js/filters.js'></script>

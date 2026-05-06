@@ -1,17 +1,27 @@
 # Executive Incident Dashboard
 
-A browser-based executive dashboard for reviewing payments incidents, partner impact, SLA breaches, reroutes, transaction volume, and operational recommendations from an Excel workbook.
+A browser-based executive dashboard for reviewing payment incidents, partner impact, SLA breaches, reroutes, APN volume, RCA summaries, and filtered incident details from an Excel workbook.
 
-The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read Excel/CSV files and Chart.js to render charts.
+The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read Excel and CSV files, Chart.js to render charts, `html2canvas` for PNG capture, and `PptxGenJS` for PowerPoint export.
+
+## Current Project Status
+
+- Primary sample workbook: `data/payments_incident_sample.xlsx`
+- Sample workbook last updated in this repo: `2026-05-06`
+- Optional config workbook also present: `data/config.xlsx`
+- The dashboard title defaults to `Payments Dashboard`
 
 ## Features
 
-- Loads incident data from an Excel workbook.
-- Supports local auto-load from `data/payments_incident_sample.xlsx`.
+- Auto-loads `data/payments_incident_sample.xlsx` when served from a local web server.
 - Supports manual upload of `.xlsx`, `.xls`, and `.csv` files.
-- Provides filters for month, partner, status, priority, region, and keyword search.
-- Shows executive summary, KPI cards, metrics table, suggestions, analytics charts, and an incidents table.
-- Reads optional multi-sheet data for reroute metrics, APN volume, configuration, and suggestions.
+- Applies live multi-select filters for month, partner, status, priority, region, receive country, issue owner, category, impact type, and free-text incident search.
+- Includes four main views: `Overview`, `Analytics`, `Tables`, and `Incidents`.
+- Shows KPI cards, executive summary text, priority breakdown, resolution and impact breakdowns, overview insights, period metrics, platform RCA, and vendor RCA.
+- Renders 22 analytics charts and matching graph-data tables from the current filtered dataset.
+- Lets users choose which Excel columns appear in the incident register.
+- Exports selected overview sections, charts, and tables to PNG, PowerPoint, and Excel.
+- Reads optional multi-sheet data for configuration, suggestions, reroute metrics, and APN volume trends.
 
 ## Project Structure
 
@@ -21,24 +31,24 @@ The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read E
 |-- css/
 |   `-- style.css
 |-- js/
+|   |-- app.js
+|   |-- charts.js
 |   |-- data.js
 |   |-- filters.js
-|   |-- charts.js
-|   |-- views.js
-|   |-- app.js
-|   `-- adding_new_charts.md
+|   `-- views.js
 |-- data/
+|   |-- config.xlsx
 |   |-- payments_incident_sample.xlsx
-|   |-- payments_incident_sample_old.xlsx
-|   |-- payments_incident_samplev2.xlsx
-|   `-- config.xlsx
-|-- excel.md
-`-- README.md
+|   `-- Sample_PPT.pptx
+`-- docs/
+    |-- README.md
+    |-- EXCEL_SPECIFICATION.md
+    `-- adding_new_charts.md
 ```
 
 ## How To Run
 
-Because the dashboard fetches the local Excel file, use a local web server for auto-load.
+Because the dashboard fetches the local workbook, use a local web server for auto-load.
 
 ```bash
 python -m http.server 8000
@@ -50,9 +60,9 @@ Then open:
 http://localhost:8000/index.html
 ```
 
-You can also open `index.html` directly in a browser and upload a workbook manually, but the Auto Load button may not work without a local server.
+You can also open `index.html` directly and upload a workbook manually, but `Auto Load` depends on browser access to local files and is most reliable through a local server.
 
-## Data Workbook
+## Default Workbook
 
 The default workbook path is:
 
@@ -60,127 +70,167 @@ The default workbook path is:
 data/payments_incident_sample.xlsx
 ```
 
-Recommended workbook sheets:
+Workbook loading behavior:
 
-| Sheet         | Purpose                                                                   |
-| ------------- | ------------------------------------------------------------------------- |
-| `DATA`        | Main incident records used for filters, KPIs, charts, summary, and table. |
-| `CONFIG`      | Optional dashboard settings such as title and theme color.                |
-| `SUGGESTIONS` | Business recommendations displayed in the overview.                       |
-| `REROUTE`     | Rerouted transaction count and USD value metrics.                         |
-| `APN_VOLUME`  | Monthly APN transaction volume metrics and chart.                         |
+- The app uses the `DATA` sheet when present.
+- If `DATA` is missing, it falls back to the first workbook sheet.
+- `CONFIG` and `Config` are both accepted for dashboard settings.
+- `REROUTE` and `APN_VOLUME` can be discovered by required columns even if the sheet name differs.
 
-If a `DATA` sheet is not available, the dashboard uses the first sheet in the workbook as the incident dataset.
+## Supported Workbook Sheets
 
-## Required DATA Columns
+| Sheet | Required | Purpose |
+| --- | --- | --- |
+| `DATA` | Yes | Main incident records used by filters, charts, KPIs, tables, and the incident register |
+| `CONFIG` or `Config` | No | Dashboard title and theme color |
+| `SUGGESTIONS` | No | Overview recommendation list |
+| `REROUTE` | No | Rerouted transaction count and saved USD metrics |
+| `APN_VOLUME` | No | APN monthly transaction volume trend |
 
-The dashboard expects these columns for the main incident view:
+If a `DATA` sheet is not available, the dashboard uses the first sheet in the workbook as the main dataset.
+
+## Main Filters
+
+The sidebar currently filters by:
+
+- `Month`
+- `Partner`
+- `Status`
+- `PRIORITY`
+- `Region`
+- `Receive Country`
+- `Issue Owner`
+- `Category`
+- `Impact type`
+- Keyword search across each full row
+
+`Issue Owner` is normalized from `Issue(WU/Partner)` or `Issue (WU issue/Partner side)` into values such as `WU side` and `Partner side`.
+
+## Overview View
+
+The `Overview` tab includes:
+
+- Executive summary
+- KPI cards
+- Priority breakdown cards
+- Resolution and impact breakdown panels
+- An overview builder with four subtabs:
+  - `Insights`
+  - `<Period> View`
+  - `Platform RCA`
+  - `Vendor RCA`
+- Suggestions
+
+The period label is dynamic. Depending on the current month filter, it can show values like `Jan`, `Jan-Mar`, `Q1`, or a comma-separated month list.
+
+## Analytics View
+
+The `Analytics` tab currently renders these charts:
+
+1. `Monthly Incident Trend`
+2. `Incident Status Split`
+3. `Priority Distribution`
+4. `Top Partner Incident Ranking`
+5. `Top Receive Countries`
+6. `Delayed vs Breached Trend`
+7. `Transaction Loss by Partner`
+8. `APN Monthly Transaction Volume`
+9. `WU vs Partner Side Issues`
+10. `WU vs Partner Side Trend`
+11. `Partner Side Issue Category Trend`
+12. `Top Impacted Wallet Trend`
+13. `Top Partners by Delayed MTCNs`
+14. `Top Wallets by Delayed MTCNs`
+15. `Resolution Time Split`
+16. `Impact Type Split`
+17. `Issue Category by Month`
+18. `Monitoring Gap / Detection Delay`
+19. `Rejected Transactions by Partner`
+20. `Operational Impact by Month`
+21. `Receive Country Impact`
+22. `Insufficient Funds by Partner`
+
+Users can also toggle `Show counts on charts`.
+
+## Tables View
+
+The `Tables` tab renders graph-data tables that mirror the currently filtered analytics data, including:
+
+- Monthly trend
+- Status split
+- Priority distribution
+- Partner and country rankings
+- Receive country impact
+- Delayed versus breached monthly totals
+- Transaction loss by partner
+- APN monthly transaction volume
+- WU versus partner ownership
+- Partner-side category trends
+- Wallet trends
+- Delayed, rejected, and operational impact tables
+- Resolution, impact, and monitoring splits
+- Insufficient funds trend
+
+## Incidents View
+
+The `Incidents` tab includes:
+
+- Live counts for shown incidents, open incidents, and major incidents
+- A column picker sourced from the uploaded Excel headers
+- `Default`, `All`, and `Clear` column actions
+- A filtered incident register capped to the first 500 rows in the UI
+
+Default incident columns include:
 
 ```text
 Incident
 Month
 Partner
+Receive Country
+Issue (WU issue/Partner side)
+issue category
 Status
 PRIORITY
-Region
-Receive Country
+Impact type
+Time Taken for Resolution
 Delayed Transaction
 Delivery Breached
-Transaction Loss(customer impact)
-Impact type
 ```
 
-Additional columns used by some KPIs and charts:
+## Exports
+
+The current export modal supports:
+
+- PNG export of selected overview sections, charts, and graph tables
+- PowerPoint export of selected overview sections, charts, and graph tables
+- Excel export of selected overview sections, charts, and graph tables
+
+Excel export writes separate sheets for each selected chart or table and names the file using the current review period, for example:
 
 ```text
-Issue (WU issue/Partner side)
-Issue subcategory
-Wallet Name/Specific Bank
-Time Taken for Resolution
+dashboard-export-q1.xlsx
 ```
 
-## Optional Sheet Formats
+## Notes About Current Summary Text
 
-### REROUTE
+The executive summary in the UI mixes live metrics with fixed 2026 narrative lines. At the time of this update, these statements are still hard-coded in `js/app.js` rather than calculated from workbook data:
 
-Used for rerouted transaction metrics.
+- APN transaction volume averaging 7 million per month in 2026 with 75% real time
+- Retail versus digital processing mix of 55% and 45%
+- Overall rejection rate stable at about 1.38% of volume
 
-```text
-TXN_COUNT
-SENDAMOUNTINUSD
-PREVIOUS_PARTNER
-CURRENT_PARTNER
-RECEIVECOUNTRYCODE
-STATUS
-```
-
-### APN_VOLUME
-
-Used for APN monthly volume metrics.
-
-```text
-CREATED_DATE
-COUNT(*)
-```
-
-### SUGGESTIONS
-
-Used for the recommendations list.
-
-```text
-priority
-suggestion
-```
-
-### CONFIG
-
-Used for dashboard-level settings.
-
-```text
-key
-value
-```
-
-Supported keys include:
-
-```text
-title
-theme_color
-```
-
-## Usage
-
-1. Start the local server.
-2. Open `http://localhost:8000/index.html`.
-3. Click `Auto Load` to load `data/payments_incident_sample.xlsx`, or use the file picker to upload another workbook.
-4. Use the sidebar filters to narrow the dataset.
-5. Switch between `Overview`, `Analytics`, and `Incidents` tabs.
-6. Click `Reset` to clear filters.
+If those figures change, update the summary logic in `js/app.js` in addition to refreshing workbook data.
 
 ## Main Files
 
-- `index.html` defines the dashboard layout, filters, tabs, chart canvases, and table.
+- `index.html` defines the dashboard layout, filter controls, tabs, export modal, overview builder, chart canvases, and incident register.
+- `js/data.js` loads workbook sheets, cleans Excel text, applies config, and initializes app state.
+- `js/filters.js` populates filter dropdowns and applies the active filters.
+- `js/charts.js` defines chart helpers, graph-data tables, export order, and all analytics charts.
+- `js/app.js` renders summary content, KPIs, overview tables, suggestions, incident columns, and export flows.
+- `js/views.js` handles main tab switching.
 - `css/style.css` contains all dashboard styling.
-- `js/data.js` loads Excel data, cleans rows, maps sheets, applies config, and initializes data state.
-- `js/filters.js` populates filters and applies filter logic.
-- `js/charts.js` contains Chart.js chart builders and shared chart helpers.
-- `js/views.js` handles tab/view switching.
-- `js/app.js` renders the executive summary, KPIs, metrics, suggestions, and incident table.
 
 ## Adding New Charts
 
-See `js/adding_new_charts.md` for the project notes. The usual flow is:
-
-1. Add a new `<canvas>` placeholder in `index.html`.
-2. Add a chart function in `js/charts.js`.
-3. Register the function inside `APP.draw`.
-4. Add new filter support in `js/filters.js` if the chart needs another filter.
-
-## Dependencies
-
-Dependencies are loaded from CDN in `index.html`:
-
-- SheetJS: `https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js`
-- Chart.js: `https://cdn.jsdelivr.net/npm/chart.js`
-
-No package installation is required for the current static version.
+See `docs/adding_new_charts.md` for the current chart and table workflow.

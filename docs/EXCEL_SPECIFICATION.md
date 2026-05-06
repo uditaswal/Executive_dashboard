@@ -1,288 +1,233 @@
-# Excel Workbook Structure - Exact Requirements
-
----
+# Excel Workbook Structure - Current Dashboard Requirements
 
 ## Workbook Overview
 
-Your Excel workbook must have the following sheets (exact case-sensitive names):
-
-```
-1. DATA           (Required - Core incident data)
-2. CONFIG         (Optional - Dashboard settings)
-3. SUGGESTIONS    (Optional - Executive recommendations)
-4. REROUTE        (Optional - Transaction reroute metrics)
-5. APN_VOLUME     (Optional - APN monthly volume trends)
-```
-
----
-
-## SHEET 1: DATA (REQUIRED)
-
-**Purpose:** Core incident records. Required for dashboard to function.
-
-### Required Columns (EXACT Names - Case Sensitive)
-
-| Column Name | Data Type | Description | Example |
-|-------------|-----------|-------------|---------|
-| Incident | String | Unique incident ID | INC-001, INC-002 |
-| Month | String | Month of incident | Jan, Feb, Mar (3-letter format) |
-| Partner | String | Partner name | MFS, TerraPay, TransferTo |
-| Receive Country | String | Receiving country | GH, KE, NG, CM |
-| Issue (WU issue/Partner side) | String | Issue source | WU side, Partner side, Vendor |
-| issue category | String | Main category | Funding, Technical, Network |
-| Issue subcategory | String | Specific subcategory | Insufficient Funds, API Timeout |
-| Status | String | Incident status | Open, Closed, Resolved, Monitoring |
-| PRIORITY | Number | Priority level | 1, 2, 3, 4 |
-| Impact type | String | Impact type | High, Medium, Low, Critical |
-| Region | String | Geographic region | MEA, APAC, EMEA |
-| Wallet Name/Specific Bank | String | Wallet/bank identifier | VODAFONE_GH, GTB_NG |
-| Delayed Transaction | Number | Count of delayed transactions | 100, 250, 1500 |
-| Delivery Breached | Number | Count of breached deliveries | 50, 120, 800 |
-| Transaction Loss(customer impact) | Number | Lost transaction amount | 10000, 50000 |
-| Transaction REJECTED | Number | Count of rejected transactions | 25, 75, 300 |
-| Time Taken for Resolution | Number | Hours to resolve | 1, 2.5, 8, 24 |
-| Monitoring Gap / delay In detection | String | Detection gap category | < 1 hour, 1-4 hours, > 4 hours |
-
-### Filter Values (Use Consistent Values)
-
-**Months:** Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
-
-**Status:** Open, Closed, Resolved, Monitoring
-
-**PRIORITY:** 1, 2, 3, 4
-
-**Impact type:** Critical, High, Medium, Low
-
-**Region:** MEA, APAC, EMEA, LATAM
-
-**Issue (WU issue/Partner side):** WU side, Partner side, Vendor
-
----
-
-## SHEET 2: CONFIG (Optional)
-
-**Purpose:** Dashboard customization and branding.
-
-### Structure
-
-| key | value |
-|-----|-------|
-| title | Payments Operations Dashboard |
-| theme_color | #0f2d52 |
-
-### Supported Keys
-
-| Key | Value | Default | Example |
-|-----|-------|---------|---------|
-| title | Dashboard title text | Payments Dashboard | Payments Operations Dashboard |
-| theme_color | Hex color code | #0f2d52 | #0f2d52 (navy blue) |
-
----
-
-## SHEET 3: SUGGESTIONS (Optional)
-
-**Purpose:** Executive recommendations displayed on Overview tab.
-
-### Structure
-
-| Suggestion |
-|------------|
-| Increase partner redundancy onboarding |
-| Review delivery SLA escalation workflow |
-| Consolidate wallet connectivity issues |
-
-Simply add one suggestion per row. Leave empty if not needed.
-
----
-
-## SHEET 4: REROUTE (Optional)
-
-**Purpose:** Transaction rerouting metrics.
-
-### Required Columns (EXACT Names - Case Sensitive)
-
-| Column Name | Data Type | Description | Example |
-|-------------|-----------|-------------|---------|
-| TXN_COUNT | Number | Number of rerouted transactions | 100, 500, 1000 |
-| SENDAMOUNTINUSD | Number | USD amount saved | 5000.50, 25000.00 |
-| PREVIOUS_PARTNER | String | Original partner | MFS, TerraPay |
-| CURRENT_PARTNER | String | Reroute destination | TransferTo, Remitly |
-| RECEIVECOUNTRYCODE | String | Receiving country code | GH, NG, KE |
-| STATUS | String | Reroute status | PROCESSED, PENDING, FAILED |
-
-### Sample Data
-
-| TXN_COUNT | SENDAMOUNTINUSD | PREVIOUS_PARTNER | CURRENT_PARTNER | RECEIVECOUNTRYCODE | STATUS |
-|-----------|-----------------|------------------|-----------------|------------------|--------|
-| 166 | 29286.87 | MFS | TERRAPAY | CM | PROCESSED |
-| 245 | 51234.50 | AIRTEL | TRANSFERTO | GH | PROCESSED |
-| 89 | 18900.25 | MTN | REMITLY | NG | PENDING |
-
-### Metrics Generated
-
-- **Total Rerouted Transactions:** Sum of TXN_COUNT
-- **Total USD Saved:** Sum of SENDAMOUNTINUSD
-- **Top Reroute Corridor:** Country with most reroutes
-- **Top Reroute Partner Swap:** PREVIOUS_PARTNER → CURRENT_PARTNER
-
----
-
-## SHEET 5: APN_VOLUME (Optional)
-
-**Purpose:** Monthly APN transaction volume trends.
-
-### Required Columns (EXACT Names - Case Sensitive)
-
-| Column Name | Data Type | Description | Example |
-|-------------|-----------|-------------|---------|
-| CREATED_DATE | String | Month in MMM-YY format | Jan-26, Feb-26, Mar-26 |
-| COUNT(*) | Number | Total APN transactions | 7094054, 7500000 |
-
-### Sample Data
-
-| CREATED_DATE | COUNT(*) |
-|--------------|----------|
-| Jan-26 | 7094054 |
-| Feb-26 | 7234120 |
-| Mar-26 | 7567890 |
-| Apr-26 | 7823456 |
-| May-26 | 8012345 |
-
-### Metrics Generated
-
-- **Total APN Volume:** Sum of all COUNT(*)
-- **Average Monthly Volume:** Total / Number of months
-- **Monthly Trend:** Visualization of volume over time
-
----
-
-## Data Type Guidelines
-
-- **String:** Text values (no leading/trailing spaces)
-- **Number:** Numeric values (no currency symbols or commas)
-- **Date:** Use format "Jan-26", "Feb-26" (3-letter month + 2-digit year)
-
----
-
-## Validation Rules
-
-### For DATA Sheet
-
-- **Month:** Must be one of: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
-- **PRIORITY:** Must be numeric: 1, 2, 3, or 4
-- **Delayed Transaction:** Must be ≥ 0
-- **Delivery Breached:** Must be ≥ 0
-- **Transaction REJECTED:** Must be ≥ 0
-- **Time Taken for Resolution:** Must be > 0
-- **No leading/trailing spaces** in any column values
-
-### For REROUTE Sheet
-
-- **TXN_COUNT:** Must be ≥ 0
-- **SENDAMOUNTINUSD:** Must be ≥ 0
-- **STATUS:** Should be: PROCESSED, PENDING, or FAILED
-
-### For APN_VOLUME Sheet
-
-- **COUNT(*):** Must be > 0
-- **CREATED_DATE:** Must be in MMM-YY format exactly
-
----
-
-## Maximum Recommended Rows
-
-- **DATA:** Up to 10,000 incidents
-- **REROUTE:** Up to 1,000 transactions
-- **APN_VOLUME:** 12-24 months
-- **SUGGESTIONS:** 5-10 suggestions
-- **CONFIG:** 5-10 settings
-
----
-
-## Complete Example Workbook Structure
-
-```
-File: payments_incident_sample.xlsx
-
-Sheet: DATA
-├── Row 1: Column Headers
-├── Row 2-N: Incident data rows
-└── Min 1,500 sample rows recommended
-
-Sheet: CONFIG
-├── Row 1: Headers (key | value)
-└── Row 2-N: Configuration settings
-
-Sheet: SUGGESTIONS
-├── Row 1: Header (Suggestion)
-└── Row 2-N: Recommendation text
-
-Sheet: REROUTE
-├── Row 1: Headers (TXN_COUNT | SENDAMOUNTINUSD | ...)
-└── Row 2-N: Reroute transaction data
-
-Sheet: APN_VOLUME
-├── Row 1: Headers (CREATED_DATE | COUNT(*))
-└── Row 2-N: Monthly volume data
+The dashboard currently reads up to five workbook sheets:
+
+```text
+DATA         Required
+CONFIG       Optional
+SUGGESTIONS  Optional
+REROUTE      Optional
+APN_VOLUME   Optional
 ```
 
----
+Notes:
 
-## How Dashboard Uses Each Sheet
+- `DATA` is the primary incident sheet.
+- If `DATA` is missing, the first worksheet is used as the incident dataset.
+- `CONFIG` and `Config` are both accepted.
+- `REROUTE` and `APN_VOLUME` may be matched by required columns even if sheet names differ.
 
-| Sheet | Used By | Functionality |
-|-------|---------|---------------|
-| DATA | All charts, tables, filters | Core incident analytics |
-| CONFIG | App initialization | Branding & dashboard title |
-| SUGGESTIONS | Overview tab | Executive insights & recommendations |
-| REROUTE | Metrics & charts | Transaction rerouting analytics |
-| APN_VOLUME | APN chart & metrics | Monthly volume trends |
+## DATA Sheet
 
----
+Purpose: incident analytics, filters, overview metrics, charts, RCA tables, and incident register rows.
 
-## Upload Instructions
+### Core Columns Used By The Current UI
 
-1. Click "Workbook" file input in the left filter panel
-2. Select your Excel file (`.xlsx` or `.xls` format)
-3. Dashboard auto-loads all sheets
-4. Filters populate from unique values in DATA sheet columns
-5. All charts, tables, and metrics render from aggregated data
-6. Existing data in memory persists (until refresh or new upload)
+| Column Name | Usage |
+| --- | --- |
+| `Incident` | Incident register and search |
+| `Month` | Filters, trend charts, period label |
+| `Partner` | Filters, rankings, RCA tables |
+| `Status` | Filters, KPI counts, status chart |
+| `PRIORITY` | Filters, KPI summaries, priority chart/cards |
+| `Region` | Filters and regional overview insights |
+| `Receive Country` | Filters, country charts, RCA tables |
+| `Impact type` | Filters, incident stats, impact chart |
+| `Delayed Transaction` | KPI totals, impact charts, RCA tables |
+| `Delivery Breached` | KPI totals, impact charts, RCA tables |
+| `Transaction Loss(customer impact)` | Loss chart and impact totals |
+| `Transaction REJECTED` | Rejection chart and impact totals |
+| `Time Taken for Resolution` | Resolution breakdowns and chart |
+| `Monitoring Gap / delay In detection` | Monitoring chart and table |
 
----
+### Ownership And RCA Columns
 
-## Common Issues & Fixes
+The app supports multiple naming styles for ownership and RCA logic:
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Filters are empty | DATA sheet not named "DATA" | Rename first sheet to exactly "DATA" |
-| Charts don't show | Missing required columns in DATA | Verify all column names match exactly (case-sensitive) |
-| Metrics show 0 | REROUTE/APN_VOLUME missing | Sheets are optional - add if needed or leave empty |
-| Dashboard title not custom | CONFIG sheet missing | Add CONFIG sheet with title row |
-| Date filtering doesn't work | Month values inconsistent | Use only: Jan, Feb, Mar... Dec format |
-| Columns have extra spaces | Data imported with spaces | Clean data: remove leading/trailing spaces |
-| Numbers show as text | Number columns formatted as text | Re-format column as Number in Excel |
+| Column Name | Notes |
+| --- | --- |
+| `Issue(WU/Partner)` | Preferred owner/source column |
+| `Issue (WU issue/Partner side)` | Supported alias for owner/source |
+| `Issue Category` | Supported RCA category column |
+| `issue category` | Supported alias used in existing workbooks |
+| `Issue subcategory` | Used in category trends and insufficient-funds analysis |
+| `Issue Type` | Used in vendor RCA narrative aggregation |
+| `Issue type` | Supported alias for vendor RCA |
+| `Platform` | Used in platform RCA grouping |
+| `platform` | Supported alias for platform RCA |
+| `RCA description` | Platform RCA summary text |
+| `Actual RCA` | Preferred RCA text when present |
+| `Issue Summary` | Supported summary alias |
+| `Issue summary` | Supported summary alias |
+| `Prevention` | Platform RCA prevention text |
+| `prevention` | Supported alias |
 
----
+### Additional Operational Columns
 
-## File Size Recommendations
+| Column Name | Usage |
+| --- | --- |
+| `Wallet Name/Specific Bank` | Wallet trend and delayed-wallet charts |
 
-- **File Size:** Keep under 10 MB
-- **Rows:** Optimize for 1,000-5,000 DATA rows
-- **Columns:** Only include columns listed above (extra columns OK but ignored)
-- **Format:** Save as `.xlsx` (Excel 2007+ format) - not `.xls`
+### Recommended DATA Values
 
----
+Use consistent values so filters and grouping remain clean:
 
-## Quick Checklist Before Upload
+- `Month`: `Jan` to `Dec`
+- `Status`: values such as `Open`, `Closed`, `Resolved`, `Monitoring`
+- `PRIORITY`: `1`, `2`, `3`, `4`
+- `Impact type`: keep naming consistent, especially if using `Major`
+- `Issue(WU/Partner)`: values like `WU issue` and `Vendor issue`
+- `Issue Category`: values like `WU Side` and `Partner Side`
 
-- [ ] DATA sheet exists with all required columns
-- [ ] Column names match exactly (case-sensitive)
-- [ ] Month values are: Jan, Feb, Mar... Dec
-- [ ] PRIORITY values are: 1, 2, 3, 4
-- [ ] No leading or trailing spaces in data
-- [ ] Numeric columns contain only numbers (no $, commas)
-- [ ] File is saved as .xlsx format
-- [ ] File size is under 10 MB
-- [ ] Optional sheets (CONFIG, REROUTE, APN_VOLUME) are properly named if included
-- [ ] CONFIG sheet (if included) has "key" and "value" columns
+## Ownership Logic Used By The App
+
+The `Issue Owner` filter shown in the sidebar is derived from:
+
+- `Issue(WU/Partner)`, or
+- `Issue (WU issue/Partner side)`
+
+Normalization rules:
+
+- values containing `wu` become `WU side`
+- values containing `vendor` or `partner` become `Partner side`
+- other non-empty values are kept as-is
+
+## Overview RCA Logic
+
+### Platform RCA
+
+Platform RCA includes rows considered WU/internal, based on:
+
+- `Issue(WU/Partner)` or alias containing `wu` or `internal`
+- `Issue Category` or alias equal to `WU Side`
+- normalized owner equal to `WU side`
+
+Rows are grouped by `Platform` or `platform`, then summarized with:
+
+- unique receive countries
+- delayed transaction total
+- breached transaction total
+- combined RCA text
+- combined prevention text
+
+The UI shows the top five platforms by delayed transactions.
+
+### Vendor RCA
+
+Vendor RCA includes rows where both conditions are true:
+
+- `Issue Category` or alias equals `Partner Side`
+- `Issue(WU/Partner)` or alias equals `Vendor issue`
+
+Rows are grouped by `Partner` and summarized with:
+
+- country list
+- incident count
+- delayed and breached totals
+- RCA narrative built from `Issue Type`, `Issue type`, or `Issue subcategory`
+
+The UI shows the top five vendor partners.
+
+## REROUTE Sheet
+
+Purpose: reroute metrics shown in overview insights and supporting exports.
+
+### Required Columns
+
+```text
+TXN_COUNT
+SENDAMOUNTINUSD
+```
+
+### Additional Expected Columns
+
+These are supported by the current sample format and should be kept when available:
+
+```text
+PREVIOUS_PARTNER
+CURRENT_PARTNER
+RECEIVECOUNTRYCODE
+STATUS
+```
+
+Current dashboard calculations from this sheet:
+
+- total rerouted transactions
+- total USD value rerouted or saved
+
+## APN_VOLUME Sheet
+
+Purpose: APN monthly transaction volume chart and table.
+
+### Required Columns
+
+```text
+CREATED_DATE
+COUNT(*)
+```
+
+Expected format:
+
+- `CREATED_DATE`: month label such as `Jan-26`
+- `COUNT(*)`: numeric transaction volume
+
+Current dashboard calculations from this sheet:
+
+- bar chart of monthly APN volume
+- average monthly volume metric for internal use
+- total APN volume metric for internal use
+
+## SUGGESTIONS Sheet
+
+Purpose: recommendation list in the `Overview` tab.
+
+Current expected columns:
+
+```text
+priority
+suggestion
+```
+
+Behavior:
+
+- rows are sorted by numeric `priority`
+- non-empty `suggestion` values are rendered as list items
+
+## CONFIG Sheet
+
+Purpose: dashboard branding and basic theming.
+
+Required structure:
+
+```text
+key
+value
+```
+
+Supported keys:
+
+```text
+title
+theme_color
+```
+
+Behavior:
+
+- `title` updates the page heading
+- `theme_color` updates the CSS `--primary` variable
+
+## Validation Guidance
+
+Recommended checks before upload:
+
+- keep column names exact where possible
+- avoid leading or trailing spaces in headers and values
+- keep numeric columns numeric
+- keep month values consistent with `Jan` to `Dec` for the `DATA` sheet
+- use the same ownership/category wording throughout the workbook
+
+## Current Dashboard Caveat
+
+The app is tolerant of several alias columns, but it is not fully schema-driven. If a workbook uses different names than the ones listed above, those fields may silently drop out of charts, overview tables, or filters.

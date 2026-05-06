@@ -110,7 +110,10 @@ APP.applyConfig = () => {
 APP.loadLocal = async () => {
     try {
         const res = await fetch(
-            "data/payments_incident_sample.xlsx"
+            `data/payments_incident_sample.xlsx?v=${Date.now()}`,
+            {
+                cache: "no-store"
+            }
         );
         if (!res.ok) {
             throw new Error("File not found");

@@ -112,7 +112,7 @@ APP.sortedMonths = (rows = APP.DATA) =>
 
 APP.issueOwner = (row) => {
     const value =
-        row["Issue (WU issue/Partner side)"] || "";
+        APP.value(row, ["Issue(WU/Partner)", "Issue (WU issue/Partner side)"]) || "";
 
     if (/wu/i.test(value)) return "WU side";
     if (/vendor|partner/i.test(value)) return "Partner side";
@@ -151,7 +151,7 @@ APP.exportOrder = [
     "c1", "c2", "c3", "c4", "c5", "c6", "c7",
     "c10", "c12", "c13", "c14", "c15", "c16",
     "c17", "c18", "c19", "c20", "c21", "c22",
-    "c23", "c11"
+    "c23", "c24", "c11"
 ];
 
 APP.chartOptions = (title, overrides = {}) => ({
@@ -258,6 +258,36 @@ APP.mapTable = (
             ])
     };
 };
+
+APP.getReceiveCountryImpactEntries = (limit = 10) =>
+    Object.entries(
+        APP.DATA.reduce((map, row) => {
+            const country =
+                APP.value(row, "Receive Country") || "Unknown";
+
+            if (!map[country]) {
+                map[country] = {
+                    incidents: 0,
+                    delayed: 0,
+                    breached: 0
+                };
+            }
+
+            map[country].incidents += 1;
+            map[country].delayed +=
+                APP.n(
+                    APP.value(row, "Delayed Transaction")
+                );
+            map[country].breached +=
+                APP.n(
+                    APP.value(row, "Delivery Breached")
+                );
+
+            return map;
+        }, {})
+    )
+        .sort((a, b) => b[1].delayed - a[1].delayed)
+        .slice(0, limit);
 
 APP.monthMetricRows = (
     title,
@@ -411,6 +441,23 @@ APP.getGraphTables = () => {
             APP.cb("Receive Country"),
             8
         ),
+        {
+            title: "Receive Country Impact",
+            headers: [
+                "Receive Country",
+                "Incidents",
+                "Delayed Transactions",
+                "Breached Transactions"
+            ],
+            rows:
+                APP.getReceiveCountryImpactEntries(10)
+                    .map(([country, metrics]) => [
+                        country,
+                        APP.n(metrics.incidents).toLocaleString(),
+                        APP.n(metrics.delayed).toLocaleString(),
+                        APP.n(metrics.breached).toLocaleString()
+                    ])
+        },
         APP.monthMetricRows(
             "Delayed vs Breached Trend",
             [
@@ -1310,6 +1357,41 @@ function drawOperationalImpactByMonth() {
     });
 }
 
+function drawReceiveCountryImpact() {
+    const data =
+        APP.getReceiveCountryImpactEntries(10);
+
+    APP.chart("c24", {
+        type: "bar",
+        data: {
+            labels:
+                data.map(([country]) => country),
+            datasets: [
+                {
+                    label: "Delayed Transactions",
+                    data:
+                        data.map(([, metrics]) => metrics.delayed),
+                    backgroundColor: "#0891b2",
+                    borderRadius: 6
+                },
+                {
+                    label: "Breached Transactions",
+                    data:
+                        data.map(([, metrics]) => metrics.breached),
+                    backgroundColor: "#dc2626",
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            ...APP.chartOptions(
+                "Receive Country Impact"
+            ),
+            indexAxis: "y"
+        }
+    });
+}
+
 function drawInsufficientFundsTrend() {
     const rows =
         APP.DATA.filter(
@@ -1382,5 +1464,6 @@ APP.draw = () => {
     drawMonitoringGapSplit();
     drawRejectedByPartner();
     drawOperationalImpactByMonth();
+    drawReceiveCountryImpact();
     drawInsufficientFundsTrend();
 };
