@@ -62,12 +62,15 @@ APP.value = (row, keys) => {
             : [keys];
 
     for (const key of list) {
+        const value =
+            APP.getValue(row, key);
+
         if (
-            row[key] !== undefined &&
-            row[key] !== null &&
-            row[key] !== ""
+            value !== undefined &&
+            value !== null &&
+            value !== ""
         ) {
-            return row[key];
+            return value;
         }
     }
 
@@ -106,7 +109,11 @@ APP.sortedMonths = (rows = APP.DATA) =>
     APP.monthOrder.filter(
         month =>
             rows.some(
-                row => row.Month === month
+                row =>
+                    APP.value(
+                        row,
+                        "Month"
+                    ) === month
             )
     );
 
@@ -495,8 +502,13 @@ APP.getGraphTables = () => {
             ],
             rows:
                 APP.VOLUME.map(row => [
-                    row.CREATED_DATE || "Unknown",
-                    APP.n(row["COUNT(*)"]).toLocaleString()
+                    APP.value(row, "CREATED_DATE") || "Unknown",
+                    APP.n(
+                        APP.value(
+                            row,
+                            "COUNT(*)"
+                        )
+                    ).toLocaleString()
                 ])
         },
         APP.mapTable(
@@ -510,23 +522,23 @@ APP.getGraphTables = () => {
             partnerSideCategories,
             (category, month) =>
                 partnerSideRows.filter(
-                    row =>
-                        row.Month === month &&
-                        APP.value(row, ["issue category", "Issue subcategory"]) === category
-                ).length
+                                    row =>
+                                        APP.value(row, "Month") === month &&
+                                        APP.value(row, ["issue category", "Issue subcategory"]) === category
+                                ).length
         ),
         APP.stackedMonthRows(
             "Top Impacted Wallet Trend",
             wallets,
             (wallet, month) =>
                 APP.DATA.filter(
-                    row =>
-                        row.Month === month &&
-                        (
-                            row["Wallet Name/Specific Bank"] ||
-                            "Unknown"
-                        ) === wallet
-                ).length
+                                    row =>
+                                        APP.value(row, "Month") === month &&
+                                        (
+                                            APP.value(row, "Wallet Name/Specific Bank") ||
+                                            "Unknown"
+                                        ) === wallet
+                                ).length
         ),
         APP.mapTable(
             "Top Partners by Delayed MTCNs",
@@ -565,10 +577,10 @@ APP.getGraphTables = () => {
             issueCategories,
             (category, month) =>
                 APP.DATA.filter(
-                    row =>
-                        row.Month === month &&
-                        APP.value(row, ["issue category", "Issue subcategory"]) === category
-                ).length
+                                    row =>
+                                        APP.value(row, "Month") === month &&
+                                        APP.value(row, ["issue category", "Issue subcategory"]) === category
+                                ).length
         ),
         APP.mapTable(
             "Monitoring Gap / Detection Delay",
@@ -617,10 +629,10 @@ APP.getGraphTables = () => {
             insufficientPartners,
             (partner, month) =>
                 insufficientRows.filter(
-                    row =>
-                        row.Month === month &&
-                        row.Partner === partner
-                ).length
+                                    row =>
+                                        APP.value(row, "Month") === month &&
+                                        APP.value(row, "Partner") === partner
+                                ).length
         )
     ].filter(
         table =>
@@ -858,13 +870,21 @@ function drawAPNVolume() {
     const labels =
         APP.VOLUME.map(
             x =>
-                x.CREATED_DATE
+                APP.value(
+                    x,
+                    "CREATED_DATE"
+                )
         );
 
     const vals =
         APP.VOLUME.map(
             x =>
-                APP.n(x["COUNT(*)"])
+                APP.n(
+                    APP.value(
+                        x,
+                        "COUNT(*)"
+                    )
+                )
         );
 
     APP.chart("c10", {
@@ -940,8 +960,8 @@ function drawWuPartnerTrend() {
                         months.map(
                             month =>
                                 APP.DATA.filter(
-                                    row =>
-                                        row.Month === month &&
+                                        row =>
+                                        APP.value(row, "Month") === month &&
                                         APP.issueOwner(row) === owner
                                 ).length
                         ),
@@ -990,7 +1010,7 @@ function drawVendorIssueCategoryTrend() {
                             month =>
                                 rows.filter(
                                     row =>
-                                        row.Month === month &&
+                                        APP.value(row, "Month") === month &&
                                         APP.value(row, ["issue category", "Issue subcategory"]) === category
                                 ).length
                         ),
@@ -1039,9 +1059,9 @@ function drawTopWalletTrend() {
                             month =>
                                 APP.DATA.filter(
                                     row =>
-                                        row.Month === month &&
+                                        APP.value(row, "Month") === month &&
                                         (
-                                            row["Wallet Name/Specific Bank"] ||
+                                            APP.value(row, "Wallet Name/Specific Bank") ||
                                             "Unknown"
                                         ) === wallet
                                 ).length
@@ -1215,7 +1235,7 @@ function drawIssueCategoryByMonth() {
                             month =>
                                 APP.DATA.filter(
                                     row =>
-                                        row.Month === month &&
+                                        APP.value(row, "Month") === month &&
                                         APP.value(row, ["issue category", "Issue subcategory"]) === category
                                 ).length
                         ),
@@ -1425,8 +1445,8 @@ function drawInsufficientFundsTrend() {
                             partner =>
                                 rows.filter(
                                     row =>
-                                        row.Month === month &&
-                                        row.Partner === partner
+                                        APP.value(row, "Month") === month &&
+                                        APP.value(row, "Partner") === partner
                                 ).length
                         ),
                     backgroundColor:

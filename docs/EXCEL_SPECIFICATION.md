@@ -18,6 +18,24 @@ Notes:
 - If `DATA` is missing, the first worksheet is used as the incident dataset.
 - `CONFIG` and `Config` are both accepted.
 - `REROUTE` and `APN_VOLUME` may be matched by required columns even if sheet names differ.
+- Sheet names are normalized before comparison, so minor casing, spacing, and punctuation differences are tolerated.
+
+## Normalized Matching
+
+The dashboard now normalizes both sheet names and column names before checking them.
+
+Normalization currently:
+
+- trims whitespace
+- removes Excel `_x000d_` artifacts
+- lowercases text
+- removes spaces and punctuation for matching
+
+Practical effect:
+
+- `CONFIG`, `Config`, and ` config ` can all match the same logical sheet
+- `Issue Category`, `issue category`, and similar punctuated variants can resolve to the same field
+- optional sheets such as `REROUTE` and `APN_VOLUME` can still be discovered by their required columns even if the sheet tab name varies
 
 ## DATA Sheet
 
@@ -230,4 +248,4 @@ Recommended checks before upload:
 
 ## Current Dashboard Caveat
 
-The app is tolerant of several alias columns, but it is not fully schema-driven. If a workbook uses different names than the ones listed above, those fields may silently drop out of charts, overview tables, or filters.
+The app is more tolerant than before because matching is normalized, but it is still not fully schema-driven. Very different business labels can still fall outside the supported aliases and therefore drop out of charts, overview tables, filters, or pivot results.

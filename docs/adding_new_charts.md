@@ -2,6 +2,16 @@
 
 This guide reflects the current dashboard structure as of `2026-05-06`.
 
+## Column Access
+
+The dashboard now normalizes column names before matching them. When adding charts or tables:
+
+- prefer `APP.value(row, keyOrKeys)` or `APP.rowValue(row, keyOrKeys)` instead of direct `row["Column"]` access
+- prefer `APP.findColumnName(APP.RAW, wantedName)` when you need to resolve an actual workbook header
+- assume workbook headers may differ in case, spacing, or punctuation
+
+This keeps new visualizations compatible with inconsistent Excel column naming.
+
 ## Current Analytics Layout
 
 The `Analytics` tab currently contains 22 chart canvases:
@@ -42,6 +52,8 @@ To add a new chart and keep it aligned with the app:
 3. Add the canvas id to `APP.exportOrder` in `js/charts.js`.
 4. Call the renderer inside `APP.draw()`.
 5. Add a matching table entry in `APP.getGraphTables()` if the chart should appear in the `Tables` tab and global exports.
+
+For ad hoc analysis, note that the dashboard now also includes a pivot-style builder in the `Tables` tab. Use a fixed built-in chart only when the visualization needs to be part of the permanent product experience.
 
 ## Step 1: Add The Canvas
 
@@ -94,6 +106,7 @@ Useful helpers already available:
 - `APP.value(row, keyOrKeys)` for alias-safe field lookup
 - `APP.issueOwner(row)` for WU versus partner normalization
 - `APP.getReceiveCountryImpactEntries(limit)` as an example of shared chart/table aggregation
+- `APP.findColumnName(APP.RAW, key)` for normalized workbook header resolution
 
 ## Step 3: Add It To Export Order
 

@@ -14,6 +14,7 @@ APP.render = () => {
     APP.renderOverviewTabs();
     APP.renderSuggestions();
     APP.renderAnalyticsTables();
+    APP.renderPivotBuilder();
     APP.renderIncidentColumnPicker();
     APP.renderTable();
     APP.draw();
@@ -48,13 +49,19 @@ APP.getIncidentColumns = () => {
 
     if (APP.selectedIncidentColumns === null) {
         APP.selectedIncidentColumns =
-            APP.defaultIncidentColumns.filter(
-                column => excelColumns.includes(column)
-            );
+            APP.defaultIncidentColumns
+                .map(column =>
+                    APP.findColumnName(
+                        APP.RAW,
+                        column
+                    )
+                )
+                .filter(Boolean);
     }
 
     return APP.selectedIncidentColumns.filter(
-        column => excelColumns.includes(column)
+        column =>
+            excelColumns.includes(column)
     );
 };
 
@@ -97,14 +104,21 @@ APP.renderIncidentColumnPicker = () => {
 APP.renderTable = () => {
     const open =
         APP.DATA.filter(
-            r => r.Status === "Open"
+            r =>
+                APP.rowValue(
+                    r,
+                    "Status"
+                ) === "Open"
         ).length;
 
     const major =
         APP.DATA.filter(
             r =>
                 /major/i.test(
-                    r["Impact type"] || ""
+                    APP.rowValue(
+                        r,
+                        "Impact type"
+                    ) || ""
                 )
         ).length;
 
@@ -149,7 +163,7 @@ ${columns.map(column => APP.renderIncidentCell(r, column)).join("")}
 
 APP.renderIncidentCell = (row, column) => {
     const value =
-        row[column] ?? "";
+        APP.rowValue(row, column) ?? "";
 
     if (column === "Incident") {
         return `<td class="incident-id">${APP.escape(value)}</td>`;
@@ -180,14 +194,21 @@ APP.renderKPIs = () => {
 
     const open =
         APP.DATA.filter(
-            x => x.Status === "Open"
+            x =>
+                APP.rowValue(
+                    x,
+                    "Status"
+                ) === "Open"
         ).length;
 
     const closed =
         APP.DATA.filter(
             x =>
                 /closed|resolved/i.test(
-                    x.Status || ""
+                    APP.rowValue(
+                        x,
+                        "Status"
+                    ) || ""
                 )
         ).length;
 
@@ -203,7 +224,10 @@ APP.renderKPIs = () => {
             (s, r) =>
                 s +
                 APP.n(
-                    r["Delayed Transaction"]
+                    APP.rowValue(
+                        r,
+                        "Delayed Transaction"
+                    )
                 ),
             0
         );
@@ -213,7 +237,10 @@ APP.renderKPIs = () => {
             (s, r) =>
                 s +
                 APP.n(
-                    r["Delivery Breached"]
+                    APP.rowValue(
+                        r,
+                        "Delivery Breached"
+                    )
                 ),
             0
         );
@@ -223,7 +250,10 @@ APP.renderKPIs = () => {
             (s, r) =>
                 s +
                 APP.n(
-                    r["Transaction Loss(customer impact)"]
+                    APP.rowValue(
+                        r,
+                        "Transaction Loss(customer impact)"
+                    )
                 ),
             0
         );
@@ -233,7 +263,10 @@ APP.renderKPIs = () => {
             (s, r) =>
                 s +
                 APP.n(
-                    r["Transaction REJECTED"]
+                    APP.rowValue(
+                        r,
+                        "Transaction REJECTED"
+                    )
                 ),
             0
         );
@@ -242,7 +275,10 @@ APP.renderKPIs = () => {
         APP.DATA.filter(
             x =>
                 /major/i.test(
-                    x["Impact type"] || ""
+                    APP.rowValue(
+                        x,
+                        "Impact type"
+                    ) || ""
                 )
         ).length;
 
@@ -250,7 +286,10 @@ APP.renderKPIs = () => {
         APP.DATA.filter(
             r =>
                 /within 1 day|less than 1 day/i.test(
-                    r["Time Taken for Resolution"] || ""
+                    APP.rowValue(
+                        r,
+                        "Time Taken for Resolution"
+                    ) || ""
                 )
         ).length;
 
@@ -258,7 +297,10 @@ APP.renderKPIs = () => {
         APP.DATA.filter(
             r =>
                 /more than 3 days/i.test(
-                    r["Time Taken for Resolution"] || ""
+                    APP.rowValue(
+                        r,
+                        "Time Taken for Resolution"
+                    ) || ""
                 )
         ).length;
 
@@ -266,7 +308,10 @@ APP.renderKPIs = () => {
         APP.DATA.filter(
             r =>
                 /yes|delay|gap/i.test(
-                    r["Monitoring Gap / delay In detection"] || ""
+                    APP.rowValue(
+                        r,
+                        "Monitoring Gap / delay In detection"
+                    ) || ""
                 )
         ).length;
 
@@ -517,7 +562,15 @@ APP.getSelectedMonths = () => {
 
     return APP.sortedMonths
         ? APP.sortedMonths(APP.DATA)
-        : APP.u(APP.DATA.map(row => row.Month));
+        : APP.u(
+            APP.DATA.map(
+                row =>
+                    APP.rowValue(
+                        row,
+                        "Month"
+                    )
+            )
+        );
 };
 
 APP.matchesTrendBaseFilters = (row) => {
@@ -527,14 +580,14 @@ APP.matchesTrendBaseFilters = (row) => {
             : "";
 
     return (
-        APP.matchesFilter("fPartner", row.Partner) &&
-        APP.matchesFilter("fStatus", row.Status) &&
-        APP.matchesFilter("fPriority", row.PRIORITY) &&
-        APP.matchesFilter("fRegion", row.Region) &&
-        APP.matchesFilter("fCountry", row["Receive Country"]) &&
+        APP.matchesFilter("fPartner", APP.rowValue(row, "Partner")) &&
+        APP.matchesFilter("fStatus", APP.rowValue(row, "Status")) &&
+        APP.matchesFilter("fPriority", APP.rowValue(row, "PRIORITY")) &&
+        APP.matchesFilter("fRegion", APP.rowValue(row, "Region")) &&
+        APP.matchesFilter("fCountry", APP.rowValue(row, "Receive Country")) &&
         APP.matchesFilter("fOwner", APP.issueOwner(row)) &&
-            APP.matchesFilter("fCategory", row["Issue Category"] || row["issue category"] || row["Issue subcategory"]) &&
-        APP.matchesFilter("fImpact", row["Impact type"]) &&
+        APP.matchesFilter("fCategory", APP.value(row, ["Issue Category", "issue category", "Issue subcategory"])) &&
+        APP.matchesFilter("fImpact", APP.rowValue(row, "Impact type")) &&
         (!q || JSON.stringify(row).toLowerCase().includes(q))
     );
 };
@@ -565,7 +618,12 @@ APP.getFundingTrendLabel = () => {
 
     const countFundingForMonths = (monthList) =>
         baseRows.filter(row =>
-            monthList.includes(row.Month) &&
+            monthList.includes(
+                APP.rowValue(
+                    row,
+                    "Month"
+                )
+            ) &&
             APP.isWuIssue(row) &&
             APP.isFundingIssue(row)
         ).length;
@@ -1200,6 +1258,357 @@ APP.renderAnalyticsTables = () => {
         `<div class="empty-state">No graph table data available for the current filter selection.</div>`;
 };
 
+APP.getPivotColumns = () =>
+    APP.getExcelColumns().filter(Boolean);
+
+APP.getPivotState = () => {
+    const columns =
+        APP.getPivotColumns();
+    const numericFallback =
+        columns.find(column =>
+            APP.DATA.some(
+                row =>
+                    APP.n(
+                        APP.rowValue(
+                            row,
+                            column
+                        )
+                    ) > 0
+            )
+        ) || "";
+
+    if (!APP.PIVOT) {
+        APP.PIVOT = {
+            row: columns[0] || "",
+            column: "",
+            value: numericFallback,
+            agg: "count",
+            chartType: "bar"
+        };
+    }
+
+    if (
+        APP.PIVOT.row &&
+        !columns.includes(APP.PIVOT.row)
+    ) {
+        APP.PIVOT.row = columns[0] || "";
+    }
+
+    if (
+        APP.PIVOT.column &&
+        !columns.includes(APP.PIVOT.column)
+    ) {
+        APP.PIVOT.column = "";
+    }
+
+    if (
+        APP.PIVOT.value &&
+        !columns.includes(APP.PIVOT.value)
+    ) {
+        APP.PIVOT.value = numericFallback;
+    }
+
+    return APP.PIVOT;
+};
+
+APP.pivotOptions = (
+    columns,
+    selected,
+    allowBlank = false
+) =>
+    `${allowBlank ? `<option value="">None</option>` : ""}` +
+    columns.map(column => `
+<option value="${APP.escape(column)}" ${selected === column ? "selected" : ""}>${APP.escape(column)}</option>
+`).join("");
+
+APP.getPivotResult = () => {
+    const state =
+        APP.getPivotState();
+    const rows =
+        APP.DATA;
+    const rowKey =
+        state.row;
+
+    if (!rowKey) {
+        return {
+            title: "Pivot Result",
+            headers: [],
+            rows: [],
+            chart: null
+        };
+    }
+
+    const columnKey =
+        state.column;
+    const valueKey =
+        state.value;
+    const useCount =
+        state.agg === "count" ||
+        !valueKey;
+    const matrix = {};
+    const columnLabels =
+        new Set();
+
+    rows.forEach((row) => {
+        const rowLabel =
+            APP.rowValue(row, rowKey) || "Unknown";
+        const columnLabel =
+            columnKey
+                ? APP.rowValue(
+                    row,
+                    columnKey
+                ) || "Unknown"
+                : "Value";
+        const measure =
+            useCount
+                ? 1
+                : APP.n(
+                    APP.rowValue(
+                        row,
+                        valueKey
+                    )
+                );
+
+        if (!matrix[rowLabel]) {
+            matrix[rowLabel] = {};
+        }
+
+        matrix[rowLabel][columnLabel] =
+            (matrix[rowLabel][columnLabel] || 0) +
+            measure;
+
+        columnLabels.add(columnLabel);
+    });
+
+    const orderedColumns =
+        [...columnLabels];
+    const bodyRows =
+        Object.entries(matrix)
+            .map(([label, values]) => {
+                const cells =
+                    orderedColumns.map(
+                        key =>
+                            APP.n(
+                                values[key]
+                            )
+                    );
+                return [
+                    label,
+                    ...cells,
+                    cells.reduce(
+                        (sum, value) =>
+                            sum + value,
+                        0
+                    )
+                ];
+            })
+            .sort(
+                (a, b) =>
+                    APP.n(
+                        b[b.length - 1]
+                    ) -
+                    APP.n(
+                        a[a.length - 1]
+                    )
+            )
+            .slice(0, 20);
+
+    const title =
+        `${useCount ? "Count" : "Sum"} of ${valueKey || "Rows"} by ${rowKey}${columnKey ? ` and ${columnKey}` : ""}`;
+
+    return {
+        title,
+        headers: [
+            rowKey,
+            ...orderedColumns,
+            "Total"
+        ],
+        rows:
+            bodyRows.map(row => [
+                row[0],
+                ...row.slice(1).map(
+                    value =>
+                        APP.formatNum(value)
+                )
+            ]),
+        chart: {
+            labels:
+                bodyRows.map(row => row[0]),
+            datasets:
+                orderedColumns.map((label, index) => ({
+                    label,
+                    data:
+                        bodyRows.map(
+                            row =>
+                                APP.n(
+                                    row[index + 1]
+                                )
+                        ),
+                    backgroundColor:
+                        APP.colors[index % APP.colors.length],
+                    borderColor:
+                        APP.colors[index % APP.colors.length],
+                    borderRadius: 6
+                }))
+        }
+    };
+};
+
+APP.drawPivotChart = () => {
+    const pivot =
+        APP.getPivotResult();
+    const canvas =
+        APP.g("pivotChart");
+
+    if (!canvas || !pivot.chart) return;
+
+    if (APP.pivotChart) {
+        APP.pivotChart.destroy();
+    }
+
+    const state =
+        APP.getPivotState();
+    const isCircular =
+        state.chartType === "pie" ||
+        state.chartType === "doughnut";
+    const chartData =
+        isCircular
+            ? {
+                labels:
+                    pivot.chart.labels,
+                datasets: [{
+                    label:
+                        pivot.chart.datasets[0]?.label || pivot.title,
+                    data:
+                        pivot.chart.datasets[0]?.data || [],
+                    backgroundColor:
+                        pivot.chart.labels.map(
+                            (_, index) =>
+                                APP.colors[index % APP.colors.length]
+                        )
+                }]
+            }
+            : pivot.chart;
+
+    APP.pivotChart =
+        new Chart(canvas, {
+            type: state.chartType,
+            data: chartData,
+            options: APP.chartOptions(
+                pivot.title,
+                isCircular
+                    ? { scales: {} }
+                    : {}
+            )
+        });
+};
+
+APP.renderPivotBuilder = () => {
+    const panel =
+        APP.g("pivotBuilder");
+    const tableBox =
+        APP.g("pivotTableWrap");
+
+    if (!panel || !tableBox) return;
+
+    const columns =
+        APP.getPivotColumns();
+    const state =
+        APP.getPivotState();
+
+    panel.innerHTML =
+        columns.length
+            ? `
+<label class="pivot-field">
+    <span>Rows</span>
+    <select id="pivotRow">${APP.pivotOptions(columns, state.row)}</select>
+</label>
+<label class="pivot-field">
+    <span>Columns</span>
+    <select id="pivotColumn">${APP.pivotOptions(columns, state.column, true)}</select>
+</label>
+<label class="pivot-field">
+    <span>Values</span>
+    <select id="pivotValue">${APP.pivotOptions(columns, state.value, true)}</select>
+</label>
+<label class="pivot-field">
+    <span>Aggregation</span>
+    <select id="pivotAgg">
+        <option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option>
+        <option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option>
+    </select>
+</label>
+<label class="pivot-field">
+    <span>Chart Type</span>
+    <select id="pivotChartType">
+        <option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option>
+        <option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option>
+        <option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option>
+        <option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option>
+    </select>
+</label>
+`
+            : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
+
+    const syncPivot = () => {
+        APP.PIVOT = {
+            row:
+                APP.g("pivotRow")?.value || "",
+            column:
+                APP.g("pivotColumn")?.value || "",
+            value:
+                APP.g("pivotValue")?.value || "",
+            agg:
+                APP.g("pivotAgg")?.value || "count",
+            chartType:
+                APP.g("pivotChartType")?.value || "bar"
+        };
+
+        const pivot =
+            APP.getPivotResult();
+
+        tableBox.innerHTML =
+            pivot.rows.length
+                ? `
+<div class="data-table-card">
+    <div class="data-table-head">
+        <h4>${APP.escape(pivot.title)}</h4>
+        <span>${pivot.rows.length} rows</span>
+    </div>
+    <div class="data-table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>${pivot.headers.map(header => `<th>${APP.escape(header)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+                ${pivot.rows.map(row => `<tr>${row.map(cell => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")}
+            </tbody>
+        </table>
+    </div>
+</div>
+`
+                : `<div class="empty-state">No pivot output is available for the current setup.</div>`;
+
+        APP.drawPivotChart();
+    };
+
+    [
+        "pivotRow",
+        "pivotColumn",
+        "pivotValue",
+        "pivotAgg",
+        "pivotChartType"
+    ].forEach((id) => {
+        const el =
+            APP.g(id);
+        if (el) {
+            el.onchange = syncPivot;
+        }
+    });
+
+    syncPivot();
+};
+
 APP.renderExportOptions = () => {
     const box =
         APP.g("chartExportList");
@@ -1361,7 +1770,7 @@ APP.getIncidentRegisterTable = () => {
         headers: columns,
         rows:
             APP.DATA.map(row =>
-                columns.map(column => row[column] ?? "")
+                columns.map(column => APP.rowValue(row, column) ?? "")
             )
     };
 };
@@ -2301,7 +2710,11 @@ APP.getReviewPeriod = () => {
     const months =
         APP.u(
             APP.DATA.map(
-                r => r.Month
+                r =>
+                    APP.rowValue(
+                        r,
+                        "Month"
+                    )
             )
         );
 
@@ -2374,13 +2787,21 @@ APP.renderSummary = () => {
     const p1 =
         APP.DATA.filter(
             x =>
-                String(x.PRIORITY) === "1"
+                String(
+                    APP.rowValue(
+                        x,
+                        "PRIORITY"
+                    )
+                ) === "1"
         ).length;
 
     const open =
         APP.DATA.filter(
             x =>
-                x.Status === "Open"
+                APP.rowValue(
+                    x,
+                    "Status"
+                ) === "Open"
         ).length;
 
     const delayed =
@@ -2470,13 +2891,27 @@ APP.renderSuggestions = () => {
         APP.SUGGESTIONS
             .sort(
                 (a, b) =>
-                    APP.n(a.priority) -
-                    APP.n(b.priority)
+                    APP.n(
+                        APP.rowValue(
+                            a,
+                            "priority"
+                        )
+                    ) -
+                    APP.n(
+                        APP.rowValue(
+                            b,
+                            "priority"
+                        )
+                    )
             )
             .map(
-                row => row.suggestion
-                    ? `<li>${row.suggestion}</li>`
-                    : ""
+                row =>
+                    APP.rowValue(
+                        row,
+                        "suggestion"
+                    )
+                        ? `<li>${APP.rowValue(row, "suggestion")}</li>`
+                        : ""
             )
             .join("");
 };
@@ -2615,9 +3050,14 @@ if (APP.g("btnDefaultColumns")) {
             APP.getExcelColumns();
 
         APP.selectedIncidentColumns =
-            APP.defaultIncidentColumns.filter(
-                column => excelColumns.includes(column)
-            );
+            APP.defaultIncidentColumns
+                .map(column =>
+                    APP.findColumnName(
+                        APP.RAW,
+                        column
+                    )
+                )
+                .filter(column => excelColumns.includes(column));
 
         APP.renderIncidentColumnPicker();
         APP.renderTable();

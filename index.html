@@ -221,6 +221,21 @@
                 <div class="card section-box">
                     <div class="table-section-head">
                         <div>
+                            <h3>Pivot Builder</h3>
+                            <p>Generate charts and tables on the fly from the currently filtered Excel data, similar to
+                                a pivot chart.</p>
+                        </div>
+                    </div>
+                    <div id="pivotBuilder" class="pivot-builder"></div>
+                    <div class="card chart-card pivot-chart-card">
+                        <canvas id="pivotChart"></canvas>
+                    </div>
+                    <br>
+                    <div id="pivotTableWrap"></div>
+                </div>
+                <div class="card section-box">
+                    <div class="table-section-head">
+                        <div>
                             <h3>Graph Data Tables</h3>
                             <p>Tabular export of the same filtered data used by the graphs.</p>
                         </div>
@@ -263,6 +278,7 @@
                     </table>
                 </div>
             </section>
+
         </main>
     </div>
     <div id="exportModal" class="modal-backdrop hide" role="dialog" aria-modal="true"

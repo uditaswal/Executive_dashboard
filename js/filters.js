@@ -24,15 +24,15 @@ APP.matchesFilter = (id, value) => {
 };
 
 APP.populate = () => {
-    APP.fill("fMonth", APP.u(APP.RAW.map((x) => x.Month)));
-    APP.fill("fPartner", APP.u(APP.RAW.map((x) => x.Partner)));
-    APP.fill("fStatus", APP.u(APP.RAW.map((x) => x.Status)));
-    APP.fill("fPriority", APP.u(APP.RAW.map((x) => x.PRIORITY)));
-    APP.fill("fRegion", APP.u(APP.RAW.map((x) => x.Region)));
-    APP.fill("fCountry", APP.u(APP.RAW.map((x) => x["Receive Country"])));
+    APP.fill("fMonth", APP.u(APP.RAW.map((x) => APP.getValue(x, "Month"))));
+    APP.fill("fPartner", APP.u(APP.RAW.map((x) => APP.getValue(x, "Partner"))));
+    APP.fill("fStatus", APP.u(APP.RAW.map((x) => APP.getValue(x, "Status"))));
+    APP.fill("fPriority", APP.u(APP.RAW.map((x) => APP.getValue(x, "PRIORITY"))));
+    APP.fill("fRegion", APP.u(APP.RAW.map((x) => APP.getValue(x, "Region"))));
+    APP.fill("fCountry", APP.u(APP.RAW.map((x) => APP.getValue(x, "Receive Country"))));
     APP.fill("fOwner", APP.u(APP.RAW.map((x) => APP.issueOwner(x))));
-    APP.fill("fCategory", APP.u(APP.RAW.map((x) => x["Issue Category"] || x["issue category"] || x["Issue subcategory"])));
-    APP.fill("fImpact", APP.u(APP.RAW.map((x) => x["Impact type"])));
+    APP.fill("fCategory", APP.u(APP.RAW.map((x) => APP.value(x, ["Issue Category", "issue category", "Issue subcategory"]))));
+    APP.fill("fImpact", APP.u(APP.RAW.map((x) => APP.getValue(x, "Impact type"))));
 };
 APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
@@ -40,15 +40,15 @@ APP.apply = () => {
     APP.DATA = APP.RAW.filter(
         (r) => {
             return (
-                APP.matchesFilter("fMonth", r.Month) &&
-                APP.matchesFilter("fPartner", r.Partner) &&
-                APP.matchesFilter("fStatus", r.Status) &&
-                APP.matchesFilter("fPriority", r.PRIORITY) &&
-                APP.matchesFilter("fRegion", r.Region) &&
-                APP.matchesFilter("fCountry", r["Receive Country"]) &&
+                APP.matchesFilter("fMonth", APP.getValue(r, "Month")) &&
+                APP.matchesFilter("fPartner", APP.getValue(r, "Partner")) &&
+                APP.matchesFilter("fStatus", APP.getValue(r, "Status")) &&
+                APP.matchesFilter("fPriority", APP.getValue(r, "PRIORITY")) &&
+                APP.matchesFilter("fRegion", APP.getValue(r, "Region")) &&
+                APP.matchesFilter("fCountry", APP.getValue(r, "Receive Country")) &&
                 APP.matchesFilter("fOwner", APP.issueOwner(r)) &&
-                APP.matchesFilter("fCategory", r["Issue Category"] || r["issue category"] || r["Issue subcategory"]) &&
-                APP.matchesFilter("fImpact", r["Impact type"]) &&
+                APP.matchesFilter("fCategory", APP.value(r, ["Issue Category", "issue category", "Issue subcategory"])) &&
+                APP.matchesFilter("fImpact", APP.getValue(r, "Impact type")) &&
                 (!q || JSON.stringify(r).toLowerCase().includes(q))
             );
         }

@@ -15,10 +15,12 @@ The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read E
 
 - Auto-loads `data/payments_incident_sample.xlsx` when served from a local web server.
 - Supports manual upload of `.xlsx`, `.xls`, and `.csv` files.
+- Normalizes sheet names and column names before matching, so casing, spaces, punctuation, and minor naming variations are handled more safely.
 - Applies live multi-select filters for month, partner, status, priority, region, receive country, issue owner, category, impact type, and free-text incident search.
 - Includes four main views: `Overview`, `Analytics`, `Tables`, and `Incidents`.
 - Shows KPI cards, executive summary text, priority breakdown, resolution and impact breakdowns, overview insights, period metrics, platform RCA, and vendor RCA.
 - Renders 22 analytics charts and matching graph-data tables from the current filtered dataset.
+- Includes a pivot-style builder that can generate charts and tables on the fly from the uploaded Excel data.
 - Lets users choose which Excel columns appear in the incident register.
 - Exports selected overview sections, charts, and tables to PNG, PowerPoint, and Excel.
 - Reads optional multi-sheet data for configuration, suggestions, reroute metrics, and APN volume trends.
@@ -76,6 +78,23 @@ Workbook loading behavior:
 - If `DATA` is missing, it falls back to the first workbook sheet.
 - `CONFIG` and `Config` are both accepted for dashboard settings.
 - `REROUTE` and `APN_VOLUME` can be discovered by required columns even if the sheet name differs.
+- Sheet matching is normalized before lookup, so variants like extra spaces, underscore differences, or casing differences are tolerated.
+
+## Normalization Rules
+
+Before matching sheets or columns, the app normalizes names by:
+
+- trimming whitespace
+- removing Excel `_x000d_` artifacts
+- lowercasing
+- removing spaces and punctuation for comparison
+
+Examples that can now resolve to the same logical field include:
+
+- `CONFIG`, `Config`, `config`
+- `Issue Category`, `issue category`, `Issue-Category`
+- `Issue(WU/Partner)` and spaced or punctuated variants
+- `Receive Country` and minor formatting variations
 
 ## Supported Workbook Sheets
 
@@ -154,7 +173,12 @@ Users can also toggle `Show counts on charts`.
 
 ## Tables View
 
-The `Tables` tab renders graph-data tables that mirror the currently filtered analytics data, including:
+The `Tables` tab now includes two capabilities:
+
+- A pivot-style builder for ad hoc chart and table generation from the currently filtered workbook data
+- The built-in graph-data tables that mirror the analytics charts
+
+The built-in graph-data tables include:
 
 - Monthly trend
 - Status split
@@ -170,6 +194,23 @@ The `Tables` tab renders graph-data tables that mirror the currently filtered an
 - Delayed, rejected, and operational impact tables
 - Resolution, impact, and monitoring splits
 - Insufficient funds trend
+
+### Pivot Builder
+
+The pivot builder works on the currently filtered `DATA` rows and lets users choose:
+
+- `Rows`
+- `Columns`
+- `Values`
+- `Aggregation` as `Count` or `Sum`
+- `Chart Type` as `Bar`, `Line`, `Doughnut`, or `Pie`
+
+It generates:
+
+- a chart from the selected pivot setup
+- a matching table showing the same grouped output
+
+This is intended to feel similar to a lightweight Excel pivot chart workflow inside the dashboard.
 
 ## Incidents View
 
