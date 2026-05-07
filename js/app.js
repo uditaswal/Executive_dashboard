@@ -1086,7 +1086,7 @@ APP.getVendorRcaTable = () => {
                         .join(", ") || "Unknown";
 
                 const impact =
-                    `Transaction delayed : ${APP.formatNum(group.delayed)}\nTransaction breached : ${APP.formatNum(group.breached)}`;
+                    `Delayed: ${APP.formatNum(group.delayed)} | Breached: ${APP.formatNum(group.breached)}`;
 
                 const rca =
                     Object.entries(group.issueTypes)
@@ -1101,8 +1101,6 @@ APP.getVendorRcaTable = () => {
                     group.partner,
                     APP.formatNum(group.incidentCount),
                     impact,
-                    APP.formatNum(group.delayed),
-                    APP.formatNum(group.breached),
                     rca
                 ];
             });
@@ -1115,8 +1113,6 @@ APP.getVendorRcaTable = () => {
             "Partner",
             "# Incidents",
             "Impact",
-            "Total Delayed",
-            "Total Breached",
             "RCA"
         ],
         rows: tableRows
@@ -1143,7 +1139,7 @@ APP.renderOverviewVendorTable = () => {
             ${table.rows.map((row, rowIndex) => `
             <tr class="${rowIndex % 2 ? "vendor-alt-row" : ""}">
                 ${row.map((cell, cellIndex) => `
-                    <td class="${cellIndex === 2 || cellIndex === 4 || cellIndex === 5 ? "num-cell" : ""}">${APP.escape(cell).replace(/\n/g, "<br>")}</td>
+                    <td class="${cellIndex === 2 ? "num-cell" : ""}">${APP.escape(cell).replace(/\n/g, "<br>")}</td>
                 `).join("")}
             </tr>
             `).join("")}
@@ -1279,7 +1275,7 @@ APP.getPivotState = () => {
 
     if (!APP.PIVOT) {
         APP.PIVOT = {
-            row: columns[0] || "",
+            row: columns.includes("Partner") ? "Partner" : (columns[0] || ""),
             column: "",
             value: numericFallback,
             agg: "count",

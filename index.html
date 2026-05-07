@@ -107,6 +107,7 @@
             <div class='main-head'>
                 <div class='tabs'>
                     <button class='tab active' data-view='overview'>Overview</button>
+                    <button class='tab' data-view='pivot'>Pivot</button>
                     <button class='tab' data-view='analytics'>Analytics</button>
                     <button class='tab' data-view='tables'>Tables</button>
                     <button class='tab' data-view='incidents'>Incidents</button>
@@ -126,6 +127,12 @@
                 </div>
                 <br>
 
+                <!-- <div id="overviewTopStatsSection" class="card section-box">
+                    <h3>Top Statistics</h3>
+                    <div id="topStatsCards" class="stats-grid"></div>
+                </div>
+                <br>
+ -->
                 <div id="overviewImpactSection" class="card section-box">
                     <h3>Resolution & Impact Breakdown</h3>
                     <div class="secondary-breakdowns">
@@ -216,7 +223,7 @@
                 </div>
 
             </section>
-            <section id='tables' class='view hide'>
+            <section id='pivot' class='view hide'>
                 <div class="card section-box">
                     <div class="table-section-head">
                         <div>
@@ -232,6 +239,8 @@
                     <br>
                     <div id="pivotTableWrap"></div>
                 </div>
+            </section>
+            <section id='tables' class='view hide'>
                 <div class="card section-box">
                     <div class="table-section-head">
                         <div>
