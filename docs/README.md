@@ -18,7 +18,7 @@ The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read E
 - Normalizes sheet names and column names before matching, so casing, spaces, punctuation, and minor naming variations are handled more safely.
 - Applies live multi-select filters for month, partner, status, priority, region, receive country, issue owner, category, impact type, and free-text incident search.
 - Includes four main views: `Overview`, `Analytics`, `Tables`, and `Incidents`.
-- Shows KPI cards, executive summary text, priority breakdown, resolution and impact breakdowns, overview insights, period metrics, platform RCA, and vendor RCA.
+- Shows KPI cards, executive summary text, priority breakdown, resolution and impact breakdowns, overview insights, period metrics, WU platform RCA, and vendor issues.
 - Renders 22 analytics charts and matching graph-data tables from the current filtered dataset.
 - Includes a pivot-style builder that can generate charts and tables on the fly from the uploaded Excel data.
 - Lets users choose which Excel columns appear in the incident register.
@@ -98,13 +98,13 @@ Examples that can now resolve to the same logical field include:
 
 ## Supported Workbook Sheets
 
-| Sheet | Required | Purpose |
-| --- | --- | --- |
-| `DATA` | Yes | Main incident records used by filters, charts, KPIs, tables, and the incident register |
-| `CONFIG` or `Config` | No | Dashboard title and theme color |
-| `SUGGESTIONS` | No | Overview recommendation list |
-| `REROUTE` | No | Rerouted transaction count and saved USD metrics |
-| `APN_VOLUME` | No | APN monthly transaction volume trend |
+| Sheet                | Required | Purpose                                                                                |
+| -------------------- | -------- | -------------------------------------------------------------------------------------- |
+| `DATA`               | Yes      | Main incident records used by filters, charts, KPIs, tables, and the incident register |
+| `CONFIG` or `Config` | No       | Dashboard title and theme color                                                        |
+| `SUGGESTIONS`        | No       | Overview recommendation list                                                           |
+| `REROUTE`            | No       | Rerouted transaction count and saved USD metrics                                       |
+| `APN_VOLUME`         | No       | APN monthly transaction volume trend                                                   |
 
 If a `DATA` sheet is not available, the dashboard uses the first sheet in the workbook as the main dataset.
 
@@ -136,8 +136,8 @@ The `Overview` tab includes:
 - An overview builder with four subtabs:
   - `Insights`
   - `<Period> View`
-  - `Platform RCA`
-  - `Vendor RCA`
+  - `WU Issues`
+  - `Vendor Issues`
 - Suggestions
 
 The period label is dynamic. Depending on the current month filter, it can show values like `Jan`, `Jan-Mar`, `Q1`, or a comma-separated month list.

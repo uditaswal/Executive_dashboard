@@ -114,11 +114,6 @@
                 <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
             </div>
             <section id='overview' class='view'>
-                <div id="overviewSummarySection" class="card summary-box">
-                    <h3>Summary</h3>
-                    <div id="execSummary"></div>
-                </div>
-                <br>
                 <div id="overviewKpiSection" class="card section-box">
                     <h3>KEY PERFORMANCE INDICATORS</h3>
                     <div id="kpis" class="grid"></div>
@@ -144,19 +139,24 @@
                         </div>
                     </div>
                 </div>
-                <br>
 
+                <div id="overviewSummarySection" class="card summary-box">
+                    <h3>Summary</h3>
+                    <div id="execSummary"></div>
+                </div>
+                <br>
                 <div id="overviewBuilderSection" class="card section-box overview-builder">
                     <div class="overview-builder-head">
-                        <h3>Overview</h3>
+                        <h3>Operational Insights</h3>
                         <div class="overview-subtabs" role="tablist" aria-label="Executive overview tables">
                             <button class="overview-subtab active" type="button"
                                 data-overview-tab="insights">Insights</button>
                             <button class="overview-subtab" type="button" data-overview-tab="metrics"><span
                                     id="overviewPeriodTabLabel">Period</span> View</button>
-                            <button class="overview-subtab" type="button" data-overview-tab="platform">Platform
+                            <button class="overview-subtab" type="button" data-overview-tab="platform">WU Platform
                                 RCA</button>
-                            <button class="overview-subtab" type="button" data-overview-tab="vendor">Vendor RCA</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="vendor">Vendor
+                                Issues</button>
                         </div>
                     </div>
                     <div id="overviewTabContent"></div>
@@ -166,8 +166,7 @@
                     <h3>SUGGESTIONS</h3>
                     <ul id="suggestions"></ul>
                 </div>
-
-
+                <br>
             </section>
             <section id='analytics' class='view hide'>
                 <div class="card export-panel">
@@ -247,8 +246,7 @@
                 <div class="incident-toolbar">
                     <div>
                         <h3>Incident Register</h3>
-                        <p>Filtered operational incident list with partner, impact, ownership, and transaction impact
-                            details.</p>
+                        <p>Filtered operational incident.</p>
                     </div>
                     <div class="incident-stats">
                         <span id="incidentShown">0 shown</span>

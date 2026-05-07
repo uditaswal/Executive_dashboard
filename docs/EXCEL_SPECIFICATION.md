@@ -33,7 +33,7 @@ Normalization currently:
 
 Practical effect:
 
-- `CONFIG`, `Config`, and ` config ` can all match the same logical sheet
+- `CONFIG`, `Config`, and `config` can all match the same logical sheet
 - `Issue Category`, `issue category`, and similar punctuated variants can resolve to the same field
 - optional sheets such as `REROUTE` and `APN_VOLUME` can still be discovered by their required columns even if the sheet tab name varies
 
@@ -43,49 +43,49 @@ Purpose: incident analytics, filters, overview metrics, charts, RCA tables, and 
 
 ### Core Columns Used By The Current UI
 
-| Column Name | Usage |
-| --- | --- |
-| `Incident` | Incident register and search |
-| `Month` | Filters, trend charts, period label |
-| `Partner` | Filters, rankings, RCA tables |
-| `Status` | Filters, KPI counts, status chart |
-| `PRIORITY` | Filters, KPI summaries, priority chart/cards |
-| `Region` | Filters and regional overview insights |
-| `Receive Country` | Filters, country charts, RCA tables |
-| `Impact type` | Filters, incident stats, impact chart |
-| `Delayed Transaction` | KPI totals, impact charts, RCA tables |
-| `Delivery Breached` | KPI totals, impact charts, RCA tables |
-| `Transaction Loss(customer impact)` | Loss chart and impact totals |
-| `Transaction REJECTED` | Rejection chart and impact totals |
-| `Time Taken for Resolution` | Resolution breakdowns and chart |
-| `Monitoring Gap / delay In detection` | Monitoring chart and table |
+| Column Name                           | Usage                                        |
+| ------------------------------------- | -------------------------------------------- |
+| `Incident`                            | Incident register and search                 |
+| `Month`                               | Filters, trend charts, period label          |
+| `Partner`                             | Filters, rankings, RCA tables                |
+| `Status`                              | Filters, KPI counts, status chart            |
+| `PRIORITY`                            | Filters, KPI summaries, priority chart/cards |
+| `Region`                              | Filters and regional overview insights       |
+| `Receive Country`                     | Filters, country charts, RCA tables          |
+| `Impact type`                         | Filters, incident stats, impact chart        |
+| `Delayed Transaction`                 | KPI totals, impact charts, RCA tables        |
+| `Delivery Breached`                   | KPI totals, impact charts, RCA tables        |
+| `Transaction Loss(customer impact)`   | Loss chart and impact totals                 |
+| `Transaction REJECTED`                | Rejection chart and impact totals            |
+| `Time Taken for Resolution`           | Resolution breakdowns and chart              |
+| `Monitoring Gap / delay In detection` | Monitoring chart and table                   |
 
 ### Ownership And RCA Columns
 
 The app supports multiple naming styles for ownership and RCA logic:
 
-| Column Name | Notes |
-| --- | --- |
-| `Issue(WU/Partner)` | Preferred owner/source column |
-| `Issue (WU issue/Partner side)` | Supported alias for owner/source |
-| `Issue Category` | Supported RCA category column |
-| `issue category` | Supported alias used in existing workbooks |
-| `Issue subcategory` | Used in category trends and insufficient-funds analysis |
-| `Issue Type` | Used in vendor RCA narrative aggregation |
-| `Issue type` | Supported alias for vendor RCA |
-| `Platform` | Used in platform RCA grouping |
-| `platform` | Supported alias for platform RCA |
-| `RCA description` | Platform RCA summary text |
-| `Actual RCA` | Preferred RCA text when present |
-| `Issue Summary` | Supported summary alias |
-| `Issue summary` | Supported summary alias |
-| `Prevention` | Platform RCA prevention text |
-| `prevention` | Supported alias |
+| Column Name                     | Notes                                                   |
+| ------------------------------- | ------------------------------------------------------- |
+| `Issue(WU/Partner)`             | Preferred owner/source column                           |
+| `Issue (WU issue/Partner side)` | Supported alias for owner/source                        |
+| `Issue Category`                | Supported RCA category column                           |
+| `issue category`                | Supported alias used in existing workbooks              |
+| `Issue subcategory`             | Used in category trends and insufficient-funds analysis |
+| `Issue Type`                    | Used in vendor RCA narrative aggregation                |
+| `Issue type`                    | Supported alias for vendor RCA                          |
+| `Platform`                      | Used in platform RCA grouping                           |
+| `platform`                      | Supported alias for platform RCA                        |
+| `RCA description`               | Platform RCA summary text                               |
+| `Actual RCA`                    | Preferred RCA text when present                         |
+| `Issue Summary`                 | Supported summary alias                                 |
+| `Issue summary`                 | Supported summary alias                                 |
+| `Prevention`                    | Platform RCA prevention text                            |
+| `prevention`                    | Supported alias                                         |
 
 ### Additional Operational Columns
 
-| Column Name | Usage |
-| --- | --- |
+| Column Name                 | Usage                                  |
+| --------------------------- | -------------------------------------- |
 | `Wallet Name/Specific Bank` | Wallet trend and delayed-wallet charts |
 
 ### Recommended DATA Values
@@ -132,9 +132,9 @@ Rows are grouped by `Platform` or `platform`, then summarized with:
 
 The UI shows the top five platforms by delayed transactions.
 
-### Vendor RCA
+### Vendor Issues
 
-Vendor RCA includes rows where both conditions are true:
+Vendor Issues includes rows where both conditions are true:
 
 - `Issue Category` or alias equals `Partner Side`
 - `Issue(WU/Partner)` or alias equals `Vendor issue`

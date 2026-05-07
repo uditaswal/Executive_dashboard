@@ -648,7 +648,7 @@ APP.getFundingTrendLabel = () => {
     const period =
         APP.getReviewPeriod();
 
-    return `${movement} in WU Side Funding Issues in ${period}: ${APP.formatNum(current)} vs ${APP.formatNum(previous)} prior period`;
+    return ``;
 };
 
 APP.getOverviewMetrics = () => {
