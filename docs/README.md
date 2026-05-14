@@ -274,4 +274,4 @@ If those figures change, update the summary logic in `js/app.js` in addition to 
 
 ## Adding New Charts
 
-See `docs/adding_new_charts.md` for the current chart and table workflow.
+See `docs/adding_new_charts.md` for the current chart and table workflow
