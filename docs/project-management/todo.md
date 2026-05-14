@@ -30,3 +30,10 @@
 - Add widget create/edit UX for runtime-generated widgets.
 - Verify the functionality of new rejection filters (Bank Name, Bank Code, Status).
 - Ensure UI integration for the new filters in the rejection tab.
+
+---
+
+remove rejecction filers from main filter tab
+fix filters in rejection tabs
+work on plan.md and make it config driven, especailly allow user to add new tabs
+directly export everything to ppt at once.
