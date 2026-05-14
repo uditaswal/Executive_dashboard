@@ -1,13 +1,9 @@
 data/*.pptx
 data/$*
 inital_versions/
+image/
+docs/task/*.md
 
 ~$*
 
-image/
-task.md
-plan.md
 
-
-docs/plan.md
-docs/task.md

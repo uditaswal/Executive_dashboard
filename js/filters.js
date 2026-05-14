@@ -36,6 +36,9 @@ APP.populate = () => {
     APP.fill("fRejPartner", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "PARTNERNAME"))));
     APP.fill("fRejCountry", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "RECEIVECOUNTRYCODE"))));
     APP.fill("fRejDelivery", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "DELIVERYSERVICE"))));
+    APP.fill("fRejBankName", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "BANKNAME"))));
+    APP.fill("fRejBankCode", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "BANKCODE"))));
+    APP.fill("fRejStatus", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "STATUS"))));
 };
 APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
@@ -65,13 +68,16 @@ APP.apply = () => {
             APP.matchesFilter("fRejPartner", APP.getValue(r, "PARTNERNAME")) &&
             APP.matchesFilter("fRejCountry", APP.getValue(r, "RECEIVECOUNTRYCODE")) &&
             APP.matchesFilter("fRejDelivery", APP.getValue(r, "DELIVERYSERVICE")) &&
+            APP.matchesFilter("fRejBankName", APP.getValue(r, "BANKNAME")) &&
+            APP.matchesFilter("fRejBankCode", APP.getValue(r, "BANKCODE")) &&
+            APP.matchesFilter("fRejStatus", APP.getValue(r, "STATUS")) &&
             (!q || JSON.stringify(r).toLowerCase().includes(q))
         ));
 
     APP.render();
 };
 APP.reset = () => {
-    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejPartner", "fRejCountry", "fRejDelivery"].forEach(
+    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejPartner", "fRejCountry", "fRejDelivery", "fRejBankName", "fRejBankCode", "fRejStatus"].forEach(
         (x) => {
             const el = APP.g(x);
 
@@ -97,4 +103,14 @@ APP.reset = () => {
     APP.rejectionsTopN = null;
 
     APP.apply();
+};
+
+globalFilters.rejections = {
+    month: [],
+    partner: [],
+    country: [],
+    deliveryService: [],
+    bankname: [],
+    bankcode: [],
+    status: []
 };

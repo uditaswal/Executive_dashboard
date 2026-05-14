@@ -3,6 +3,10 @@ window.APP = {
     DATA: [],
     REJECTIONS: [],
     filteredRejections: [],
+    datasets: {
+        incidents: [],
+        rejections: []
+    },
     charts: {},
     // multi-sheet data
     SHEETS: {},
@@ -322,6 +326,12 @@ APP.parse = (buffer) => {
                 ["TXN_COUNT", "SENDAMOUNTINUSD"]
             );
     APP.filteredRejections =
+        APP.REJECTIONS.slice();
+    APP.datasets =
+        APP.datasets || {};
+    APP.datasets.incidents =
+        APP.RAW.slice();
+    APP.datasets.rejections =
         APP.REJECTIONS.slice();
     APP.applyConfig();
     APP.populate();

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "profiles": [
+    {
+      "id": "executive-review",
+      "title": "Executive Review",
+      "widgetIds": ["overview-summary", "overview-kpi-incidents", "overview-kpi-rejections", "executive-summary-text"]
+    },
+    {
+      "id": "monthly-ops",
+      "title": "Monthly Ops",
+      "widgetIds": ["incidents-monthly-trend", "incidents-by-partner", "rejections-monthly-trend", "rejections-by-bank"]
+    },
+    {
+      "id": "vendor-rca",
+      "title": "Vendor RCA",
+      "widgetIds": ["vendor-rca-table"]
+    },
+    {
+      "id": "reject-analysis",
+      "title": "Reject Analysis",
+      "widgetIds": ["rejections-monthly-trend", "rejections-by-bank", "rejections-register"]
+    }
+  ]
+}

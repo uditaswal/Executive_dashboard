@@ -118,6 +118,27 @@
                 </select>
             </label>
 
+            <label class="filter-field">
+                <span>Bank Name</span>
+                <select id='fRejBankName' multiple>
+                    <option value=''>All Bank Names</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Bank Code</span>
+                <select id='fRejBankCode' multiple>
+                    <option value=''>All Bank Codes</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Status</span>
+                <select id='fRejStatus' multiple>
+                    <option value=''>All Statuses</option>
+                </select>
+            </label>
+
             <div class="filter-actions">
                 <button id='btnLoad'>Auto Load</button>
                 <button id='btnApply'>Apply</button>
@@ -318,11 +339,63 @@
                     </table>
                 </div>
             </section>
-            <section id='rejections' class='view hide'>
+            <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
+                <div class="filter-bar">
+                    <label class="filter-field">
+                        <span>Month</span>
+                        <select id='fRejMonth' multiple>
+                            <option value=''>All Months</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Partner</span>
+                        <select id='fRejPartner' multiple>
+                            <option value=''>All Partners</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Delivery Service</span>
+                        <select id='fRejDelivery' multiple>
+                            <option value=''>All Delivery Services</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Bank Name</span>
+                        <select id='fRejBankName' multiple>
+                            <option value=''>All Bank Names</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Bank Code</span>
+                        <select id='fRejBankCode' multiple>
+                            <option value=''>All Bank Codes</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Country</span>
+                        <select id='fRejCountry' multiple>
+                            <option value=''>All Countries</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field">
+                        <span>Status</span>
+                        <select id='fRejStatus' multiple>
+                            <option value=''>All Statuses</option>
+                        </select>
+                    </label>
+                </div>
+
                 <div class="card section-box">
                     <h3>Rejection KPIs</h3>
                     <div id="rejectionKpis" class="grid"></div>
                 </div>
+
                 <div class="card export-panel">
                     <div class="export-head">
                         <div>
@@ -341,64 +414,6 @@
                             </label>
                         </div>
                     </div>
-                </div>
-                <div class='charts'>
-                    <div class='card wide'><canvas id='rc1'></canvas></div>
-                    <div class='card wide'><canvas id='rc2'></canvas></div>
-                    <div class='card'><canvas id='rc3'></canvas></div>
-                    <div class='card'><canvas id='rc4'></canvas></div>
-                    <div class='card'><canvas id='rc5'></canvas></div>
-                    <div class='card'><canvas id='rc6'></canvas></div>
-                    <div class='card'><canvas id='rc7'></canvas></div>
-                    <div class='card wide'><canvas id='rc8'></canvas></div>
-                    <div class='card'><canvas id='rc9'></canvas></div>
-                    <div class='card wide'><canvas id='rc10'></canvas></div>
-                    <div class='card wide'><canvas id='rc11'></canvas></div>
-                    <div class='card wide'><canvas id='rc12'></canvas></div>
-                    <div class='card wide'><canvas id='rc13'></canvas></div>
-                    <div class='card wide'><canvas id='rc14'></canvas></div>
-                </div>
-                <br>
-                <div class="card section-box">
-                    <div class="table-section-head">
-                        <div>
-                            <h3>Rejection Tables</h3>
-                            <p>Tabular export of the same filtered rejection data used by the charts.</p>
-                        </div>
-                    </div>
-                    <div id="rejectionTables" class="table-grid"></div>
-                </div>
-                <div class="incident-toolbar">
-                    <div>
-                        <h3>Rejection Register</h3>
-                        <p>Filtered raw rejection records.</p>
-                    </div>
-                    <div class="incident-stats">
-                        <span id="rejectionShown">0 shown</span>
-                        <span id="rejectionRejected">0 rejected</span>
-                        <span id="rejectionPartners">0 partners</span>
-                    </div>
-                </div>
-                <div class="card column-panel">
-                    <div class="column-panel-head">
-                        <div>
-                            <h3>Rejection Columns</h3>
-                            <p>Select columns from the uploaded rejection sheet to show in the register.</p>
-                        </div>
-                        <div class="column-actions">
-                            <button id="btnDefaultRejectionColumns">Default</button>
-                            <button id="btnAllRejectionColumns">All</button>
-                            <button id="btnClearRejectionColumns">Clear</button>
-                        </div>
-                    </div>
-                    <div id="rejectionColumnList" class="column-list"></div>
-                </div>
-                <br>
-                <div class="incident-table-wrap">
-                    <table class="incident-table">
-                        <thead id="rejectionHead"></thead>
-                        <tbody id='rejectionBody'></tbody>
-                    </table>
                 </div>
             </section>
             <section id='guide' class='view hide'>
