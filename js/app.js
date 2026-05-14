@@ -3107,4 +3107,671 @@ document
                 )
     );
 
+APP.selectedRejectionColumns = null;
+APP.defaultRejectionColumns = [
+    "MONTH",
+    "PARTNERNAME",
+    "RECEIVECOUNTRYCODE",
+    "DELIVERYSERVICE",
+    "CHANNEL",
+    "SUBSTATE",
+    "PARTNER_REJECTREASON",
+    "APN_REJECTREASON",
+    "DESCRIPTION",
+    "PURPOSE"
+];
+
+APP.getRejectionExcelColumns = () =>
+    APP.REJECTIONS.length
+        ? Object.keys(APP.REJECTIONS[0])
+        : [];
+
+APP.getRejectionColumns = () => {
+    const excelColumns =
+        APP.getRejectionExcelColumns();
+
+    if (APP.selectedRejectionColumns === null) {
+        APP.selectedRejectionColumns =
+            APP.defaultRejectionColumns
+                .map((column) =>
+                    APP.findColumnName(
+                        APP.REJECTIONS,
+                        column
+                    )
+                )
+                .filter(Boolean);
+    }
+
+    return APP.selectedRejectionColumns.filter((column) =>
+        excelColumns.includes(column)
+    );
+};
+
+APP.isRejectedRow = (row) =>
+    APP.rowValue(row, "SUBSTATE") === "Rejected" ||
+    !!APP.rowValue(row, "PARTNER_REJECTREASON");
+
+APP.renderRejectionKPIs = () => {
+    const box =
+        APP.g("rejectionKpis");
+
+    if (!box) return;
+
+    const total =
+        APP.filteredRejections.length;
+    const rejected =
+        APP.filteredRejections.filter(
+            APP.isRejectedRow
+        ).length;
+    const uniquePartners =
+        APP.u(
+            APP.filteredRejections.map((row) =>
+                APP.rowValue(
+                    row,
+                    "PARTNERNAME"
+                )
+            )
+        ).length;
+
+    box.innerHTML = `
+        <div class="kpi"><h4>Total Records</h4><strong>${APP.formatNum(total)}</strong></div>
+        <div class="kpi"><h4>Total Rejected</h4><strong>${APP.formatNum(rejected)}</strong></div>
+        <div class="kpi"><h4>Rejection Rate %</h4><strong>${APP.percent(rejected, total, 1)}</strong></div>
+        <div class="kpi"><h4>Unique Partners</h4><strong>${APP.formatNum(uniquePartners)}</strong></div>
+    `;
+};
+
+APP.renderRejectionColumnPicker = () => {
+    const box =
+        APP.g("rejectionColumnList");
+
+    if (!box) return;
+
+    const columns =
+        APP.getRejectionExcelColumns();
+    const selected =
+        new Set(
+            APP.getRejectionColumns()
+        );
+
+    box.innerHTML =
+        columns.map((column) => `
+<label class="column-item">
+    <input type="checkbox" class="rejection-column-check" value="${APP.escape(column)}" ${selected.has(column) ? "checked" : ""}>
+    <span>${APP.escape(column)}</span>
+</label>
+`).join("") ||
+        `<div class="empty-state">Load an Excel workbook to choose rejection columns.</div>`;
+
+    document
+        .querySelectorAll(".rejection-column-check")
+        .forEach((input) => {
+            input.onchange = () => {
+                APP.selectedRejectionColumns =
+                    [...document.querySelectorAll(".rejection-column-check:checked")]
+                        .map((item) => item.value);
+                APP.renderRejectionTable();
+            };
+        });
+};
+
+APP.renderRejectionTable = () => {
+    const columns =
+        APP.getRejectionColumns();
+    const rows =
+        APP.filteredRejections.slice(0, 500);
+    const rejected =
+        APP.filteredRejections.filter(
+            APP.isRejectedRow
+        ).length;
+    const partners =
+        APP.u(
+            APP.filteredRejections.map((row) =>
+                APP.rowValue(
+                    row,
+                    "PARTNERNAME"
+                )
+            )
+        ).length;
+
+    if (APP.g("rejectionShown")) {
+        APP.g("rejectionShown").textContent =
+            `${APP.filteredRejections.length} shown`;
+    }
+
+    if (APP.g("rejectionRejected")) {
+        APP.g("rejectionRejected").textContent =
+            `${rejected} rejected`;
+    }
+
+    if (APP.g("rejectionPartners")) {
+        APP.g("rejectionPartners").textContent =
+            `${partners} partners`;
+    }
+
+    if (APP.g("rejectionHead")) {
+        APP.g("rejectionHead").innerHTML = `
+<tr>${columns.map((column) => `<th>${APP.escape(column)}</th>`).join("")}</tr>
+`;
+    }
+
+    if (APP.g("rejectionBody")) {
+        APP.g("rejectionBody").innerHTML =
+            rows.map((row) => `
+<tr>${columns.map((column) => `<td>${APP.escape(APP.rowValue(row, column) ?? "")}</td>`).join("")}</tr>
+`).join("") ||
+            `<tr><td colspan="${Math.max(columns.length, 1)}">No rejection rows match the current filters.</td></tr>`;
+    }
+};
+
+APP.tableFromChart = (id) => {
+    const rows =
+        APP.chartDataRows(id);
+    const title =
+        APP.chartTitles?.[id] || id;
+    const headers =
+        rows.length
+            ? Object.keys(rows[0])
+            : ["Label", "Value"];
+
+    return {
+        id: `chart-table-${id}`,
+        title,
+        headers,
+        rows:
+            rows.map((row) =>
+                headers.map((header) => row[header] ?? "")
+            )
+    };
+};
+
+APP.getGraphTables = () =>
+    [
+        "c1", "c2", "c3", "c4", "c5", "c6", "c7",
+        "c10", "c12", "c13", "c14", "c15", "c16",
+        "c17", "c18", "c19", "c20", "c21", "c22",
+        "c23", "c24", "c11"
+    ].filter((id) => APP.charts[id])
+        .map(APP.tableFromChart);
+
+APP.getRejectionGraphTables = () =>
+    [
+        "rc1", "rc2", "rc3", "rc4", "rc5", "rc6", "rc7",
+        "rc8", "rc9", "rc10", "rc11", "rc12", "rc13", "rc14"
+    ].filter((id) => APP.charts[id])
+        .map(APP.tableFromChart);
+
+APP.renderTableCards = (
+    containerId,
+    tables,
+    topN
+) => {
+    const container =
+        APP.g(containerId);
+
+    if (!container) return;
+
+    container.innerHTML =
+        tables.map((table) => `
+<article class="data-table-card">
+    <div class="data-table-head">
+        <h4>${APP.escape(table.title)}</h4>
+        <span class="${topN ? "topn-hint" : ""}">${topN ? `Top ${topN}` : `${table.rows.length} rows`}</span>
+    </div>
+    <div class="data-table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>${table.headers.map((header) => `<th>${APP.escape(header)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+                ${table.rows.map((row) => `<tr>${row.map((cell) => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")}
+            </tbody>
+        </table>
+    </div>
+</article>
+`).join("") ||
+        `<div class="empty-state">No graph table data available for the current filter selection.</div>`;
+};
+
+APP.renderAnalyticsTables = () =>
+    APP.renderTableCards(
+        "analyticsTables",
+        APP.getGraphTables(),
+        APP.analyticsTopN
+    );
+
+APP.renderRejectionTables = () =>
+    APP.renderTableCards(
+        "rejectionTables",
+        APP.getRejectionGraphTables(),
+        APP.rejectionsTopN
+    );
+
+APP.getPivotRows = () =>
+    APP.pivotDataset === "rejections"
+        ? APP.filteredRejections
+        : APP.DATA;
+
+APP.getPivotColumns = () => {
+    const rows =
+        APP.getPivotRows();
+    return rows.length
+        ? Object.keys(rows[0]).filter(Boolean)
+        : [];
+};
+
+APP.getPivotState = () => {
+    const columns =
+        APP.getPivotColumns();
+    const rows =
+        APP.getPivotRows();
+    const numericFallback =
+        columns.find((column) =>
+            rows.some((row) =>
+                APP.n(
+                    APP.rowValue(
+                        row,
+                        column
+                    )
+                ) > 0
+            )
+        ) || "";
+    const preferredRow =
+        APP.pivotDataset === "rejections"
+            ? (columns.includes("PARTNERNAME") ? "PARTNERNAME" : (columns[0] || ""))
+            : (columns.includes("Partner") ? "Partner" : (columns[0] || ""));
+
+    if (!APP.PIVOT || APP.PIVOT.dataset !== APP.pivotDataset) {
+        APP.PIVOT = {
+            dataset: APP.pivotDataset,
+            row: preferredRow,
+            column: "",
+            value: numericFallback,
+            agg: "count",
+            chartType: "bar"
+        };
+    }
+
+    if (APP.PIVOT.row && !columns.includes(APP.PIVOT.row)) {
+        APP.PIVOT.row = preferredRow;
+    }
+
+    if (APP.PIVOT.column && !columns.includes(APP.PIVOT.column)) {
+        APP.PIVOT.column = "";
+    }
+
+    if (APP.PIVOT.value && !columns.includes(APP.PIVOT.value)) {
+        APP.PIVOT.value = numericFallback;
+    }
+
+    APP.PIVOT.dataset =
+        APP.pivotDataset;
+
+    return APP.PIVOT;
+};
+
+APP.getPivotResult = () => {
+    const state =
+        APP.getPivotState();
+    const rows =
+        APP.getPivotRows();
+    const rowKey =
+        state.row;
+
+    if (!rowKey) {
+        return {
+            title: "Pivot Result",
+            headers: [],
+            rows: [],
+            chart: null
+        };
+    }
+
+    const columnKey =
+        state.column;
+    const valueKey =
+        state.value;
+    const useCount =
+        state.agg === "count" ||
+        !valueKey;
+    const matrix = {};
+    const columnLabels =
+        new Set();
+
+    rows.forEach((row) => {
+        const rowLabel =
+            APP.rowValue(row, rowKey) || "Unknown";
+        const columnLabel =
+            columnKey
+                ? APP.rowValue(row, columnKey) || "Unknown"
+                : "Value";
+        const measure =
+            useCount
+                ? 1
+                : APP.n(
+                    APP.rowValue(
+                        row,
+                        valueKey
+                    )
+                );
+
+        if (!matrix[rowLabel]) {
+            matrix[rowLabel] = {};
+        }
+
+        matrix[rowLabel][columnLabel] =
+            (matrix[rowLabel][columnLabel] || 0) + measure;
+        columnLabels.add(columnLabel);
+    });
+
+    const orderedColumns =
+        [...columnLabels];
+    const bodyRows =
+        Object.entries(matrix)
+            .map(([label, values]) => {
+                const cells =
+                    orderedColumns.map((key) =>
+                        APP.n(values[key])
+                    );
+                return [
+                    label,
+                    ...cells,
+                    cells.reduce((sum, value) => sum + value, 0)
+                ];
+            })
+            .sort((a, b) => APP.n(b[b.length - 1]) - APP.n(a[a.length - 1]))
+            .slice(0, 20);
+
+    return {
+        title: `${APP.pivotDataset === "rejections" ? "Rejections" : "Incidents"} Pivot: ${useCount ? "Count" : "Sum"} of ${valueKey || "Rows"} by ${rowKey}${columnKey ? ` and ${columnKey}` : ""}`,
+        headers: [rowKey, ...orderedColumns, "Total"],
+        rows:
+            bodyRows.map((row) => [
+                row[0],
+                ...row.slice(1).map((value) => APP.formatNum(value))
+            ]),
+        chart: {
+            labels: bodyRows.map((row) => row[0]),
+            datasets: orderedColumns.map((label, index) => ({
+                label,
+                data: bodyRows.map((row) => APP.n(row[index + 1])),
+                backgroundColor: APP.colors[index % APP.colors.length],
+                borderColor: APP.colors[index % APP.colors.length],
+                borderRadius: 6
+            }))
+        }
+    };
+};
+
+APP.renderPivotBuilder = () => {
+    const toggle =
+        APP.g("pivotDatasetToggle");
+    const panel =
+        APP.g("pivotBuilder");
+    const tableBox =
+        APP.g("pivotTableWrap");
+
+    if (!toggle || !panel || !tableBox) return;
+
+    toggle.innerHTML = `
+<label><input type="radio" name="pivotDataset" value="incidents" ${APP.pivotDataset !== "rejections" ? "checked" : ""}> Pivot on: Incidents</label>
+<label><input type="radio" name="pivotDataset" value="rejections" ${APP.pivotDataset === "rejections" ? "checked" : ""}> Pivot on: Rejections</label>
+`;
+
+    document
+        .querySelectorAll('input[name="pivotDataset"]')
+        .forEach((input) => {
+            input.onchange = () => {
+                APP.pivotDataset =
+                    input.value;
+                APP.PIVOT = null;
+                APP.renderPivotBuilder();
+            };
+        });
+
+    const columns =
+        APP.getPivotColumns();
+    const state =
+        APP.getPivotState();
+
+    panel.innerHTML =
+        columns.length
+            ? `
+<label class="pivot-field"><span>Rows</span><select id="pivotRow">${APP.pivotOptions(columns, state.row)}</select></label>
+<label class="pivot-field"><span>Columns</span><select id="pivotColumn">${APP.pivotOptions(columns, state.column, true)}</select></label>
+<label class="pivot-field"><span>Values</span><select id="pivotValue">${APP.pivotOptions(columns, state.value, true)}</select></label>
+<label class="pivot-field"><span>Aggregation</span><select id="pivotAgg"><option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option><option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option></select></label>
+<label class="pivot-field"><span>Chart Type</span><select id="pivotChartType"><option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option><option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option><option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option><option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option></select></label>
+`
+            : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
+
+    const syncPivot = () => {
+        APP.PIVOT = {
+            dataset: APP.pivotDataset,
+            row: APP.g("pivotRow")?.value || "",
+            column: APP.g("pivotColumn")?.value || "",
+            value: APP.g("pivotValue")?.value || "",
+            agg: APP.g("pivotAgg")?.value || "count",
+            chartType: APP.g("pivotChartType")?.value || "bar"
+        };
+
+        const pivot =
+            APP.getPivotResult();
+
+        tableBox.innerHTML =
+            pivot.rows.length
+                ? `
+<div class="data-table-card">
+    <div class="data-table-head">
+        <h4>${APP.escape(pivot.title)}</h4>
+        <span>${pivot.rows.length} rows</span>
+    </div>
+    <div class="data-table-scroll">
+        <table class="data-table">
+            <thead><tr>${pivot.headers.map((header) => `<th>${APP.escape(header)}</th>`).join("")}</tr></thead>
+            <tbody>${pivot.rows.map((row) => `<tr>${row.map((cell) => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+    </div>
+</div>`
+                : `<div class="empty-state">No pivot output is available for the current setup.</div>`;
+
+        APP.drawPivotChart();
+    };
+
+    ["pivotRow", "pivotColumn", "pivotValue", "pivotAgg", "pivotChartType"].forEach((id) => {
+        const el =
+            APP.g(id);
+        if (el) {
+            el.onchange = syncPivot;
+        }
+    });
+
+    syncPivot();
+};
+
+APP.getRejectionRegisterTable = () => {
+    const columns =
+        APP.getRejectionColumns();
+
+    return {
+        id: "rejection-register",
+        title: "Rejection Register",
+        headers: columns,
+        rows:
+            APP.filteredRejections.map((row) =>
+                columns.map((column) =>
+                    APP.rowValue(row, column) ?? ""
+                )
+            )
+    };
+};
+
+APP.getGlobalExportComponents = () => {
+    const chartIds =
+        (APP.exportOrder || [])
+            .filter((id) => APP.charts[id]);
+    const charts =
+        chartIds.map((id) => ({
+            type: "chart",
+            id,
+            title: APP.chartTitles?.[id] || id
+        }));
+    const builderTables =
+        APP.getOverviewTables().map((table) => ({
+            ...table,
+            type: "table"
+        }));
+    const graphTables = [
+        ...APP.getGraphTables().map((table, index) => ({
+            ...table,
+            id: `graph-table-${index}`,
+            type: "table"
+        })),
+        ...APP.getRejectionGraphTables().map((table, index) => ({
+            ...table,
+            id: `rejection-graph-table-${index}`,
+            type: "table"
+        }))
+    ];
+    const builderBundle =
+        builderTables.length
+            ? [{
+                type: "tableBundle",
+                id: "overview-builder-all-tables",
+                title: "All Executive View Builder Tables",
+                tables: builderTables
+            }]
+            : [];
+    const builderSections =
+        APP.g("overviewBuilderSection")
+            ? [{
+                type: "section",
+                id: "overview-builder",
+                elementId: "overviewBuilderSection",
+                title: "Current Executive View Builder Tab",
+                checked: false
+            }]
+            : [];
+    const tables = [
+        ...graphTables,
+        {
+            ...APP.getIncidentRegisterTable(),
+            type: "table"
+        },
+        {
+            ...APP.getRejectionRegisterTable(),
+            type: "table"
+        }
+    ].filter((table) => table.rows && table.rows.length);
+
+    return {
+        sections:
+            APP.getOverviewExportSections()
+                .filter((section) => section.id !== "overview-builder"),
+        builder: [
+            ...builderBundle,
+            ...builderSections,
+            ...builderTables.map((table) => ({
+                ...table,
+                checked: false
+            }))
+        ],
+        charts,
+        tables
+    };
+};
+
+APP.render = () => {
+    APP.g("count").textContent =
+        `${APP.DATA.length} records`;
+
+    if (APP.g("filterRecordHint")) {
+        APP.g("filterRecordHint").textContent =
+            `${APP.DATA.length} incidents | ${APP.filteredRejections.length} rejections`;
+    }
+
+    APP.renderSummary();
+    APP.renderKPIs();
+    APP.renderPriorityBreakdown();
+    APP.renderSecondaryBreakdowns();
+    APP.renderOverviewTabs();
+    APP.renderSuggestions();
+    APP.renderRejectionKPIs();
+    APP.renderIncidentColumnPicker();
+    APP.renderRejectionColumnPicker();
+    APP.renderTable();
+    APP.renderRejectionTable();
+    APP.draw();
+    APP.renderAnalyticsTables();
+    APP.renderRejectionTables();
+    APP.renderPivotBuilder();
+    APP.renderExportOptions();
+};
+
+["fRejPartner", "fRejCountry", "fRejDelivery"].forEach((id) => {
+    const el =
+        APP.g(id);
+    if (el) {
+        el.onchange =
+            APP.apply;
+    }
+});
+
+if (APP.g("analyticsTopN")) {
+    APP.g("analyticsTopN").onchange = (e) => {
+        APP.analyticsTopN =
+            e.target.value
+                ? Number(e.target.value)
+                : null;
+        APP.render();
+    };
+}
+
+if (APP.g("rejectionsTopN")) {
+    APP.g("rejectionsTopN").onchange = (e) => {
+        APP.rejectionsTopN =
+            e.target.value
+                ? Number(e.target.value)
+                : null;
+        APP.render();
+    };
+}
+
+if (APP.g("btnDefaultRejectionColumns")) {
+    APP.g("btnDefaultRejectionColumns").onclick = () => {
+        const excelColumns =
+            APP.getRejectionExcelColumns();
+        APP.selectedRejectionColumns =
+            APP.defaultRejectionColumns
+                .map((column) =>
+                    APP.findColumnName(
+                        APP.REJECTIONS,
+                        column
+                    )
+                )
+                .filter((column) => excelColumns.includes(column));
+        APP.renderRejectionColumnPicker();
+        APP.renderRejectionTable();
+    };
+}
+
+if (APP.g("btnAllRejectionColumns")) {
+    APP.g("btnAllRejectionColumns").onclick = () => {
+        APP.selectedRejectionColumns =
+            APP.getRejectionExcelColumns();
+        APP.renderRejectionColumnPicker();
+        APP.renderRejectionTable();
+    };
+}
+
+if (APP.g("btnClearRejectionColumns")) {
+    APP.g("btnClearRejectionColumns").onclick = () => {
+        APP.selectedRejectionColumns = [];
+        document
+            .querySelectorAll(".rejection-column-check")
+            .forEach((input) => input.checked = false);
+        APP.renderRejectionTable();
+    };
+}
+
 APP.loadLocal();

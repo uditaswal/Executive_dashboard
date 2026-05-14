@@ -33,14 +33,19 @@ APP.populate = () => {
     APP.fill("fOwner", APP.u(APP.RAW.map((x) => APP.issueOwner(x))));
     APP.fill("fCategory", APP.u(APP.RAW.map((x) => APP.value(x, ["Issue Category", "issue category", "Issue subcategory"]))));
     APP.fill("fImpact", APP.u(APP.RAW.map((x) => APP.getValue(x, "Impact type"))));
+    APP.fill("fRejPartner", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "PARTNERNAME"))));
+    APP.fill("fRejCountry", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "RECEIVECOUNTRYCODE"))));
+    APP.fill("fRejDelivery", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "DELIVERYSERVICE"))));
 };
 APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
+    const monthMatches = (value) =>
+        APP.matchesFilter("fMonth", value);
 
     APP.DATA = APP.RAW.filter(
         (r) => {
             return (
-                APP.matchesFilter("fMonth", APP.getValue(r, "Month")) &&
+                monthMatches(APP.getValue(r, "Month")) &&
                 APP.matchesFilter("fPartner", APP.getValue(r, "Partner")) &&
                 APP.matchesFilter("fStatus", APP.getValue(r, "Status")) &&
                 APP.matchesFilter("fPriority", APP.getValue(r, "PRIORITY")) &&
@@ -54,10 +59,19 @@ APP.apply = () => {
         }
     );
 
+    APP.filteredRejections =
+        APP.REJECTIONS.filter((r) => (
+            monthMatches(APP.getValue(r, "MONTH")) &&
+            APP.matchesFilter("fRejPartner", APP.getValue(r, "PARTNERNAME")) &&
+            APP.matchesFilter("fRejCountry", APP.getValue(r, "RECEIVECOUNTRYCODE")) &&
+            APP.matchesFilter("fRejDelivery", APP.getValue(r, "DELIVERYSERVICE")) &&
+            (!q || JSON.stringify(r).toLowerCase().includes(q))
+        ));
+
     APP.render();
 };
 APP.reset = () => {
-    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact"].forEach(
+    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejPartner", "fRejCountry", "fRejDelivery"].forEach(
         (x) => {
             const el = APP.g(x);
 
@@ -70,6 +84,17 @@ APP.reset = () => {
     if (APP.g("search")) {
         APP.g("search").value = "";
     }
+
+    if (APP.g("analyticsTopN")) {
+        APP.g("analyticsTopN").value = "";
+    }
+
+    if (APP.g("rejectionsTopN")) {
+        APP.g("rejectionsTopN").value = "";
+    }
+
+    APP.analyticsTopN = null;
+    APP.rejectionsTopN = null;
 
     APP.apply();
 };

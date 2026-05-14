@@ -9,4 +9,8 @@ APP.view = (id) => {
     if (id === "analytics" && APP.DATA.length) {
         setTimeout(APP.draw, 0);
     }
+
+    if (id === "rejections" && APP.filteredRejections.length) {
+        setTimeout(APP.draw, 0);
+    }
 };

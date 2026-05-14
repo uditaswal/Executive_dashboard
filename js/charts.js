@@ -1487,3 +1487,705 @@ APP.draw = () => {
     drawReceiveCountryImpact();
     drawInsufficientFundsTrend();
 };
+
+APP.getTopNValue = (section) => {
+    const value =
+        section === "rejections"
+            ? APP.rejectionsTopN
+            : APP.analyticsTopN;
+
+    return value
+        ? Number(value)
+        : null;
+};
+
+APP.applyTopN = (entries, n) => {
+    const sorted =
+        [...entries].sort((a, b) => {
+            const aValue =
+                typeof a === "object" && a !== null
+                    ? APP.n(a.value)
+                    : APP.n(a[1]);
+            const bValue =
+                typeof b === "object" && b !== null
+                    ? APP.n(b.value)
+                    : APP.n(b[1]);
+
+            return bValue - aValue;
+        });
+
+    if (!n) return sorted;
+
+    return sorted.slice(0, n);
+};
+
+APP.topMapEntries = (
+    map,
+    section = "analytics"
+) =>
+    APP.applyTopN(
+        Object.entries(map),
+        APP.getTopNValue(section)
+    );
+
+APP.chartDataset = (
+    label,
+    data,
+    color
+) => ({
+    label,
+    data,
+    backgroundColor: color,
+    borderColor: color,
+    borderRadius: 8,
+    tension: 0.35,
+    fill: false
+});
+
+APP.rejectionRows = (
+    rows = APP.filteredRejections
+) =>
+    rows.filter((row) =>
+        APP.value(row, "SUBSTATE") === "Rejected" ||
+        APP.value(row, "PARTNER_REJECTREASON")
+    );
+
+APP.rejectionMonths = (
+    rows = APP.rejectionRows()
+) =>
+    APP.monthOrder.filter((month) =>
+        rows.some(
+            (row) =>
+                APP.value(
+                    row,
+                    "MONTH"
+                ) === month
+        )
+    );
+
+APP.groupCountEntries = (
+    rows,
+    key,
+    section = "analytics"
+) =>
+    APP.topMapEntries(
+        rows.reduce((map, row) => {
+            const label =
+                APP.value(row, key) || "Unknown";
+            map[label] =
+                (map[label] || 0) + 1;
+            return map;
+        }, {}),
+        section
+    );
+
+APP.monthlyGroupMatrix = (
+    rows,
+    monthKey,
+    seriesKey,
+    section = "rejections"
+) => {
+    const months =
+        APP.monthOrder.filter((month) =>
+            rows.some(
+                (row) =>
+                    APP.value(
+                        row,
+                        monthKey
+                    ) === month
+            )
+        );
+    const series =
+        APP.groupCountEntries(
+            rows,
+            seriesKey,
+            section
+        ).map(([label]) => label);
+
+    return {
+        months,
+        series,
+        datasets:
+            series.map((label, index) => ({
+                label,
+                data:
+                    months.map((month) =>
+                        rows.filter((row) =>
+                            APP.value(
+                                row,
+                                monthKey
+                            ) === month &&
+                            APP.value(
+                                row,
+                                seriesKey
+                            ) === label
+                        ).length
+                    ),
+                backgroundColor:
+                    APP.colors[index % APP.colors.length],
+                borderColor:
+                    APP.colors[index % APP.colors.length],
+                borderRadius: 6,
+                tension: 0.35,
+                fill: false
+            }))
+    };
+};
+
+APP.drawChartSafe = (
+    id,
+    config
+) => {
+    const el = APP.g(id);
+
+    if (!el) return;
+
+    APP.chart(id, config);
+};
+
+APP.buildIncidentCharts = () => {
+    const months =
+        APP.sortedMonths();
+    const monthCounts =
+        APP.cb("Month");
+
+    APP.drawChartSafe("c1", {
+        type: "bar",
+        data: {
+            labels: months,
+            datasets: [
+                APP.chartDataset(
+                    "Incidents",
+                    months.map((month) => monthCounts[month] || 0),
+                    "#2563eb"
+                )
+            ]
+        },
+        options: APP.chartOptions("Monthly Incident Trend")
+    });
+
+    APP.drawChartSafe("c2", {
+        type: "doughnut",
+        data: {
+            labels: Object.keys(APP.cb("Status")),
+            datasets: [{
+                data: Object.values(APP.cb("Status")),
+                backgroundColor: APP.colors
+            }]
+        },
+        options: APP.chartOptions("Incident Status Split", { cutout: "62%", scales: {} })
+    });
+
+    APP.drawChartSafe("c3", {
+        type: "pie",
+        data: {
+            labels: Object.keys(APP.cb("PRIORITY")).map((x) => `P${x}`),
+            datasets: [{
+                data: Object.values(APP.cb("PRIORITY")),
+                backgroundColor: ["#dc2626", "#f97316", "#f59e0b", "#16a34a"]
+            }]
+        },
+        options: APP.chartOptions("Priority Distribution", { scales: {} })
+    });
+
+    const incidentCharts = [
+        ["c4", "Top Partner Incident Ranking", "Partner", "#7c3aed", true],
+        ["c5", "Top Receive Countries", "Receive Country", "#0891b2", false],
+        ["c18", "Resolution Time Split", "Time Taken for Resolution", null, false, "doughnut"],
+        ["c19", "Impact Type Split", "Impact type", null, false, "pie"],
+        ["c21", "Monitoring Gap / Detection Delay", "Monitoring Gap / delay In detection", null, false, "doughnut"]
+    ];
+
+    incidentCharts.forEach(([id, title, key, color, horizontal, type]) => {
+        const entries =
+            APP.groupCountEntries(
+                APP.DATA,
+                key,
+                "analytics"
+            );
+
+        APP.drawChartSafe(id, {
+            type: type || "bar",
+            data: {
+                labels: entries.map(([label]) => label),
+                datasets: [{
+                    label: type ? title : "Incidents",
+                    data: entries.map(([, value]) => value),
+                    backgroundColor: color ? color : APP.colors,
+                    borderRadius: 8
+                }]
+            },
+            options: APP.chartOptions(
+                title,
+                type
+                    ? { cutout: type === "doughnut" ? "62%" : undefined, scales: {} }
+                    : horizontal
+                        ? { indexAxis: "y" }
+                        : {}
+            )
+        });
+    });
+
+    const delayedEntries =
+        APP.topMapEntries(
+            APP.sumBy(
+                "Partner",
+                "Delayed Transaction"
+            ),
+            "analytics"
+        );
+    const walletEntries =
+        APP.topMapEntries(
+            APP.sumBy(
+                "Wallet Name/Specific Bank",
+                "Delayed Transaction"
+            ),
+            "analytics"
+        );
+    const lossEntries =
+        APP.topMapEntries(
+            APP.sumBy(
+                "Partner",
+                "Transaction Loss(customer impact)"
+            ),
+            "analytics"
+        );
+    const rejectedEntries =
+        APP.topMapEntries(
+            APP.sumBy(
+                "Partner",
+                "Transaction REJECTED"
+            ),
+            "analytics"
+        );
+
+    [
+        ["c7", "Transaction Loss by Partner", lossEntries, "#be123c", "Loss Impact"],
+        ["c16", "Top Partners by Delayed MTCNs", delayedEntries, "#dc2626", "Delayed MTCNs"],
+        ["c17", "Top Wallets by Delayed MTCNs", walletEntries, "#0891b2", "Delayed MTCNs"],
+        ["c22", "Rejected Transactions by Partner", rejectedEntries, "#f97316", "Rejected Transactions"]
+    ].forEach(([id, title, entries, color, label]) => {
+        APP.drawChartSafe(id, {
+            type: "bar",
+            data: {
+                labels: entries.map(([entry]) => entry),
+                datasets: [APP.chartDataset(label, entries.map(([, value]) => value), color)]
+            },
+            options: APP.chartOptions(title, { indexAxis: "y" })
+        });
+    });
+
+    const delayed =
+        APP.sumBy("Month", "Delayed Transaction");
+    const breached =
+        APP.sumBy("Month", "Delivery Breached");
+    const rejected =
+        APP.sumBy("Month", "Transaction REJECTED");
+
+    APP.drawChartSafe("c6", {
+        type: "line",
+        data: {
+            labels: months,
+            datasets: [
+                APP.chartDataset("Delayed Transactions", months.map((month) => delayed[month] || 0), "#ea580c"),
+                APP.chartDataset("Delivery Breached", months.map((month) => breached[month] || 0), "#dc2626")
+            ]
+        },
+        options: APP.chartOptions("Delayed vs Breached Trend")
+    });
+
+    APP.drawChartSafe("c23", {
+        type: "bar",
+        data: {
+            labels: months,
+            datasets: [
+                APP.chartDataset("Delayed", months.map((month) => delayed[month] || 0), "#f59e0b"),
+                APP.chartDataset("Breached", months.map((month) => breached[month] || 0), "#dc2626"),
+                APP.chartDataset("Rejected", months.map((month) => rejected[month] || 0), "#7c3aed")
+            ]
+        },
+        options: APP.chartOptions("Operational Impact by Month")
+    });
+
+    APP.drawChartSafe("c10", {
+        type: "bar",
+        data: {
+            labels: APP.VOLUME.map((row) => APP.value(row, "CREATED_DATE")),
+            datasets: [
+                APP.chartDataset(
+                    "Transactions",
+                    APP.VOLUME.map((row) => APP.n(APP.value(row, "COUNT(*)"))),
+                    "#16a34a"
+                )
+            ]
+        },
+        options: APP.chartOptions("APN Monthly Transaction Volume")
+    });
+
+    const ownerMap = {};
+    APP.DATA.forEach((row) => {
+        const owner = APP.issueOwner(row);
+        ownerMap[owner] = (ownerMap[owner] || 0) + 1;
+    });
+
+    APP.drawChartSafe("c12", {
+        type: "doughnut",
+        data: {
+            labels: Object.keys(ownerMap),
+            datasets: [{
+                data: Object.values(ownerMap),
+                backgroundColor: ["#2563eb", "#f59e0b", "#64748b"]
+            }]
+        },
+        options: APP.chartOptions("WU vs Partner Side Issues", { cutout: "62%", scales: {} })
+    });
+
+    APP.drawChartSafe("c13", {
+        type: "line",
+        data: {
+            labels: months,
+            datasets: ["WU side", "Partner side"].map((owner, index) =>
+                APP.chartDataset(
+                    owner,
+                    months.map((month) =>
+                        APP.DATA.filter((row) =>
+                            APP.value(row, "Month") === month &&
+                            APP.issueOwner(row) === owner
+                        ).length
+                    ),
+                    APP.colors[index]
+                )
+            )
+        },
+        options: APP.chartOptions("WU vs Partner Side Trend")
+    });
+
+    const partnerSideRows =
+        APP.DATA.filter((row) => APP.issueOwner(row) === "Partner side");
+    const partnerMatrix =
+        APP.monthlyGroupMatrix(
+            partnerSideRows,
+            "Month",
+            ["issue category", "Issue subcategory"],
+            "analytics"
+        );
+
+    APP.drawChartSafe("c14", {
+        type: "bar",
+        data: {
+            labels: partnerMatrix.months,
+            datasets: partnerMatrix.datasets
+        },
+        options: APP.chartOptions("Partner Side Issue Category Trend", {
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        })
+    });
+
+    const walletMatrix =
+        APP.monthlyGroupMatrix(
+            APP.DATA,
+            "Month",
+            "Wallet Name/Specific Bank",
+            "analytics"
+        );
+
+    APP.drawChartSafe("c15", {
+        type: "bar",
+        data: {
+            labels: walletMatrix.months,
+            datasets: walletMatrix.datasets
+        },
+        options: APP.chartOptions("Top Impacted Wallet Trend", {
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        })
+    });
+
+    const issueCategoryMatrix =
+        APP.monthlyGroupMatrix(
+            APP.DATA,
+            "Month",
+            ["issue category", "Issue subcategory"],
+            "analytics"
+        );
+
+    APP.drawChartSafe("c20", {
+        type: "bar",
+        data: {
+            labels: issueCategoryMatrix.months,
+            datasets: issueCategoryMatrix.datasets
+        },
+        options: APP.chartOptions("Issue Category by Month", {
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        })
+    });
+
+    const receiveCountryImpactEntries =
+        APP.applyTopN(
+            Object.entries(
+                APP.DATA.reduce((map, row) => {
+                    const country =
+                        APP.value(row, "Receive Country") || "Unknown";
+                    if (!map[country]) {
+                        map[country] = { delayed: 0, breached: 0 };
+                    }
+                    map[country].delayed += APP.n(APP.value(row, "Delayed Transaction"));
+                    map[country].breached += APP.n(APP.value(row, "Delivery Breached"));
+                    return map;
+                }, {})
+            ).map(([label, metrics]) => ({
+                label,
+                value: metrics.delayed,
+                metrics
+            })),
+            APP.getTopNValue("analytics")
+        );
+
+    APP.drawChartSafe("c24", {
+        type: "bar",
+        data: {
+            labels: receiveCountryImpactEntries.map((entry) => entry.label),
+            datasets: [
+                APP.chartDataset(
+                    "Delayed Transactions",
+                    receiveCountryImpactEntries.map((entry) => entry.metrics.delayed),
+                    "#0891b2"
+                ),
+                APP.chartDataset(
+                    "Breached Transactions",
+                    receiveCountryImpactEntries.map((entry) => entry.metrics.breached),
+                    "#dc2626"
+                )
+            ]
+        },
+        options: APP.chartOptions("Receive Country Impact", { indexAxis: "y" })
+    });
+
+    const insufficientRows =
+        APP.DATA.filter((row) =>
+            (row["Issue subcategory"] || "")
+                .toLowerCase()
+                .includes("insufficient")
+        );
+    const insufficientPartners =
+        APP.groupCountEntries(
+            insufficientRows,
+            "Partner",
+            "analytics"
+        ).map(([label]) => label);
+    const insufficientMonths =
+        APP.sortedMonths(insufficientRows);
+
+    APP.drawChartSafe("c11", {
+        type: "bar",
+        data: {
+            labels: insufficientPartners,
+            datasets: insufficientMonths.map((month, index) => ({
+                label: month,
+                data: insufficientPartners.map((partner) =>
+                    insufficientRows.filter((row) =>
+                        APP.value(row, "Month") === month &&
+                        APP.value(row, "Partner") === partner
+                    ).length
+                ),
+                backgroundColor: APP.colors[index % APP.colors.length],
+                borderRadius: 6
+            }))
+        },
+        options: APP.chartOptions("Insufficient Funds by Partner")
+    });
+};
+
+APP.buildRejectionCharts = () => {
+    const rows =
+        APP.rejectionRows();
+    const allRows =
+        APP.filteredRejections || [];
+    const months =
+        APP.rejectionMonths(rows);
+
+    APP.drawChartSafe("rc1", {
+        type: "bar",
+        data: {
+            labels: months,
+            datasets: [APP.chartDataset("Rejected Rows", months.map((month) =>
+                rows.filter((row) => APP.value(row, "MONTH") === month).length
+            ), "#dc2626")]
+        },
+        options: APP.chartOptions("Monthly Rejection Trend")
+    });
+
+    [
+        ["rc2", "Rejection by Partner", "PARTNERNAME", "bar", true],
+        ["rc3", "Rejection by Receive Country", "RECEIVECOUNTRYCODE", "bar", true],
+        ["rc4", "Partner Reject Reason Breakdown", "PARTNER_REJECTREASON", "doughnut", false],
+        ["rc5", "APN Reject Reason Breakdown", "APN_REJECTREASON", "doughnut", false],
+        ["rc6", "Rejection by Delivery Service", "DELIVERYSERVICE", "pie", false],
+        ["rc7", "Rejection by Channel", "CHANNEL", "bar", false],
+        ["rc8", "Rejection by Purpose", "PURPOSE", "bar", true],
+        ["rc9", "Substate Distribution", "SUBSTATE", "doughnut", false],
+        ["rc10", "Top Banks by Rejection", "BANKNAME", "bar", true]
+    ].forEach(([id, title, key, type, horizontal]) => {
+        const sourceRows =
+            id === "rc9"
+                ? allRows
+                : rows;
+        const entries =
+            APP.groupCountEntries(
+                sourceRows,
+                key,
+                "rejections"
+            );
+
+        APP.drawChartSafe(id, {
+            type,
+            data: {
+                labels: entries.map(([label]) => label),
+                datasets: [{
+                    label: "Count",
+                    data: entries.map(([, value]) => value),
+                    backgroundColor: type === "bar" ? "#2563eb" : APP.colors,
+                    borderRadius: 8
+                }]
+            },
+            options: APP.chartOptions(
+                title,
+                type === "bar"
+                    ? (horizontal ? { indexAxis: "y" } : {})
+                    : { cutout: type === "doughnut" ? "62%" : undefined, scales: {} }
+            )
+        });
+    });
+
+    const partnerMatrix =
+        APP.monthlyGroupMatrix(
+            rows,
+            "MONTH",
+            "PARTNERNAME",
+            "rejections"
+        );
+    APP.drawChartSafe("rc11", {
+        type: "bar",
+        data: {
+            labels: partnerMatrix.months,
+            datasets: partnerMatrix.datasets
+        },
+        options: APP.chartOptions("Monthly Trend by Partner", {
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        })
+    });
+
+    const deliveryMatrix =
+        APP.monthlyGroupMatrix(
+            rows,
+            "MONTH",
+            "DELIVERYSERVICE",
+            "rejections"
+        );
+    APP.drawChartSafe("rc12", {
+        type: "line",
+        data: {
+            labels: deliveryMatrix.months,
+            datasets: deliveryMatrix.datasets.map((dataset) => ({
+                ...dataset,
+                fill: false
+            }))
+        },
+        options: APP.chartOptions("Monthly Trend by Delivery Service")
+    });
+
+    const partnerReasonLabels =
+        APP.groupCountEntries(
+            rows,
+            "PARTNERNAME",
+            "rejections"
+        ).map(([label]) => label);
+    const partnerReasons =
+        APP.groupCountEntries(
+            rows,
+            "PARTNER_REJECTREASON",
+            "rejections"
+        ).map(([label]) => label);
+    APP.drawChartSafe("rc13", {
+        type: "bar",
+        data: {
+            labels: partnerReasonLabels,
+            datasets: partnerReasons.map((reason, index) => ({
+                label: reason,
+                data: partnerReasonLabels.map((partner) =>
+                    rows.filter((row) =>
+                        APP.value(row, "PARTNERNAME") === partner &&
+                        APP.value(row, "PARTNER_REJECTREASON") === reason
+                    ).length
+                ),
+                backgroundColor: APP.colors[index % APP.colors.length],
+                borderRadius: 6
+            }))
+        },
+        options: APP.chartOptions("Partner Reject Reason by Partner", {
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        })
+    });
+
+    const receiveCountries =
+        APP.groupCountEntries(
+            rows,
+            "RECEIVECOUNTRYCODE",
+            "rejections"
+        ).map(([label]) => label);
+    const sendCountries =
+        APP.groupCountEntries(
+            rows,
+            "SENDCOUNTRYCODE",
+            "rejections"
+        ).map(([label]) => label);
+    APP.drawChartSafe("rc14", {
+        type: "bar",
+        data: {
+            labels: receiveCountries,
+            datasets: sendCountries.map((country, index) => ({
+                label: country,
+                data: receiveCountries.map((receive) =>
+                    rows.filter((row) =>
+                        APP.value(row, "RECEIVECOUNTRYCODE") === receive &&
+                        APP.value(row, "SENDCOUNTRYCODE") === country
+                    ).length
+                ),
+                backgroundColor: APP.colors[index % APP.colors.length],
+                borderRadius: 6
+            }))
+        },
+        options: APP.chartOptions("Send vs Receive Country Matrix", {
+            indexAxis: "y"
+        })
+    });
+};
+
+APP.exportOrder = [
+    "c1", "c2", "c3", "c4", "c5", "c6", "c7",
+    "c10", "c12", "c13", "c14", "c15", "c16",
+    "c17", "c18", "c19", "c20", "c21", "c22",
+    "c23", "c24", "c11",
+    "rc1", "rc2", "rc3", "rc4", "rc5", "rc6", "rc7",
+    "rc8", "rc9", "rc10", "rc11", "rc12", "rc13", "rc14"
+];
+
+APP.draw = () => {
+    APP.destroy();
+    APP.buildIncidentCharts();
+    APP.buildRejectionCharts();
+};
