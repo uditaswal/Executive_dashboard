@@ -1,3 +1,9 @@
+/**
+ * Rejection-Specific Filter UI — Builds accordion-style filter controls for the Rejections tab with multi-select dropdowns.
+ * Maps rejection-specific fields (Month, Partner, Bank, Status, etc.) to filter state and propagates changes to rejection data aggregation.
+ * Handles accordion expand/collapse, filter synchronization, and integration with rejection chart rendering.
+ */
+
 (function () {
     const REJ_FILTER_DEFS = [
         { selectId: "fRejMonth", label: "Month" },

@@ -1,3 +1,9 @@
+/**
+ * Runtime Initialization & Startup Logic — Configures dashboard sections, loads Excel data, and orchestrates initial render sequence.
+ * Handles IIFE module setup, user workbook upload, and auto-load for local development testing.
+ * Bridges Excel data -> APP state -> UI rendering and coordinates with TabManager for dynamic section configuration.
+ */
+
 (function () {
     const SECTION_DEFS = {
         overview: {

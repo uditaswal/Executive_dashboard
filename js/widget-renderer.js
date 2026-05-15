@@ -8,7 +8,7 @@ APP.WidgetRenderer = {
     /**
      * Render a widget based on its config
      */
-    renderWidget: function(config, container) {
+    renderWidget: function (config, container) {
         if (!config || !container) return null;
 
         try {
@@ -34,14 +34,14 @@ APP.WidgetRenderer = {
     /**
      * Render a chart widget
      */
-    renderChart: function(config, container) {
+    renderChart: function (config, container) {
         const canvas = document.createElement("canvas");
         canvas.id = config.id || "chart-" + Math.random();
         container.appendChild(canvas);
 
         // Get data based on dataset
-        const dataset = config.dataset === "rejections" 
-            ? APP.filteredRejections 
+        const dataset = config.dataset === "rejections"
+            ? APP.filteredRejections
             : APP.DATA;
 
         // Build chart data based on config
@@ -69,7 +69,7 @@ APP.WidgetRenderer = {
     /**
      * Build chart data from config and dataset
      */
-    buildChartData: function(config, dataset) {
+    buildChartData: function (config, dataset) {
         const labels = [];
         const data = [];
         const dataMap = {};
@@ -80,16 +80,20 @@ APP.WidgetRenderer = {
             dataMap[key] = (dataMap[key] || 0) + 1;
         });
 
-        Object.keys(dataMap).forEach(key => {
-            labels.push(key);
-            data.push(dataMap[key]);
-        });
+        // Convert to array and sort by value descending
+        let entries = Object.entries(dataMap);
+        entries.sort((a, b) => b[1] - a[1]);
 
-        // Limit to topN if specified
+        // Limit to topN if specified (post-aggregation, post-sort)
         if (config.topN) {
-            labels.length = Math.min(config.topN, labels.length);
-            data.length = Math.min(config.topN, data.length);
+            entries = entries.slice(0, config.topN);
         }
+
+        // Extract labels and data from sorted entries
+        entries.forEach(([key, value]) => {
+            labels.push(key);
+            data.push(value);
+        });
 
         return {
             labels: labels,
@@ -106,13 +110,13 @@ APP.WidgetRenderer = {
     /**
      * Render a table widget
      */
-    renderTable: function(config, container) {
+    renderTable: function (config, container) {
         const table = document.createElement("table");
         table.className = "data-table";
         table.id = config.id || "table-" + Math.random();
 
-        const dataset = config.dataset === "rejections" 
-            ? APP.filteredRejections 
+        const dataset = config.dataset === "rejections"
+            ? APP.filteredRejections
             : APP.DATA;
 
         if (!dataset.length) {
@@ -146,13 +150,13 @@ APP.WidgetRenderer = {
     /**
      * Render a KPI widget
      */
-    renderKPI: function(config, container) {
+    renderKPI: function (config, container) {
         const kpiBox = document.createElement("div");
         kpiBox.className = "kpi-widget";
         kpiBox.id = config.id || "kpi-" + Math.random();
 
-        const dataset = config.dataset === "rejections" 
-            ? APP.filteredRejections 
+        const dataset = config.dataset === "rejections"
+            ? APP.filteredRejections
             : APP.DATA;
 
         let value = dataset.length;
@@ -186,15 +190,15 @@ APP.WidgetRenderer = {
     /**
      * Render a summary widget
      */
-    renderSummary: function(config, container) {
+    renderSummary: function (config, container) {
         const summaryBox = document.createElement("div");
         summaryBox.className = "summary-widget";
         summaryBox.id = config.id || "summary-" + Math.random();
 
         let text = config.template || "";
 
-        const dataset = config.dataset === "rejections" 
-            ? APP.filteredRejections 
+        const dataset = config.dataset === "rejections"
+            ? APP.filteredRejections
             : APP.DATA;
 
         // Replace template variables
@@ -232,7 +236,7 @@ APP.WidgetRenderer = {
     /**
      * Render fallback error widget
      */
-    renderFallback: function(config, container, error) {
+    renderFallback: function (config, container, error) {
         const fallback = document.createElement("div");
         fallback.className = "widget-error";
         fallback.id = config.id || "error-widget";
@@ -247,7 +251,7 @@ APP.WidgetRenderer = {
     /**
      * Render all widgets from config
      */
-    renderAllWidgets: function(dashboardConfig) {
+    renderAllWidgets: function (dashboardConfig) {
         if (!dashboardConfig || !dashboardConfig.widgets) return;
 
         dashboardConfig.widgets.forEach(widgetConfig => {

@@ -1,3 +1,9 @@
+/**
+ * Export Service — Orchestrates multi-format exports (PNG, PPT, Excel) for dashboard widgets and entire layouts.
+ * Coordinates canvas-to-image conversion, PptxGenJS native chart/table rendering, and SheetJS Excel generation.
+ * Handles export profile selection, widget grouping, and preset management for power-user workflows.
+ */
+
 window.ExportService = (() => {
     const getSelectedWidgetIds = () =>
         [...document.querySelectorAll(".global-export-check:checked")]

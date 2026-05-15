@@ -1,3 +1,9 @@
+/**
+ * Tab & View Controller — Manages visibility and rendering of all dashboard sections (Overview, Analytics, Rejections, etc.).
+ * Toggles between different views while maintaining state and triggering appropriate render calls.
+ * Drives the tab UI highlighting and lazy-load rendering for performance optimization.
+ */
+
 APP.view = (id) => {
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hide"));
     APP.g(id).classList.remove("hide");

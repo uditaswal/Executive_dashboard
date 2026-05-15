@@ -1,3 +1,9 @@
+/**
+ * Cache Service — Memoizes expensive aggregations (group counts, pivot summaries) to avoid redundant recalculation during filter changes.
+ * Provides in-memory caching with cache invalidation strategies for performance optimization at scale (100k+ rows).
+ * Bridges between raw data transformations and chart rendering to enable snappy UI responsiveness.
+ */
+
 window.CacheService = (() => {
     const state = {
         aggregates: {}

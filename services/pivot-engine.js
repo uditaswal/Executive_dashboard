@@ -1,3 +1,9 @@
+/**
+ * Pivot Engine — Transforms raw dataset into pivot table aggregations using configurable rows, columns, values, and aggregation functions.
+ * Supports dynamic pivoting: group by multiple fields, calculate sums/counts/averages, and apply topN ranking per series.
+ * Powers both interactive pivot builder UI and chart data generation for flexible analytics workflows.
+ */
+
 window.PivotEngine = (() => {
     const groupCount = (
         rows,

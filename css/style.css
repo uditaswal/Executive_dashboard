@@ -1,3 +1,9 @@
+/**
+ * Global Dashboard Styles — Core layout grid, header, sidebar, modals, buttons, tables, and theme variables (primary, accent, surface).
+ * Establishes responsive design foundation and shared UI patterns used across all dashboard views and components.
+ * Includes grid system, typography scales, color schemes, and modal/dialog styling for consistency.
+ */
+
 :root {
     --primary: #0f2d52;
     --accent: #2563eb;

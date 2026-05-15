@@ -1,3 +1,9 @@
+/**
+ * Main Application Controller — Orchestrates all dashboard logic, data filtering, rendering, and user interactions.
+ * Manages state (APP.DATA, APP.REJECTIONS, APP.RAW), coordinates between modules, and drives the entire UI refresh cycle.
+ * Core hub for tab management, chart rendering, export workflows, and real-time filter propagation across all views.
+ */
+
 APP.render = () => {
     APP.g("count").textContent =
         APP.DATA.length + " records";
@@ -3335,6 +3341,109 @@ if (APP.g("globalExportList")) {
             us.value = "";
         }
     });
+}
+
+// Settings Modal Handlers
+if (APP.g("btnSettings")) {
+    APP.g("btnSettings").onclick = () => {
+        APP.g("settingsModal").classList.remove("hide");
+    };
+}
+
+if (APP.g("btnCloseSettingsModal")) {
+    APP.g("btnCloseSettingsModal").onclick = () => {
+        APP.g("settingsModal").classList.add("hide");
+    };
+}
+
+if (APP.g("btnCloseSettings")) {
+    APP.g("btnCloseSettings").onclick = () => {
+        APP.g("settingsModal").classList.add("hide");
+    };
+}
+
+if (APP.g("settingsModal")) {
+    APP.g("settingsModal").onclick = (event) => {
+        if (event.target === APP.g("settingsModal")) {
+            APP.g("settingsModal").classList.add("hide");
+        }
+    };
+}
+
+if (APP.g("btnDownloadDashboardConfig")) {
+    APP.g("btnDownloadDashboardConfig").onclick = () => {
+        ConfigService.downloadDashboardConfig();
+    };
+}
+
+if (APP.g("btnDownloadExportProfiles")) {
+    APP.g("btnDownloadExportProfiles").onclick = () => {
+        ConfigService.downloadExportProfiles();
+    };
+}
+
+if (APP.g("inputImportDashboardConfig")) {
+    APP.g("inputImportDashboardConfig").onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const result = ConfigService.importDashboardConfig(text);
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert("Error: " + result.message);
+            }
+        } catch (error) {
+            alert("Import failed: " + error.message);
+        }
+
+        e.target.value = "";
+    };
+}
+
+if (APP.g("inputImportExportProfiles")) {
+    APP.g("inputImportExportProfiles").onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const result = ConfigService.importExportProfiles(text);
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert("Error: " + result.message);
+            }
+        } catch (error) {
+            alert("Import failed: " + error.message);
+        }
+
+        e.target.value = "";
+    };
+}
+
+if (APP.g("btnResetDashboardConfig")) {
+    APP.g("btnResetDashboardConfig").onclick = () => {
+        if (confirm("Reset dashboard config to default? This cannot be undone.")) {
+            ConfigService.resetToDefault();
+            location.reload();
+        }
+    };
+}
+
+if (APP.g("btnResetExportProfiles")) {
+    APP.g("btnResetExportProfiles").onclick = () => {
+        if (confirm("Reset export profiles to default? This cannot be undone.")) {
+            ConfigService.resetToDefault();
+            location.reload();
+        }
+    };
 }
 
 if (APP.g("btnSelectCharts")) {

@@ -1,3 +1,9 @@
+/**
+ * Rejection Tab Styling — Theme, colors, and layout rules specific to the Rejections tab (red/orange accent) and rejection-specific controls.
+ * Styles accordion filter bar, rejection charts, filter state indicators, and status-colored badge elements.
+ * Scoped selectors prevent style leakage to other tabs; maintains visual hierarchy for rejection-focused workflows.
+ */
+
 /* Rejections tab: accordion filters (scoped under #rejections) */
 
 #rejections .rejection-filter-sr {

@@ -1,3 +1,9 @@
+/**
+ * Global Application State — Central data repository holding RAW Excel data, filtered DATA (incidents), and REJECTIONS datasets.
+ * Provides utility methods for value extraction, column matching, date normalization, and data transformation across sheets.
+ * Maintains computed state: APP.charts (all chart instances), APP.views (tab visibility), and APP.selectedColumns (UI state).
+ */
+
 window.APP = {
     RAW: [],
     DATA: [],

@@ -1,3 +1,9 @@
+/**
+ * Chart Configuration & Plugins — Sets up Chart.js instances with custom data labels, responsive sizing, and styling.
+ * Registers plugin hooks for post-render label drawing and exports utility functions for chart creation and manipulation.
+ * Handles visual theming, color schemes, and chart-to-image export for PPT generation workflows.
+ */
+
 // Custom Chart.js plugin for drawing data labels
 Chart.register({
     id: 'customDataLabels',

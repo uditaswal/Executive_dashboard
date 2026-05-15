@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang='en'>
 
+<!--
+  Dashboard Application Shell — Entry point HTML providing structure for all dashboard views, modals, and filter controls.
+  Loads external scripts (Chart.js, SheetJS, PptxGenJS, html2canvas) and CSS stylesheets; orchestrated by app.js.
+  Contains semantic markup for accessibility, data binding hooks (id, class selectors), and responsive layout grid.
+-->
+
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width,initial-scale=1'>
     <title>Payments Dashboard</title>
     <link rel='stylesheet' href='css/style.css'>
+    <link rel='stylesheet' href='css/settings.css'>
     <link rel='stylesheet' href='css/rejections.css'>
     <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
@@ -115,7 +122,10 @@
                     <button class='tab' data-view='rejections'>Rejections</button>
                     <button class='tab guide-tab' data-view='guide'>Guide</button>
                 </div>
-                <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
+                <div class="header-actions">
+                    <button id="btnSettings" class="settings-btn" type="button" title="Settings">⚙️</button>
+                    <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
+                </div>
             </div>
             <section id='overview' class='view'>
                 <div id="overviewKpiSection" class="card section-box">
@@ -248,8 +258,11 @@
                     <div id="pivotBuilder" class="pivot-builder"></div>
                     <div class="card pivot-save-panel" id="pivotSavePanel">
                         <div class="pivot-save-panel__row">
-                            <button type="button" id="btnSavePivotToConfig" class="pivot-save-btn">Save chart to dashboard config</button>
-                            <p class="pivot-save-hint">Appends the current pivot as a chart widget in <code>payments-dashboard-config</code> (localStorage). Use for export/runtime workflows; reset via ConfigService defaults when import UI lands.</p>
+                            <button type="button" id="btnSavePivotToConfig" class="pivot-save-btn">Save chart to
+                                dashboard config</button>
+                            <p class="pivot-save-hint">Appends the current pivot as a chart widget in
+                                <code>payments-dashboard-config</code> (localStorage). Use for export/runtime workflows;
+                                reset via ConfigService defaults when import UI lands.</p>
                         </div>
                         <div class="pivot-saved-wrap">
                             <h4 class="pivot-saved-heading">Saved from pivot builder</h4>
@@ -312,7 +325,8 @@
                 <div class="rejection-filter-bar card">
                     <div class="rejection-filter-bar__head">
                         <h4 class="rejection-filter-bar__title">Rejection filters</h4>
-                        <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset all</button>
+                        <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset
+                            all</button>
                     </div>
                     <div id="rejectionAccordionMount" class="rejection-accordions" aria-label="Rejection filters"></div>
                 </div>
@@ -368,80 +382,252 @@
             <section id='guide' class='view hide'>
                 <div class="card guide-section">
                     <h3>Workbook Overview</h3>
-                    <p>Supported sheets: <strong>DATA</strong>, <strong>REJECTIONDATA</strong>, <strong>CONFIG</strong>, <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. Add a workbook from the <code>data/</code> folder with Auto Load or upload it manually from the sidebar.</p>
-                    <p>Sheet-name casing and spacing are tolerated, including aliases such as <code>RejectionData</code> and <code>PayoutData</code>.</p>
+                    <p>Supported sheets: <strong>DATA</strong>, <strong>REJECTIONDATA</strong>, <strong>CONFIG</strong>,
+                        <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. Add a
+                        workbook from the <code>data/</code> folder with Auto Load or upload it manually from the
+                        sidebar.</p>
+                    <p>Sheet-name casing and spacing are tolerated, including aliases such as <code>RejectionData</code>
+                        and <code>PayoutData</code>.</p>
                 </div>
                 <div class="card guide-section">
                     <h3>DATA Sheet Reference</h3>
                     <table class="guide-table">
-                        <thead><tr><th>Column Name</th><th>Required</th><th>Format</th><th>Example</th><th>Notes</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Column Name</th>
+                                <th>Required</th>
+                                <th>Format</th>
+                                <th>Example</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>Incident</td><td>Yes</td><td>Text</td><td>INC5367010</td><td>Unique incident ID</td></tr>
-                            <tr><td>Month</td><td>Yes</td><td>Jan-Dec</td><td>Mar</td><td>Year suffix stripped automatically</td></tr>
-                            <tr><td>Partner</td><td>Yes</td><td>Text</td><td>GCASH</td><td>Normalized to upper case</td></tr>
-                            <tr><td>Status</td><td>Yes</td><td>Text</td><td>Resolved</td><td>Normalized to title case</td></tr>
-                            <tr><td>PRIORITY</td><td>Yes</td><td>1-4</td><td>2</td><td>Accepts P1, Priority 1, p1</td></tr>
-                            <tr><td>Region</td><td>Recommended</td><td>Text</td><td>LACA</td><td>Normalized to upper case</td></tr>
-                            <tr><td>Receive Country</td><td>Recommended</td><td>2-letter code</td><td>PH</td><td>Normalized to upper case</td></tr>
-                            <tr><td>Issue Category</td><td>Recommended</td><td>Text</td><td>Partner Side</td><td>Drives RCA tables</td></tr>
-                            <tr><td>Delayed Transaction</td><td>Recommended</td><td>Integer</td><td>12345</td><td>Used in KPI and loss charts</td></tr>
-                            <tr><td>Delivery Breached</td><td>Recommended</td><td>Integer</td><td>8900</td><td>Used in SLA charts</td></tr>
+                            <tr>
+                                <td>Incident</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>INC5367010</td>
+                                <td>Unique incident ID</td>
+                            </tr>
+                            <tr>
+                                <td>Month</td>
+                                <td>Yes</td>
+                                <td>Jan-Dec</td>
+                                <td>Mar</td>
+                                <td>Year suffix stripped automatically</td>
+                            </tr>
+                            <tr>
+                                <td>Partner</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>GCASH</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>Resolved</td>
+                                <td>Normalized to title case</td>
+                            </tr>
+                            <tr>
+                                <td>PRIORITY</td>
+                                <td>Yes</td>
+                                <td>1-4</td>
+                                <td>2</td>
+                                <td>Accepts P1, Priority 1, p1</td>
+                            </tr>
+                            <tr>
+                                <td>Region</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>LACA</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Receive Country</td>
+                                <td>Recommended</td>
+                                <td>2-letter code</td>
+                                <td>PH</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Issue Category</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>Partner Side</td>
+                                <td>Drives RCA tables</td>
+                            </tr>
+                            <tr>
+                                <td>Delayed Transaction</td>
+                                <td>Recommended</td>
+                                <td>Integer</td>
+                                <td>12345</td>
+                                <td>Used in KPI and loss charts</td>
+                            </tr>
+                            <tr>
+                                <td>Delivery Breached</td>
+                                <td>Recommended</td>
+                                <td>Integer</td>
+                                <td>8900</td>
+                                <td>Used in SLA charts</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="card guide-section">
                     <h3>REJECTIONDATA Sheet Reference</h3>
                     <table class="guide-table">
-                        <thead><tr><th>Column Name</th><th>Required</th><th>Format</th><th>Example</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Column Name</th>
+                                <th>Required</th>
+                                <th>Format</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>MONTH</td><td>Yes</td><td>Jan-26 or Jan</td><td>Jan-26</td></tr>
-                            <tr><td>PARTNERNAME</td><td>Yes</td><td>Text</td><td>MASTERCARD</td></tr>
-                            <tr><td>RECEIVECOUNTRYCODE</td><td>Yes</td><td>2-letter</td><td>PH</td></tr>
-                            <tr><td>SENDCOUNTRYCODE</td><td>Recommended</td><td>2-letter</td><td>US</td></tr>
-                            <tr><td>DELIVERYSERVICE</td><td>Recommended</td><td>BANK / CASH_PICKUP / CARD</td><td>BANK</td></tr>
-                            <tr><td>CHANNEL</td><td>Recommended</td><td>API / MOBILE / BRANCH / WEBMDC</td><td>MOBILE</td></tr>
-                            <tr><td>SENDINGCHANNEL</td><td>Optional</td><td>ONLINE / DIGITAL / AGENT</td><td>ONLINE</td></tr>
-                            <tr><td>SUBSTATE</td><td>Yes</td><td>REJECTED / PENDING / COMPLETED</td><td>REJECTED</td></tr>
-                            <tr><td>PARTNER_REJECTREASON</td><td>Recommended</td><td>Text</td><td>LIMIT_EXCEEDED</td></tr>
-                            <tr><td>APN_REJECTREASON</td><td>Optional</td><td>Text</td><td>AML_CHECK</td></tr>
+                            <tr>
+                                <td>MONTH</td>
+                                <td>Yes</td>
+                                <td>Jan-26 or Jan</td>
+                                <td>Jan-26</td>
+                            </tr>
+                            <tr>
+                                <td>PARTNERNAME</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>MASTERCARD</td>
+                            </tr>
+                            <tr>
+                                <td>RECEIVECOUNTRYCODE</td>
+                                <td>Yes</td>
+                                <td>2-letter</td>
+                                <td>PH</td>
+                            </tr>
+                            <tr>
+                                <td>SENDCOUNTRYCODE</td>
+                                <td>Recommended</td>
+                                <td>2-letter</td>
+                                <td>US</td>
+                            </tr>
+                            <tr>
+                                <td>DELIVERYSERVICE</td>
+                                <td>Recommended</td>
+                                <td>BANK / CASH_PICKUP / CARD</td>
+                                <td>BANK</td>
+                            </tr>
+                            <tr>
+                                <td>CHANNEL</td>
+                                <td>Recommended</td>
+                                <td>API / MOBILE / BRANCH / WEBMDC</td>
+                                <td>MOBILE</td>
+                            </tr>
+                            <tr>
+                                <td>SENDINGCHANNEL</td>
+                                <td>Optional</td>
+                                <td>ONLINE / DIGITAL / AGENT</td>
+                                <td>ONLINE</td>
+                            </tr>
+                            <tr>
+                                <td>SUBSTATE</td>
+                                <td>Yes</td>
+                                <td>REJECTED / PENDING / COMPLETED</td>
+                                <td>REJECTED</td>
+                            </tr>
+                            <tr>
+                                <td>PARTNER_REJECTREASON</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>LIMIT_EXCEEDED</td>
+                            </tr>
+                            <tr>
+                                <td>APN_REJECTREASON</td>
+                                <td>Optional</td>
+                                <td>Text</td>
+                                <td>AML_CHECK</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="card guide-section">
                     <h3>Auto-Normalization Reference</h3>
                     <table class="guide-table">
-                        <thead><tr><th>Column</th><th>Raw value in Excel</th><th>After normalization</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Raw value in Excel</th>
+                                <th>After normalization</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>Month</td><td><code>january</code></td><td><code>Jan</code></td></tr>
-                            <tr><td>Month</td><td><code>Jan-26</code></td><td><code>Jan</code></td></tr>
-                            <tr><td>Partner</td><td><code>gcash</code></td><td><code>GCASH</code></td></tr>
-                            <tr><td>PRIORITY</td><td><code>P1</code></td><td><code>1</code></td></tr>
-                            <tr><td>DELIVERYSERVICE</td><td><code>Cash Pickup</code></td><td><code>CASH_PICKUP</code></td></tr>
-                            <tr><td>Receive Country</td><td><code>ph</code></td><td><code>PH</code></td></tr>
+                            <tr>
+                                <td>Month</td>
+                                <td><code>january</code></td>
+                                <td><code>Jan</code></td>
+                            </tr>
+                            <tr>
+                                <td>Month</td>
+                                <td><code>Jan-26</code></td>
+                                <td><code>Jan</code></td>
+                            </tr>
+                            <tr>
+                                <td>Partner</td>
+                                <td><code>gcash</code></td>
+                                <td><code>GCASH</code></td>
+                            </tr>
+                            <tr>
+                                <td>PRIORITY</td>
+                                <td><code>P1</code></td>
+                                <td><code>1</code></td>
+                            </tr>
+                            <tr>
+                                <td>DELIVERYSERVICE</td>
+                                <td><code>Cash Pickup</code></td>
+                                <td><code>CASH_PICKUP</code></td>
+                            </tr>
+                            <tr>
+                                <td>Receive Country</td>
+                                <td><code>ph</code></td>
+                                <td><code>PH</code></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="card guide-section">
                     <h3>Common Mistakes</h3>
                     <ul class="guide-list">
-                        <li>Mixing <code>WU Issue</code> and <code>wu issue</code> in the same column is fixed by normalization.</li>
+                        <li>Mixing <code>WU Issue</code> and <code>wu issue</code> in the same column is fixed by
+                            normalization.</li>
                         <li>Leaving month as <code>Jan-26</code> or <code>01/2026</code> is fixed by normalization.</li>
                         <li>Numeric priorities stored as text like <code>P2</code> are fixed by normalization.</li>
-                        <li>Split delivery service values that are not in the synonym map still need to be consistent in the source.</li>
+                        <li>Split delivery service values that are not in the synonym map still need to be consistent in
+                            the source.</li>
                         <li>Duplicate sheet names with different casing use the first matching sheet.</li>
                     </ul>
                 </div>
                 <div class="card guide-section">
                     <h3>CONFIG Sheet</h3>
                     <table class="guide-table">
-                        <thead><tr><th>Key</th><th>Example Value</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Example Value</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>title</td><td>Payments Dashboard</td></tr>
-                            <tr><td>theme_color</td><td>#0f2d52</td></tr>
+                            <tr>
+                                <td>title</td>
+                                <td>Payments Dashboard</td>
+                            </tr>
+                            <tr>
+                                <td>theme_color</td>
+                                <td>#0f2d52</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-          
+
                 <div class="card guide-section">
                     <h3>Export Notes</h3>
                     <ul class="guide-list">
@@ -453,6 +639,45 @@
             </section>
 
         </main>
+    </div>
+    <div id="settingsModal" class="modal-backdrop hide" role="dialog" aria-modal="true"
+        aria-labelledby="settingsModalTitle">
+        <div class="settings-modal">
+            <div class="settings-modal-head">
+                <div>
+                    <h3 id="settingsModalTitle">Dashboard Settings</h3>
+                    <p>Manage your dashboard configuration and export profiles.</p>
+                </div>
+                <button id="btnCloseSettingsModal" class="icon-btn" type="button" aria-label="Close settings">X</button>
+            </div>
+            <div class="settings-modal-content">
+                <div class="settings-section">
+                    <h4>Dashboard Configuration</h4>
+                    <div class="settings-actions">
+                        <button id="btnDownloadDashboardConfig" type="button">Download Config</button>
+                        <label id="labelImportDashboardConfig" class="file-input-label">
+                            <span>Import Config</span>
+                            <input type="file" id="inputImportDashboardConfig" accept=".json" style="display: none;">
+                        </label>
+                        <button id="btnResetDashboardConfig" type="button">Reset to Default</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Export Profiles</h4>
+                    <div class="settings-actions">
+                        <button id="btnDownloadExportProfiles" type="button">Download Profiles</button>
+                        <label id="labelImportExportProfiles" class="file-input-label">
+                            <span>Import Profiles</span>
+                            <input type="file" id="inputImportExportProfiles" accept=".json" style="display: none;">
+                        </label>
+                        <button id="btnResetExportProfiles" type="button">Reset to Default</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-modal-footer">
+                <button id="btnCloseSettings" type="button">Close</button>
+            </div>
+        </div>
     </div>
     <div id="exportModal" class="modal-backdrop hide" role="dialog" aria-modal="true"
         aria-labelledby="exportModalTitle">
@@ -476,7 +701,8 @@
                 <div class="export-toolbar-field export-preset-save">
                     <span>New preset</span>
                     <div class="export-preset-save-row">
-                        <input type="text" id="exportPresetNameInput" maxlength="80" placeholder="Name" aria-label="New preset name">
+                        <input type="text" id="exportPresetNameInput" maxlength="80" placeholder="Name"
+                            aria-label="New preset name">
                         <button id="btnSaveExportPreset" type="button">Save preset</button>
                     </div>
                 </div>

@@ -1,3 +1,9 @@
+/**
+ * Filter Bar Controller — Manages multi-select dropdown filters for both incidents and rejections datasets.
+ * Populates filter options from raw data, applies combined filter logic across all dimensions (Month, Partner, Status, etc.).
+ * Drives real-time data re-aggregation and chart re-rendering when any filter selection changes.
+ */
+
 APP.fill = (id, vals) => {
     const e = APP.g(id),
         f = e.options[0].outerHTML;
