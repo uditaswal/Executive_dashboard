@@ -23,15 +23,13 @@
   - Rejection aliases are `RejectionData` and `PayoutData`
 - Restored the legacy dashboard as the active page path after the runtime takeover broke graphs and structure.
 - Removed runtime shell/script loading from `index.html`, so the parked runtime code no longer overrides live rendering.
+- Rejection tab filters: accordion multi-select UI with per-filter Clear, Reset all, rotating chevron headers with "N selected" / "All" summary, and `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()` for integrations. Hidden `<select multiple>` elements remain the source of truth for `APP.apply()`.
 
 ## Pending Work
 
 - Keep the live legacy dashboard stable and browser-test all charts against the sample workbook.
 - Finish the current Rejections section safely in the legacy path:
-  - Bank name filter
-  - Bank code filter
-  - Status filter
-  - Any missing rejection charts/tables
+  - Any missing rejection charts/tables beyond current filters and KPIs
 - Decide later whether to resume runtime migration behind an isolated flag/path.
 - Centralize export only after the active render path is stable.
 - Move pivot builder into the runtime/service layer only during a controlled migration.
@@ -41,3 +39,4 @@
   - Tables
   - Rejection rendering
   - Export flows
+- Integrate Tabulator for 100k+ row virtualization (Phase 1 pending in `docs/task/plan.md`).

@@ -3720,15 +3720,6 @@ APP.render = () => {
     APP.renderExportOptions();
 };
 
-["fRejPartner", "fRejCountry", "fRejDelivery"].forEach((id) => {
-    const el =
-        APP.g(id);
-    if (el) {
-        el.onchange =
-            APP.apply;
-    }
-});
-
 if (APP.g("analyticsTopN")) {
     APP.g("analyticsTopN").onchange = (e) => {
         APP.analyticsTopN =

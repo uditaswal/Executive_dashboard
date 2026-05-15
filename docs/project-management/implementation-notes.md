@@ -44,7 +44,7 @@
 
 ## Current Focus
 
-- Restored legacy dashboard stability with workbook-compatible data loading, while keeping runtime/config work parked for later.
+- Legacy dashboard remains the live path; rejection filters now use the accordion UI described in `docs/task/plan.md` Phase 1 (hidden selects + `js/rejection-filter-bar.js`).
 
 ## Risks / Watchouts
 

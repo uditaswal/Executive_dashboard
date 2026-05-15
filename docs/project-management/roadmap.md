@@ -8,10 +8,7 @@
   - `REROUTE` -> monthly volume metrics
   - `RejectionData` / `PayoutData` alias loading
 - Finish safe legacy Rejections parity work:
-  - Add bank name filter
-  - Add bank code filter
-  - Add status filter
-  - Add additional rejection charts/tables from the target plan
+  - Any missing rejection charts/tables from the target plan
 - Browser-test legacy export and legacy chart rendering with the real workbook.
 
 ## Medium Priority
@@ -30,5 +27,4 @@
 - Migrate parked runtime adapter widgets into native chart/table/summary renderers.
 - Add richer widget layout controls using existing `layout.width`, `layout.height`, and `layout.order`.
 - Add widget create/edit UX for runtime-generated widgets.
-- Verify the functionality of new rejection filters (Bank Name, Bank Code, Status).
-- Ensure UI integration for the new filters in the rejection tab.
+- Verify the functionality of rejection accordion filters (multi-select, Clear, Reset all, `APP.onRejectionFilterChange`).

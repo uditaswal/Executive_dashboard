@@ -31,6 +31,7 @@
 ## In Progress
 
 - Legacy dashboard stabilization with improved data loading and rejection support.
+- Rejection tab filter UX: accordion multi-select (see `js/rejection-filter-bar.js`, `css/rejections.css`).
 - Runtime/config architecture remains available as non-live groundwork for a later, safer reintroduction.
 
 ## Pending
@@ -42,13 +43,8 @@
   - Vendor RCA
   - Executive Summary
 - Expand the current legacy Rejections experience safely if needed:
-  - bank name filter
-  - bank code filter
-  - status filter
-  - country filter
-  - delivery service parity checks
-- Added new filters for Bank Name, Bank Code, and Status to the rejection tab.
-- Updated `APP.filteredRejections` logic in `filters.js` to include these filters.
+  - Tabulator virtualization and cached aggregations (see `docs/task/plan.md` Phase 1 pending)
+  - Any additional charts/tables not yet covered
 - Centralize export more cleanly if the runtime path is revived later.
 - Move pivot builder to a service/runtime ownership model only after the live legacy path is stable.
 - Add config import/export UI for dashboard config and profiles.

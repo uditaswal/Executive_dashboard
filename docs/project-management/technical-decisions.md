@@ -48,3 +48,14 @@
 ## Why Safe Reset?
 
 - LocalStorage-backed runtime state can become stale or corrupted
+
+## Why keep hidden `<select multiple>` for rejection filters?
+
+- Existing `APP.apply()` / `APP.matchesFilter()` logic already keys off those element IDs.
+- The accordion UI syncs checkbox state to the selects so filtering stays consistent without rewriting the incident/rejection split in `filters.js`.
+- Keeps the static GitHub Pages deployment simple (no build step).
+
+## Why `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()`?
+
+- Gives embedders a single hook when rejection-only filters change, without parsing the DOM or patching `APP.apply()`.
+- Returns a plain object aligned with the pivot/export direction (`month`, `partner`, `deliveryService`, `bankName`, `bankCode`, `country`, `status`).

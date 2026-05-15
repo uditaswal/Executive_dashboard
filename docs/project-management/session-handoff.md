@@ -2,6 +2,11 @@
 
 ## Date: May 15, 2026
 
+### Latest: Rejection accordion filters (legacy path)
+
+- Implemented Phase 1 "new requirements" from `docs/task/plan.md`: collapsible filter accordions with summary line, per-filter Clear, Reset all, multi-select checkboxes, and `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()` / `APP.notifyRejectionFilterChange()`.
+- Files: `index.html` (markup + hidden selects), `js/rejection-filter-bar.js`, `js/filters.js` (`APP.resetRejectionFilters`, populate/reset sync hooks), `css/rejections.css`, `docs/task/plan.md` + project-management docs updated.
+
 ---
 
 # Completed Work

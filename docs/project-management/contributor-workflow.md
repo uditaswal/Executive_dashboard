@@ -8,7 +8,7 @@ Read:
 - docs/project-management/migration-status.md
 - docs/project-management/roadmap.md
 - docs/project-management/technical-decisions.md
-- docs/project-management/todo.md
+- docs/task/plan.md
 
 Before finishing:
 

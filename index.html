@@ -6,6 +6,7 @@
     <meta name='viewport' content='width=device-width,initial-scale=1'>
     <title>Payments Dashboard</title>
     <link rel='stylesheet' href='css/style.css'>
+    <link rel='stylesheet' href='css/rejections.css'>
     <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'></script>
@@ -298,55 +299,35 @@
                 </div>
             </section>
             <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
-                <div class="filter-bar">
-                    <label class="filter-field">
-                        <span>Month</span>
-                        <select id='fRejMonth' multiple>
-                            <option value=''>All Months</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Partner</span>
-                        <select id='fRejPartner' multiple>
-                            <option value=''>All Partners</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Delivery Service</span>
-                        <select id='fRejDelivery' multiple>
-                            <option value=''>All Delivery Services</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Bank Name</span>
-                        <select id='fRejBankName' multiple>
-                            <option value=''>All Bank Names</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Bank Code</span>
-                        <select id='fRejBankCode' multiple>
-                            <option value=''>All Bank Codes</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Country</span>
-                        <select id='fRejCountry' multiple>
-                            <option value=''>All Countries</option>
-                        </select>
-                    </label>
-
-                    <label class="filter-field">
-                        <span>Status</span>
-                        <select id='fRejStatus' multiple>
-                            <option value=''>All Statuses</option>
-                        </select>
-                    </label>
+                <div class="rejection-filter-bar card">
+                    <div class="rejection-filter-bar__head">
+                        <h4 class="rejection-filter-bar__title">Rejection filters</h4>
+                        <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset all</button>
+                    </div>
+                    <div id="rejectionAccordionMount" class="rejection-accordions" aria-label="Rejection filters"></div>
+                </div>
+                <div class="rejection-filter-sr" aria-hidden="true">
+                    <select id='fRejMonth' multiple>
+                        <option value=''>All Months</option>
+                    </select>
+                    <select id='fRejPartner' multiple>
+                        <option value=''>All Partners</option>
+                    </select>
+                    <select id='fRejDelivery' multiple>
+                        <option value=''>All Delivery Services</option>
+                    </select>
+                    <select id='fRejBankName' multiple>
+                        <option value=''>All Bank Names</option>
+                    </select>
+                    <select id='fRejBankCode' multiple>
+                        <option value=''>All Bank Codes</option>
+                    </select>
+                    <select id='fRejCountry' multiple>
+                        <option value=''>All Countries</option>
+                    </select>
+                    <select id='fRejStatus' multiple>
+                        <option value=''>All Statuses</option>
+                    </select>
                 </div>
 
                 <div class="card section-box">
@@ -450,11 +431,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card guide-section">
-                    <h3>Running Locally</h3>
-                    <pre class="guide-code"><code>python -m http.server 8000
-# then open http://localhost:8000/index.html</code></pre>
-                </div>
+          
                 <div class="card guide-section">
                     <h3>Export Notes</h3>
                     <ul class="guide-list">
@@ -491,6 +468,7 @@
     </div>
     <script src='js/data.js'></script>
     <script src='js/filters.js'></script>
+    <script src='js/rejection-filter-bar.js'></script>
     <script src='js/charts.js'></script>
     <script src='js/views.js'></script>
     <script src='js/app.js'></script>

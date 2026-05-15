@@ -42,6 +42,10 @@ APP.populate = () => {
     APP.fill("fRejBankName", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "BANKNAME"))));
     APP.fill("fRejBankCode", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "BANKCODE"))));
     APP.fill("fRejStatus", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "STATUS"))));
+
+    if (typeof APP.syncRejectionFilterAccordion === "function") {
+        APP.syncRejectionFilterAccordion();
+    }
 };
 APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
@@ -108,7 +112,37 @@ APP.reset = () => {
     APP.analyticsTopN = null;
     APP.rejectionsTopN = null;
 
+    if (typeof APP.syncRejectionFilterAccordion === "function") {
+        APP.syncRejectionFilterAccordion();
+    }
+
     APP.apply();
+
+    if (typeof APP.notifyRejectionFilterChange === "function") {
+        APP.notifyRejectionFilterChange();
+    }
+};
+
+APP.resetRejectionFilters = () => {
+    ["fRejMonth", "fRejPartner", "fRejCountry", "fRejDelivery", "fRejBankName", "fRejBankCode", "fRejStatus"].forEach(
+        (id) => {
+            const el = APP.g(id);
+
+            if (el) {
+                [...el.options].forEach((option) => option.selected = false);
+            }
+        },
+    );
+
+    if (typeof APP.syncRejectionFilterAccordion === "function") {
+        APP.syncRejectionFilterAccordion();
+    }
+
+    APP.apply();
+
+    if (typeof APP.notifyRejectionFilterChange === "function") {
+        APP.notifyRejectionFilterChange();
+    }
 };
 
 globalFilters.rejections = {
