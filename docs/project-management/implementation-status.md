@@ -24,6 +24,7 @@
 - Restored the legacy dashboard as the active page path after the runtime takeover broke graphs and structure.
 - Removed runtime shell/script loading from `index.html`, so the parked runtime code no longer overrides live rendering.
 - Rejection tab filters: accordion multi-select UI with per-filter Clear, Reset all, rotating chevron headers with "N selected" / "All" summary, and `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()` for integrations. Hidden `<select multiple>` elements remain the source of truth for `APP.apply()`.
+- Export modal: profile dropdown (fetch `configs/export-profiles.json`), `APP.PROFILE_WIDGET_EXPORT_KEYS` mapping widget ids to legacy export keys, grouped checklist with per-group All/None, localStorage presets (`APP.EXPORT_PRESET_STORAGE_KEY`).
 
 ## Pending Work
 

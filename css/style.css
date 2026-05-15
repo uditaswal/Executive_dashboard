@@ -802,6 +802,88 @@ tr:hover td {
     font-size: 13px;
 }
 
+.export-modal-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 20px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8edf4;
+    background: #f8fafc;
+}
+
+.export-toolbar-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 160px;
+}
+
+.export-toolbar-field > span {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #64748b;
+}
+
+.export-toolbar-field select,
+.export-toolbar-field input[type="text"] {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #dbe3ef;
+    font: inherit;
+    font-size: 13px;
+    background: #fff;
+}
+
+.export-preset-save {
+    flex: 1 1 220px;
+}
+
+.export-preset-save-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.export-preset-save-row input {
+    flex: 1;
+}
+
+.export-preset-save-row button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.global-export-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.global-export-group-head h4 {
+    margin: 0;
+    font-size: 13px;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.export-group-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.export-group-actions button {
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
 .export-modal-actions {
     justify-content: flex-end;
     padding-block: 10px;

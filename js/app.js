@@ -1880,93 +1880,259 @@ APP.getOverviewSectionTable = (section) => {
     };
 };
 
-APP.getGlobalExportComponents = () => {
-    const chartIds =
-        (APP.exportOrder || [])
-            .filter(id => APP.charts[id]);
+APP.EXPORT_PRESET_STORAGE_KEY = "dashboardExportPresetsV1";
 
-    const charts =
-        chartIds.map(id => ({
-            type: "chart",
-            id,
-            title: APP.chartTitles?.[id] || id
-        }));
-
-    const graphTables =
-        APP.getGraphTables
-            ? APP.getGraphTables().map((table, index) => ({
-                ...table,
-                id: `graph-table-${index}`,
-                type: "table"
-            }))
-            : [];
-
-    const builderTables =
-        APP.getOverviewTables().map(table => ({
-            ...table,
-            type: "table"
-        }));
-
-    const builderBundle =
-        builderTables.length
-            ? [
-                {
-                    type: "tableBundle",
-                    id: "overview-builder-all-tables",
-                    title: "All Executive View Builder Tables",
-                    tables: builderTables
-                }
-            ]
-            : [];
-
-    const builderSections =
-        APP.g("overviewBuilderSection")
-            ? [
-                {
-                    type: "section",
-                    id: "overview-builder",
-                    elementId: "overviewBuilderSection",
-                    title: "Current Executive View Builder Tab",
-                    checked: false
-                }
-            ]
-            : [];
-
-    const incidentTable =
-        APP.getIncidentRegisterTable();
-
-    const tables = [
-        ...graphTables,
-        {
-            ...incidentTable,
-            type: "table"
-        }
-    ].filter(table => table.rows && table.rows.length);
-
-    return {
-        sections:
-            APP.getOverviewExportSections()
-                .filter(section => section.id !== "overview-builder"),
-        builder: [
-            ...builderBundle,
-            ...builderSections,
-            ...builderTables.map(table => ({
-                ...table,
-                checked: false
-            }))
-        ],
-        charts,
-        tables
-    };
+APP.PROFILE_WIDGET_EXPORT_KEYS = {
+    "overview-summary": ["section:overview-summary"],
+    "overview-kpi-incidents": ["section:overview-kpis"],
+    "overview-kpi-rejections": ["section:overview-kpis"],
+    "overview-kpi-partner": ["section:overview-kpis"],
+    "executive-summary-text": ["section:overview-summary"],
+    "incidents-monthly-trend": ["chart:c1"],
+    "incidents-by-partner": ["chart:c4"],
+    "rejections-monthly-trend": ["chart:rc1"],
+    "rejections-by-bank": ["chart:rc10"],
+    "rejections-register": ["table:rejection-register"]
 };
 
-APP.openGlobalExportModal = () => {
+APP.exportProfilesCatalog = null;
+
+APP.ensureExportProfilesLoaded = async () => {
+    if (APP.exportProfilesCatalog) {
+        return;
+    }
+
+    const fallback = {
+        schema: 1,
+        profiles: [
+            {
+                id: "executive-review",
+                title: "Executive Review",
+                widgetIds: ["overview-summary", "overview-kpi-incidents", "overview-kpi-rejections", "executive-summary-text"]
+            },
+            {
+                id: "monthly-ops",
+                title: "Monthly Ops",
+                widgetIds: ["incidents-monthly-trend", "incidents-by-partner", "rejections-monthly-trend", "rejections-by-bank"]
+            },
+            {
+                id: "vendor-rca",
+                title: "Vendor RCA",
+                widgetIds: ["vendor-rca-table"]
+            },
+            {
+                id: "reject-analysis",
+                title: "Reject Analysis",
+                widgetIds: ["rejections-monthly-trend", "rejections-by-bank", "rejections-register"]
+            }
+        ]
+    };
+
+    try {
+        const res =
+            await fetch("configs/export-profiles.json");
+
+        if (res.ok) {
+            APP.exportProfilesCatalog = await res.json();
+        } else {
+            APP.exportProfilesCatalog = fallback;
+        }
+    } catch {
+        APP.exportProfilesCatalog = fallback;
+    }
+};
+
+APP.getDefaultExportProfileId = () =>
+    APP.exportProfilesCatalog?.profiles?.[0]?.id ||
+    "executive-review";
+
+APP.buildExportKeysFromProfile = (profile) => {
+    const keys = new Set();
+    const components =
+        APP.getGlobalExportComponents();
+
+    (profile?.widgetIds || []).forEach((wid) => {
+        const mapped =
+            APP.PROFILE_WIDGET_EXPORT_KEYS[wid];
+
+        if (mapped) {
+            mapped.forEach((k) => keys.add(k));
+        }
+
+        if (wid === "vendor-rca-table") {
+            components.tables
+                .filter((t) =>
+                    /rca|vendor/i.test(`${t.title || ""} ${t.id || ""}`)
+                )
+                .forEach((t) =>
+                    keys.add(`table:${t.id}`)
+                );
+        }
+    });
+
+    return keys;
+};
+
+APP.applyExportSelectionKeySet = (keySet) => {
+    document
+        .querySelectorAll(".global-export-check")
+        .forEach((input) => {
+            input.checked =
+                keySet.has(input.value);
+        });
+};
+
+APP.applyBuiltinExportProfileById = (profileId) => {
+    const profile =
+        APP.exportProfilesCatalog?.profiles?.find((p) => p.id === profileId);
+
+    if (!profile) {
+        return;
+    }
+
+    APP.applyExportSelectionKeySet(
+        APP.buildExportKeysFromProfile(profile)
+    );
+};
+
+APP.getExportPresetsList = () => {
+    try {
+        const raw =
+            localStorage.getItem(APP.EXPORT_PRESET_STORAGE_KEY);
+
+        const parsed =
+            raw
+                ? JSON.parse(raw)
+                : [];
+
+        return Array.isArray(parsed)
+            ? parsed
+            : [];
+    } catch {
+        return [];
+    }
+};
+
+APP.saveCurrentExportSelectionAsPreset = (name) => {
+    const trimmed =
+        String(name || "").trim();
+
+    if (!trimmed) {
+        alert("Enter a preset name.");
+        return;
+    }
+
+    const keys =
+        [...document.querySelectorAll(".global-export-check:checked")]
+            .map((input) => input.value);
+
+    const presets =
+        APP.getExportPresetsList();
+
+    presets.push({
+        id: `preset-${Date.now()}`,
+        title: trimmed,
+        keys
+    });
+
+    localStorage.setItem(
+        APP.EXPORT_PRESET_STORAGE_KEY,
+        JSON.stringify(presets)
+    );
+    APP.renderUserPresetSelectOptions();
+};
+
+APP.applyExportPresetById = (presetId) => {
+    const preset =
+        APP.getExportPresetsList()
+            .find((p) => p.id === presetId);
+
+    if (!preset || !Array.isArray(preset.keys)) {
+        return;
+    }
+
+    APP.applyExportSelectionKeySet(new Set(preset.keys));
+};
+
+APP.renderExportProfileSelectOptions = () => {
+    const sel =
+        APP.g("exportProfileSelect");
+
+    if (!sel) {
+        return;
+    }
+
+    const profiles =
+        APP.exportProfilesCatalog?.profiles ||
+        [];
+
+    sel.innerHTML =
+        `<option value="__custom__">Custom selection</option>` +
+        profiles.map((p) =>
+            `<option value="${APP.escape(p.id)}">${APP.escape(p.title)}</option>`
+        ).join("");
+};
+
+APP.renderUserPresetSelectOptions = () => {
+    const sel =
+        APP.g("exportUserPresetSelect");
+
+    if (!sel) {
+        return;
+    }
+
+    const presets =
+        APP.getExportPresetsList();
+
+    sel.innerHTML =
+        `<option value="">Saved presets</option>` +
+        presets.map((p) =>
+            `<option value="${APP.escape(p.id)}">${APP.escape(p.title)}</option>`
+        ).join("");
+};
+
+APP.openGlobalExportModal = async () => {
     const modal =
         APP.g("exportModal");
 
-    if (!modal) return;
+    if (!modal) {
+        return;
+    }
 
+    await APP.ensureExportProfilesLoaded();
+    APP.renderExportProfileSelectOptions();
+    APP.renderUserPresetSelectOptions();
     APP.renderGlobalExportList();
+
+    const profileSel =
+        APP.g("exportProfileSelect");
+
+    if (profileSel) {
+        const def =
+            APP.getDefaultExportProfileId();
+        const opt =
+            profileSel.querySelector(`option[value="${def}"]`);
+
+        if (opt) {
+            profileSel.value = def;
+        } else if (profileSel.options.length > 1) {
+            profileSel.selectedIndex = 1;
+        } else {
+            profileSel.value = "__custom__";
+        }
+
+        if (profileSel.value !== "__custom__") {
+            APP.applyBuiltinExportProfileById(profileSel.value);
+        }
+    }
+
+    const presetSel =
+        APP.g("exportUserPresetSelect");
+
+    if (presetSel) {
+        presetSel.value = "";
+    }
+
     modal.classList.remove("hide");
 };
 
@@ -1979,34 +2145,65 @@ APP.closeGlobalExportModal = () => {
     }
 };
 
+APP.exportItemMarkup = (item, groupId) => {
+    const val =
+        `${item.type}:${item.id}`;
+    const g =
+        APP.escape(groupId);
+
+    return (
+        `<label class="global-export-item">` +
+        `<input type="checkbox" class="global-export-check" data-export-group="${g}" ` +
+        `value="${APP.escape(val)}" ` +
+        `${item.checked === false ? "" : "checked"}>` +
+        `<span>${APP.escape(item.title)}</span>` +
+        `</label>`
+    );
+};
+
 APP.renderGlobalExportList = () => {
     const box =
         APP.g("globalExportList");
 
-    if (!box) return;
+    if (!box) {
+        return;
+    }
 
     const components =
         APP.getGlobalExportComponents();
 
-    const group = (title, items) => `
-<div class="global-export-group">
-    <h4>${APP.escape(title)}</h4>
-    <div class="global-export-items">
-        ${items.map(item => `
-        <label class="global-export-item">
-            <input type="checkbox" class="global-export-check" value="${APP.escape(`${item.type}:${item.id}`)}" ${item.checked === false ? "" : "checked"}>
-            <span>${APP.escape(item.title)}</span>
-        </label>
-        `).join("") || `<div class="empty-state">No ${APP.escape(title.toLowerCase())} available.</div>`}
-    </div>
-</div>
-`;
+    const incidentCharts =
+        components.charts.filter((c) => !String(c.id).startsWith("rc"));
+    const rejectionCharts =
+        components.charts.filter((c) => String(c.id).startsWith("rc"));
+
+    const groupBlock = (groupId, title, items) => {
+        const gid =
+            APP.escape(groupId);
+        const body =
+            items.length
+                ? items.map((item) => APP.exportItemMarkup(item, groupId)).join("")
+                : `<div class="empty-state">No ${APP.escape(title.toLowerCase())} available.</div>`;
+
+        return (
+            `<div class="global-export-group" data-export-group-root="${gid}">` +
+            `<div class="global-export-group-head">` +
+            `<h4>${APP.escape(title)}</h4>` +
+            `<div class="export-group-actions">` +
+            `<button type="button" class="export-group-all" data-export-group="${gid}">All in group</button>` +
+            `<button type="button" class="export-group-none" data-export-group="${gid}">None</button>` +
+            `</div></div>` +
+            `<div class="global-export-items">${body}</div>` +
+            `</div>`
+        );
+    };
 
     box.innerHTML =
-        group("Overview Page & Sections", components.sections) +
-        group("Executive View Builder", components.builder) +
-        group("Charts", components.charts) +
-        group("Tables", components.tables);
+        groupBlock("overview", "Overview — page and sections", components.sections) +
+        groupBlock("charts-incident", "Analytics — incident charts", incidentCharts) +
+        groupBlock("charts-rejection", "Analytics — rejection charts", rejectionCharts) +
+        groupBlock("builder", "Executive View Builder", components.builder) +
+        groupBlock("tables", "Tables", components.tables);
 };
 
 APP.getSelectedExportComponents = () => {
@@ -2961,11 +3158,7 @@ if (APP.g("search")) {
 
 if (APP.g("btnGlobalExport")) {
     APP.g("btnGlobalExport").onclick = () => {
-        // Option: Use modal for selective export, or direct PPT
-        // For now, use direct export to PPT
-        if (confirm("Export all visible content to PPT?")) {
-            APP.PPTExporter.exportDirectPPT();
-        }
+        void APP.openGlobalExportModal();
     };
 }
 
@@ -2987,8 +3180,18 @@ if (APP.g("btnExportSelectAll")) {
         document
             .querySelectorAll(".global-export-check")
             .forEach(
-                input => input.checked = true
+                (input) => input.checked = true
             );
+        const ps =
+            APP.g("exportProfileSelect");
+        if (ps) {
+            ps.value = "__custom__";
+        }
+        const us =
+            APP.g("exportUserPresetSelect");
+        if (us) {
+            us.value = "";
+        }
     };
 }
 
@@ -2997,8 +3200,18 @@ if (APP.g("btnExportClearAll")) {
         document
             .querySelectorAll(".global-export-check")
             .forEach(
-                input => input.checked = false
+                (input) => input.checked = false
             );
+        const ps =
+            APP.g("exportProfileSelect");
+        if (ps) {
+            ps.value = "__custom__";
+        }
+        const us =
+            APP.g("exportUserPresetSelect");
+        if (us) {
+            us.value = "";
+        }
     };
 }
 
@@ -3015,6 +3228,113 @@ if (APP.g("btnExportPptGlobal")) {
 if (APP.g("btnExportExcelGlobal")) {
     APP.g("btnExportExcelGlobal").onclick =
         APP.exportGlobalExcel;
+}
+
+if (APP.g("exportProfileSelect")) {
+    APP.g("exportProfileSelect").onchange = (e) => {
+        const v =
+            e.target.value;
+
+        if (v === "__custom__") {
+            return;
+        }
+
+        APP.applyBuiltinExportProfileById(v);
+
+        const us =
+            APP.g("exportUserPresetSelect");
+        if (us) {
+            us.value = "";
+        }
+    };
+}
+
+if (APP.g("exportUserPresetSelect")) {
+    APP.g("exportUserPresetSelect").onchange = (e) => {
+        const v =
+            e.target.value;
+
+        if (!v) {
+            return;
+        }
+
+        APP.applyExportPresetById(v);
+
+        const ps =
+            APP.g("exportProfileSelect");
+        if (ps) {
+            ps.value = "__custom__";
+        }
+    };
+}
+
+if (APP.g("btnSaveExportPreset")) {
+    APP.g("btnSaveExportPreset").onclick = () => {
+        const name =
+            APP.g("exportPresetNameInput")?.value;
+        APP.saveCurrentExportSelectionAsPreset(name);
+
+        if (APP.g("exportPresetNameInput")) {
+            APP.g("exportPresetNameInput").value = "";
+        }
+    };
+}
+
+if (APP.g("globalExportList")) {
+    APP.g("globalExportList").addEventListener("click", (e) => {
+        const allBtn =
+            e.target.closest(".export-group-all");
+        const noneBtn =
+            e.target.closest(".export-group-none");
+
+        if (!allBtn && !noneBtn) {
+            return;
+        }
+
+        const g =
+            (allBtn || noneBtn).getAttribute("data-export-group");
+        const on =
+            Boolean(allBtn);
+
+        document
+            .querySelectorAll(".global-export-check")
+            .forEach((input) => {
+                if (input.getAttribute("data-export-group") === g) {
+                    input.checked = on;
+                }
+            });
+
+        const ps =
+            APP.g("exportProfileSelect");
+        if (ps) {
+            ps.value = "__custom__";
+        }
+        const us =
+            APP.g("exportUserPresetSelect");
+        if (us) {
+            us.value = "";
+        }
+    });
+
+    APP.g("globalExportList").addEventListener("change", (e) => {
+        const t =
+            e.target;
+
+        if (!t.classList || !t.classList.contains("global-export-check")) {
+            return;
+        }
+
+        const ps =
+            APP.g("exportProfileSelect");
+        if (ps) {
+            ps.value = "__custom__";
+        }
+        const us =
+            APP.g("exportUserPresetSelect");
+        if (us) {
+            us.value = "";
+        }
+    });
 }
 
 if (APP.g("btnSelectCharts")) {
@@ -3626,23 +3946,29 @@ APP.getGlobalExportComponents = () => {
         chartIds.map((id) => ({
             type: "chart",
             id,
-            title: APP.chartTitles?.[id] || id
+            title: APP.chartTitles?.[id] || id,
+            exportGroup: String(id).startsWith("rc")
+                ? "charts-rejection"
+                : "charts-incident"
         }));
     const builderTables =
         APP.getOverviewTables().map((table) => ({
             ...table,
-            type: "table"
+            type: "table",
+            exportGroup: "builder"
         }));
     const graphTables = [
-        ...APP.getGraphTables().map((table, index) => ({
+        ...(APP.getGraphTables?.() || []).map((table, index) => ({
             ...table,
             id: `graph-table-${index}`,
-            type: "table"
+            type: "table",
+            exportGroup: "tables"
         })),
-        ...APP.getRejectionGraphTables().map((table, index) => ({
+        ...(APP.getRejectionGraphTables?.() || []).map((table, index) => ({
             ...table,
             id: `rejection-graph-table-${index}`,
-            type: "table"
+            type: "table",
+            exportGroup: "tables"
         }))
     ];
     const builderBundle =
@@ -3651,7 +3977,8 @@ APP.getGlobalExportComponents = () => {
                 type: "tableBundle",
                 id: "overview-builder-all-tables",
                 title: "All Executive View Builder Tables",
-                tables: builderTables
+                tables: builderTables,
+                exportGroup: "builder"
             }]
             : [];
     const builderSections =
@@ -3661,31 +3988,40 @@ APP.getGlobalExportComponents = () => {
                 id: "overview-builder",
                 elementId: "overviewBuilderSection",
                 title: "Current Executive View Builder Tab",
-                checked: false
+                checked: false,
+                exportGroup: "builder"
             }]
             : [];
     const tables = [
         ...graphTables,
         {
             ...APP.getIncidentRegisterTable(),
-            type: "table"
+            type: "table",
+            exportGroup: "tables"
         },
         {
             ...APP.getRejectionRegisterTable(),
-            type: "table"
+            type: "table",
+            exportGroup: "tables"
         }
     ].filter((table) => table.rows && table.rows.length);
 
     return {
         sections:
             APP.getOverviewExportSections()
-                .filter((section) => section.id !== "overview-builder"),
+                .filter((section) => section.id !== "overview-builder")
+                .map((section) => ({
+                    ...section,
+                    exportGroup: "overview"
+                })),
         builder: [
             ...builderBundle,
             ...builderSections,
             ...builderTables.map((table) => ({
                 ...table,
-                checked: false
+                type: "table",
+                checked: false,
+                exportGroup: "builder"
             }))
         ],
         charts,

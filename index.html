@@ -450,9 +450,26 @@
             <div class="export-modal-head">
                 <div>
                     <h3 id="exportModalTitle">Export Dashboard</h3>
-                    <p>Select all builder tables, one builder table, or any filtered chart/table.</p>
+                    <p>Choose a profile or custom checkboxes, then export to PNG, PowerPoint, or Excel.</p>
                 </div>
                 <button id="btnCloseExportModal" class="icon-btn" type="button" aria-label="Close export">X</button>
+            </div>
+            <div class="export-modal-toolbar">
+                <label class="export-toolbar-field">
+                    <span>Profile</span>
+                    <select id="exportProfileSelect" aria-label="Export profile"></select>
+                </label>
+                <label class="export-toolbar-field">
+                    <span>Saved preset</span>
+                    <select id="exportUserPresetSelect" aria-label="Saved export presets"></select>
+                </label>
+                <div class="export-toolbar-field export-preset-save">
+                    <span>New preset</span>
+                    <div class="export-preset-save-row">
+                        <input type="text" id="exportPresetNameInput" maxlength="80" placeholder="Name" aria-label="New preset name">
+                        <button id="btnSaveExportPreset" type="button">Save preset</button>
+                    </div>
+                </div>
             </div>
             <div class="export-modal-actions">
                 <button id="btnExportSelectAll" type="button">Select All</button>

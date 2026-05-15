@@ -59,3 +59,8 @@
 
 - Gives embedders a single hook when rejection-only filters change, without parsing the DOM or patching `APP.apply()`.
 - Returns a plain object aligned with the pivot/export direction (`month`, `partner`, `deliveryService`, `bankName`, `bankCode`, `country`, `status`).
+
+## Why map profile `widgetIds` to legacy export checkbox keys?
+
+- Live charts still use legacy canvas ids (`c1`, `rc1`, …) while `configs/export-profiles.json` uses config widget ids (`incidents-monthly-trend`, …).
+- `APP.PROFILE_WIDGET_EXPORT_KEYS` bridges the two so built-in profiles pre-check the right overview sections and canvases without a big-bang chart id migration.

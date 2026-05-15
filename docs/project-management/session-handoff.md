@@ -2,6 +2,11 @@
 
 ## Date: May 15, 2026
 
+### Latest: Export modal (profiles + presets)
+
+- Export toolbar: built-in **Profile** dropdown (loads `configs/export-profiles.json` with fallback), **Saved preset** dropdown, **Save preset** (localStorage `dashboardExportPresetsV1`), grouped checklist with **All in group / None** per block, default profile applied on open.
+- Main **Export** button opens the modal (no confirm-only direct PPT). `PPTExporter.exportDirectPPT()` remains available from code for full-tab capture.
+
 ### Latest: Rejection accordion filters (legacy path)
 
 - Implemented Phase 1 "new requirements" from `docs/task/plan.md`: collapsible filter accordions with summary line, per-filter Clear, Reset all, multi-select checkboxes, and `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()` / `APP.notifyRejectionFilterChange()`.
