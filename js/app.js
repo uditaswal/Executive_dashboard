@@ -2936,7 +2936,14 @@ btnReset.onclick = APP.reset;
     "fCountry",
     "fOwner",
     "fCategory",
-    "fImpact"
+    "fImpact",
+    "fRejMonth",
+    "fRejPartner",
+    "fRejCountry",
+    "fRejDelivery",
+    "fRejBankName",
+    "fRejBankCode",
+    "fRejStatus"
 ].forEach((id) => {
     const el =
         APP.g(id);
@@ -2953,8 +2960,13 @@ if (APP.g("search")) {
 }
 
 if (APP.g("btnGlobalExport")) {
-    APP.g("btnGlobalExport").onclick =
-        APP.openGlobalExportModal;
+    APP.g("btnGlobalExport").onclick = () => {
+        // Option: Use modal for selective export, or direct PPT
+        // For now, use direct export to PPT
+        if (confirm("Export all visible content to PPT?")) {
+            APP.PPTExporter.exportDirectPPT();
+        }
+    };
 }
 
 if (APP.g("btnCloseExportModal")) {

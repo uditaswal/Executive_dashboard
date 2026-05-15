@@ -33,6 +33,9 @@ APP.populate = () => {
     APP.fill("fOwner", APP.u(APP.RAW.map((x) => APP.issueOwner(x))));
     APP.fill("fCategory", APP.u(APP.RAW.map((x) => APP.value(x, ["Issue Category", "issue category", "Issue subcategory"]))));
     APP.fill("fImpact", APP.u(APP.RAW.map((x) => APP.getValue(x, "Impact type"))));
+    
+    // Populate rejection tab filters
+    APP.fill("fRejMonth", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "MONTH"))));
     APP.fill("fRejPartner", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "PARTNERNAME"))));
     APP.fill("fRejCountry", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "RECEIVECOUNTRYCODE"))));
     APP.fill("fRejDelivery", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "DELIVERYSERVICE"))));
@@ -44,6 +47,9 @@ APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
     const monthMatches = (value) =>
         APP.matchesFilter("fMonth", value);
+    
+    const rejMonthMatches = (value) =>
+        APP.matchesFilter("fRejMonth", value);
 
     APP.DATA = APP.RAW.filter(
         (r) => {
@@ -64,7 +70,7 @@ APP.apply = () => {
 
     APP.filteredRejections =
         APP.REJECTIONS.filter((r) => (
-            monthMatches(APP.getValue(r, "MONTH")) &&
+            rejMonthMatches(APP.getValue(r, "MONTH")) &&
             APP.matchesFilter("fRejPartner", APP.getValue(r, "PARTNERNAME")) &&
             APP.matchesFilter("fRejCountry", APP.getValue(r, "RECEIVECOUNTRYCODE")) &&
             APP.matchesFilter("fRejDelivery", APP.getValue(r, "DELIVERYSERVICE")) &&
@@ -77,7 +83,7 @@ APP.apply = () => {
     APP.render();
 };
 APP.reset = () => {
-    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejPartner", "fRejCountry", "fRejDelivery", "fRejBankName", "fRejBankCode", "fRejStatus"].forEach(
+    ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejMonth", "fRejPartner", "fRejCountry", "fRejDelivery", "fRejBankName", "fRejBankCode", "fRejStatus"].forEach(
         (x) => {
             const el = APP.g(x);
 
