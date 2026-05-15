@@ -1003,6 +1003,70 @@ tr:hover td {
     margin-top: 8px;
 }
 
+.pivot-save-panel {
+    margin-top: 12px;
+    padding: 14px 16px;
+}
+
+.pivot-save-panel__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.pivot-save-btn {
+    flex-shrink: 0;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+}
+
+.pivot-save-btn:active {
+    transform: scale(0.98);
+}
+
+.pivot-save-hint {
+    margin: 0;
+    flex: 1 1 220px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.pivot-saved-wrap {
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+}
+
+.pivot-saved-heading {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--primary);
+}
+
+.pivot-saved-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: #334155;
+}
+
+.pivot-saved-list li {
+    margin-bottom: 4px;
+}
+
+.pivot-saved-id {
+    font-size: 11px;
+    color: #64748b;
+}
+
 .table-section-head,
 .column-panel-head {
     display: flex;

@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payments Dashboard — Incidents & Rejections</title>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-page:       #f4f5f7;
+      --bg-surface:    #ffffff;
+      --bg-muted:      #f0f1f4;
+      --bg-hover:      #e8eaf0;
+
+      --text-primary:  #111827;
+      --text-secondary:#6b7280;
+      --text-muted:    #9ca3af;
+
+      --border:        rgba(0,0,0,0.08);
+      --border-strong: rgba(0,0,0,0.15);
+
+      --inc-accent:    #166534;
+      --inc-light:     #dcfce7;
+      --inc-mid:       #16a34a;
+
+      --rej-accent:    #991b1b;
+      --rej-light:     #fee2e2;
+      --rej-mid:       #dc2626;
+
+      --p1:            #dc2626;
+      --p2:            #f59e0b;
+      --p3:            #3b82f6;
+      --p4:            #9ca3af;
+
+      --warn-bg:       #fffbeb;
+      --warn-text:     #92400e;
+      --warn-border:   #fcd34d;
+
+      --danger-bg:     #fef2f2;
+      --danger-text:   #991b1b;
+      --danger-border: #fca5a5;
+
+      --success-bg:    #f0fdf4;
+      --success-text:  #166534;
+      --success-border:#86efac;
+
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  14px;
+      --radius-xl:  20px;
+      --radius-pill:100px;
+
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:  0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+
+      --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', monospace;
+
+      --sidebar-w: 220px;
+      --header-h:  52px;
+    }
+
+    html, body { height: 100%; font-family: var(--font-sans); background: var(--bg-page); color: var(--text-primary); font-size: 14px; line-height: 1.5; }
+
+    /* ─── Layout Shell ──────────────────────────────────────── */
+    .shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ─── Sidebar ───────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding-bottom: 16px;
+    }
+    .sidebar-logo {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+      color: var(--text-primary);
+      gap: 8px;
+    }
+    .sidebar-logo .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--inc-mid);
+      display: inline-block;
+    }
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 14px 16px 6px;
+    }
+    .filter-group {
+      padding: 6px 12px;
+    }
+    .filter-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .filter-group select,
+    .filter-group input[type="text"],
+    .filter-group input[type="search"] {
+      width: 100%;
+      font-size: 12px;
+      padding: 6px 9px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--bg-muted);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color .15s, background .15s;
+      font-family: var(--font-sans);
+    }
+    .filter-group select:focus,
+    .filter-group input:focus {
+      border-color: var(--inc-mid);
+      background: var(--bg-surface);
+      box-shadow: 0 0 0 3px rgba(22,163,74,.12);
+    }
+    .filter-upload {
+      padding: 6px 12px;
+    }
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      background: var(--bg-muted);
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .upload-btn:hover { border-color: var(--inc-mid); background: var(--inc-light); color: var(--inc-accent); }
+    .upload-btn input[type="file"] { display: none; }
+    .upload-icon { font-size: 16px; }
+    .filter-actions {
+      padding: 12px;
+      display: flex;
+      gap: 6px;
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+    }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: var(--font-sans); line-height: 1; }
+    .btn-primary { background: var(--text-primary); color: white; border-color: var(--text-primary); }
+    .btn-primary:hover { background: #374151; }
+    .btn-ghost { background: transparent; color: var(--text-secondary); }
+    .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+    .btn-full { width: 100%; }
+
+    /* ─── Main ──────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ─── Header ────────────────────────────────────────────── */
+    .top-header {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab-bar { display: flex; gap: 2px; }
+    .tab {
+      padding: 7px 14px;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all .15s;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .tab.active { background: var(--bg-muted); color: var(--text-primary); }
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 8px; right: 8px;
+      height: 2px;
+      background: var(--text-primary);
+      border-radius: 2px 2px 0 0;
+    }
+    .tab.tab-rej.active::after { background: var(--rej-mid); }
+    .tab.tab-inc.active::after { background: var(--inc-mid); }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .record-count { font-size: 12px; color: var(--text-muted); }
+
+    /* ─── Content ───────────────────────────────────────────── */
+    .content { flex: 1; overflow-y: auto; padding: 20px; }
+    .view { display: none; flex-direction: column; gap: 16px; animation: fadeIn .2s ease; }
+    .view.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Register Header ───────────────────────────────────── */
+    .register-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .register-header h2 { font-size: 16px; font-weight: 600; }
+    .register-header p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .badge-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-muted);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .badge-warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+    .badge-danger { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+    .badge-success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+
+    /* ─── Card ──────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    .card-body { padding: 14px 16px; }
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card-header h3 { font-size: 13px; font-weight: 600; }
+    .card-header p { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+
+    /* ─── KPI Grid ──────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .kpi-card {
+      background: var(--bg-muted);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--kpi-color, var(--inc-mid));
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .kpi-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+    .kpi-value { font-size: 22px; font-weight: 600; color: var(--text-primary); line-height: 1; }
+    .kpi-delta { font-size: 11px; margin-top: 5px; color: var(--text-muted); }
+    .kpi-delta.up   { color: var(--rej-accent); }
+    .kpi-delta.down { color: var(--inc-accent); }
+
+    .kpi-grid.rej-kpis .kpi-card { --kpi-color: var(--rej-mid); }
+    .kpi-grid.rej-kpis .kpi-value { color: var(--rej-accent); }
+
+    /* ─── Chart Grid ────────────────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .chart-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+    .chart-box h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 12px;
+    }
+    .chart-box.wide { grid-column: span 2; }
+
+    /* ─── Bar Charts ────────────────────────────────────────── */
+    .bar-list { display: flex; flex-direction: column; gap: 7px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { font-size: 11px; color: var(--text-secondary); width: 90px; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--bg-muted);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: var(--radius-pill);
+      background: var(--inc-mid);
+      transition: width .4s ease;
+    }
+    .bar-fill.rej { background: var(--rej-mid); }
+    .bar-val { font-size: 11px; font-weight: 600; color: var(--text-primary); width: 36px; flex-shrink: 0; }
+
+    /* Priority dot colors */
+    .bar-fill.p1 { background: var(--p1); }
+    .bar-fill.p2 { background: var(--p2); }
+    .bar-fill.p3 { background: var(--p3); }
+    .bar-fill.p4 { background: var(--p4); }
+
+    /* ─── Chip Filter Panel ─────────────────────────────────── */
+    .chip-panel { padding: 14px 16px; }
+    .chip-panel-row { margin-bottom: 10px; }
+    .chip-panel-row:last-child { margin-bottom: 0; }
+    .chip-row-label { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 11px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-muted);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--border-strong); background: var(--bg-hover); color: var(--text-primary); }
+    .chip.on { background: var(--bg-surface); color: var(--text-primary); border-color: rgba(0,0,0,0.25); font-weight: 600; }
+    .chip.rej-chip.on { background: var(--rej-light); color: var(--rej-accent); border-color: #fca5a5; }
+    .chip.inc-chip.on { background: var(--inc-light); color: var(--inc-accent); border-color: #86efac; }
+
+    /* ─── Column Picker ─────────────────────────────────────── */
+    .col-actions { display: flex; gap: 6px; }
+
+    /* ─── Table ─────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-muted); }
+
+    /* ─── Pills / Status ────────────────────────────────────── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .pill-green  { background: var(--success-bg); color: var(--success-text); }
+    .pill-amber  { background: var(--warn-bg);    color: var(--warn-text); }
+    .pill-red    { background: var(--danger-bg);  color: var(--danger-text); }
+    .pill-gray   { background: var(--bg-muted);   color: var(--text-secondary); }
+
+    /* Priority dots */
+    .pdot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .pdot-1 { background: var(--p1); }
+    .pdot-2 { background: var(--p2); }
+    .pdot-3 { background: var(--p3); }
+    .pdot-4 { background: var(--p4); }
+
+    /* ─── Mono cell ─────────────────────────────────────────── */
+    .mono { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+
+    /* ─── Scrollbar ─────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+    /* ─── Responsive ────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-box.wide { grid-column: span 1; }
+    }
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="dot"></span>
+      Payments Dashboard
+    </div>
+
+    <div class="sidebar-section-label">Data</div>
+    <div class="filter-upload">
+      <label class="upload-btn">
+        <span class="upload-icon">📂</span>
+        <span>Upload workbook</span>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      </label>
+    </div>
+
+    <div class="sidebar-section-label">Filters</div>
+    <div class="filter-group">
+      <label>Month</label>
+      <select id="fMonth" multiple>
+        <option value="">All months</option>
+        <option>Jan</option><option>Feb</option><option>Mar</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Partner</label>
+      <select id="fPartner" multiple>
+        <option value="">All partners</option>
+        <option>GCASH</option><option>MASTERCARD</option><option>VISA</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Region</label>
+      <select id="fRegion" multiple>
+        <option value="">All regions</option>
+        <option>APAC</option><option>LACA</option><option>EMEA</option><option>NA</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select id="fStatus" multiple>
+        <option value="">All statuses</option>
+        <option>Resolved</option><option>Open</option><option>In progress</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Priority</label>
+      <select id="fPriority" multiple>
+        <option value="">All priorities</option>
+        <option>P1</option><option>P2</option><option>P3</option><option>P4</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Search incident</label>
+      <input type="search" id="search" placeholder="INC number or keyword">
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn btn-primary btn-full">Apply</button>
+      <button class="btn btn-ghost btn-full">Reset</button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <header class="top-header">
+      <div class="tab-bar">
+        <button class="tab tab-inc active" data-tab="incidents">Incidents</button>
+        <button class="tab tab-rej" data-tab="rejections">Rejections</button>
+      </div>
+      <div class="header-right">
+        <span class="record-count" id="recordCount">226 records</span>
+        <button class="btn btn-ghost btn-sm">Export ↗</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ══════ INCIDENTS VIEW ══════ -->
+      <div class="view active" id="view-incidents">
+
+        <!-- Header + badges -->
+        <div class="register-header">
+          <div>
+            <h2>Incident register</h2>
+            <p>Filtered operational incidents — synchronized with sidebar filters</p>
+          </div>
+          <div class="badge-row">
+            <span class="badge">142 shown</span>
+            <span class="badge badge-warn">18 open</span>
+            <span class="badge badge-danger">6 P1</span>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total incidents</div>
+            <div class="kpi-value">142</div>
+            <div class="kpi-delta up">↑ +12 vs last month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Resolved</div>
+            <div class="kpi-value">124</div>
+            <div class="kpi-delta down">↓ 87% resolution rate</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg. resolve time</div>
+            <div class="kpi-value">4.2d</div>
+            <div class="kpi-delta down">↓ -0.8d vs last month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Delayed transactions</div>
+            <div class="kpi-value">38k</div>
+            <div class="kpi-delta up">↑ +5k vs last month</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+          <div class="chart-box">
+            <h4>By partner</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">GCASH</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">48</span></div>
+              <div class="bar-row"><span class="bar-label">MASTERCARD</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><span class="bar-val">35</span></div>
+              <div class="bar-row"><span class="bar-label">VISA</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div><span class="bar-val">24</span></div>
+              <div class="bar-row"><span class="bar-label">PAYMAYA</span><div class="bar-track"><div class="bar-fill" style="width:28%"></div></div><span class="bar-val">17</span></div>
+              <div class="bar-row"><span class="bar-label">Other</span><div class="bar-track"><div class="bar-fill" style="width:20%"></div></div><span class="bar-val">18</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>By priority</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">P1 Critical</span><div class="bar-track"><div class="bar-fill p1" style="width:20%"></div></div><span class="bar-val">6</span></div>
+              <div class="bar-row"><span class="bar-label">P2 High</span><div class="bar-track"><div class="bar-fill p2" style="width:52%"></div></div><span class="bar-val">32</span></div>
+              <div class="bar-row"><span class="bar-label">P3 Medium</span><div class="bar-track"><div class="bar-fill p3" style="width:80%"></div></div><span class="bar-val">71</span></div>
+              <div class="bar-row"><span class="bar-label">P4 Low</span><div class="bar-track"><div class="bar-fill p4" style="width:35%"></div></div><span class="bar-val">33</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>By issue category</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">Partner side</span><div class="bar-track"><div class="bar-fill" style="width:70%"></div></div><span class="bar-val">41</span></div>
+              <div class="bar-row"><span class="bar-label">WU platform</span><div class="bar-track"><div class="bar-fill" style="width:46%"></div></div><span class="bar-val">28</span></div>
+              <div class="bar-row"><span class="bar-label">Vendor</span><div class="bar-track"><div class="bar-fill" style="width:36%"></div></div><span class="bar-val">22</span></div>
+              <div class="bar-row"><span class="bar-label">Network</span><div class="bar-track"><div class="bar-fill" style="width:18%"></div></div><span class="bar-val">11</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>By region</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">APAC</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-val">64</span></div>
+              <div class="bar-row"><span class="bar-label">LACA</span><div class="bar-track"><div class="bar-fill" style="width:48%"></div></div><span class="bar-val">38</span></div>
+              <div class="bar-row"><span class="bar-label">EMEA</span><div class="bar-track"><div class="bar-fill" style="width:32%"></div></div><span class="bar-val">25</span></div>
+              <div class="bar-row"><span class="bar-label">NA</span><div class="bar-track"><div class="bar-fill" style="width:20%"></div></div><span class="bar-val">15</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column picker -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Column visibility</h3>
+              <p>Select columns to display in the register below</p>
+            </div>
+            <div class="col-actions">
+              <button class="btn btn-ghost btn-sm" onclick="toggleChips('inc', true)">All</button>
+              <button class="btn btn-ghost btn-sm" onclick="setDefaultChips()">Default</button>
+              <button class="btn btn-ghost btn-sm" onclick="toggleChips('inc', false)">Clear</button>
+            </div>
+          </div>
+          <div class="chip-panel">
+            <div class="chip-row" id="incChips">
+              <span class="chip inc-chip on" data-col="incident">Incident</span>
+              <span class="chip inc-chip on" data-col="month">Month</span>
+              <span class="chip inc-chip on" data-col="partner">Partner</span>
+              <span class="chip inc-chip on" data-col="priority">Priority</span>
+              <span class="chip inc-chip on" data-col="status">Status</span>
+              <span class="chip inc-chip" data-col="region">Region</span>
+              <span class="chip inc-chip" data-col="country">Country</span>
+              <span class="chip inc-chip" data-col="owner">Issue owner</span>
+              <span class="chip inc-chip" data-col="category">Category</span>
+              <span class="chip inc-chip" data-col="delayed">Delayed txns</span>
+              <span class="chip inc-chip" data-col="breached">Breached SLA</span>
+              <span class="chip inc-chip" data-col="resolved">Resolve time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Register table -->
+        <div class="table-wrap">
+          <table id="incidentTable">
+            <thead>
+              <tr>
+                <th>Incident</th>
+                <th>Month</th>
+                <th>Partner</th>
+                <th>Priority</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">INC5367010</td><td>Mar</td><td>GCASH</td>
+                <td><span class="pdot pdot-1"></span>P1</td>
+                <td><span class="pill pill-red">Open</span></td>
+              </tr>
+              <tr>
+                <td class="mono">INC5366881</td><td>Mar</td><td>MASTERCARD</td>
+                <td><span class="pdot pdot-2"></span>P2</td>
+                <td><span class="pill pill-green">Resolved</span></td>
+              </tr>
+              <tr>
+                <td class="mono">INC5365002</td><td>Feb</td><td>GCASH</td>
+                <td><span class="pdot pdot-2"></span>P2</td>
+                <td><span class="pill pill-amber">In progress</span></td>
+              </tr>
+              <tr>
+                <td class="mono">INC5364750</td><td>Feb</td><td>VISA</td>
+                <td><span class="pdot pdot-3"></span>P3</td>
+                <td><span class="pill pill-green">Resolved</span></td>
+              </tr>
+              <tr>
+                <td class="mono">INC5363101</td><td>Jan</td><td>PAYMAYA</td>
+                <td><span class="pdot pdot-3"></span>P3</td>
+                <td><span class="pill pill-gray">Closed</span></td>
+              </tr>
+              <tr>
+                <td class="mono">INC5362880</td><td>Jan</td><td>MASTERCARD</td>
+                <td><span class="pdot pdot-1"></span>P1</td>
+                <td><span class="pill pill-green">Resolved</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /incidents -->
+
+
+      <!-- ══════ REJECTIONS VIEW ══════ -->
+      <div class="view" id="view-rejections">
+
+        <!-- Header + badges -->
+        <div class="register-header">
+          <div>
+            <h2>Rejection analytics</h2>
+            <p>Filtered rejection transaction data — synchronized with sidebar filters</p>
+          </div>
+          <div class="badge-row">
+            <span class="badge">84k records</span>
+            <span class="badge badge-danger">12.4% rejection rate</span>
+          </div>
+        </div>
+
+        <!-- Rejection quick filters (chip-based, single DOM source of truth) -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Rejection filters</h3>
+              <p>Narrow down by delivery service, channel, and substate</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="resetRejChips()">Reset all</button>
+          </div>
+          <div class="chip-panel">
+            <div class="chip-panel-row">
+              <div class="chip-row-label">Delivery service</div>
+              <div class="chip-row" data-group="delivery">
+                <span class="chip rej-chip on" data-val="all">All</span>
+                <span class="chip rej-chip" data-val="BANK">BANK</span>
+                <span class="chip rej-chip" data-val="CASH_PICKUP">CASH_PICKUP</span>
+                <span class="chip rej-chip" data-val="CARD">CARD</span>
+              </div>
+            </div>
+            <div class="chip-panel-row">
+              <div class="chip-row-label">Channel</div>
+              <div class="chip-row" data-group="channel">
+                <span class="chip rej-chip on" data-val="all">All</span>
+                <span class="chip rej-chip" data-val="API">API</span>
+                <span class="chip rej-chip" data-val="MOBILE">MOBILE</span>
+                <span class="chip rej-chip" data-val="BRANCH">BRANCH</span>
+                <span class="chip rej-chip" data-val="WEBMDC">WEBMDC</span>
+              </div>
+            </div>
+            <div class="chip-panel-row">
+              <div class="chip-row-label">Substate</div>
+              <div class="chip-row" data-group="substate">
+                <span class="chip rej-chip on" data-val="all">All</span>
+                <span class="chip rej-chip" data-val="REJECTED">REJECTED</span>
+                <span class="chip rej-chip" data-val="PENDING">PENDING</span>
+                <span class="chip rej-chip" data-val="COMPLETED">COMPLETED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid rej-kpis">
+          <div class="kpi-card">
+            <div class="kpi-label">Total rejections</div>
+            <div class="kpi-value">10,416</div>
+            <div class="kpi-delta up">↑ +3% vs last month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Rejection rate</div>
+            <div class="kpi-value">12.4%</div>
+            <div class="kpi-delta up">↑ +1.1pp vs last month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Top reject reason</div>
+            <div class="kpi-value" style="font-size:14px">LIMIT_EXCEEDED</div>
+            <div class="kpi-delta">34% of all rejections</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Top affected partner</div>
+            <div class="kpi-value" style="font-size:14px">MASTERCARD</div>
+            <div class="kpi-delta">2,810 rejections</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+          <div class="chart-box">
+            <h4>Top reject reasons</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">LIMIT_EXCEEDED</span><div class="bar-track"><div class="bar-fill rej" style="width:85%"></div></div><span class="bar-val">34%</span></div>
+              <div class="bar-row"><span class="bar-label">AML_CHECK</span><div class="bar-track"><div class="bar-fill rej" style="width:58%"></div></div><span class="bar-val">23%</span></div>
+              <div class="bar-row"><span class="bar-label">INVALID_ACCOUNT</span><div class="bar-track"><div class="bar-fill rej" style="width:40%"></div></div><span class="bar-val">16%</span></div>
+              <div class="bar-row"><span class="bar-label">TIMEOUT</span><div class="bar-track"><div class="bar-fill rej" style="width:22%"></div></div><span class="bar-val">9%</span></div>
+              <div class="bar-row"><span class="bar-label">Other</span><div class="bar-track"><div class="bar-fill rej" style="width:18%"></div></div><span class="bar-val">18%</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>Rejections by partner</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">MASTERCARD</span><div class="bar-track"><div class="bar-fill rej" style="width:82%"></div></div><span class="bar-val">2810</span></div>
+              <div class="bar-row"><span class="bar-label">GCASH</span><div class="bar-track"><div class="bar-fill rej" style="width:61%"></div></div><span class="bar-val">2100</span></div>
+              <div class="bar-row"><span class="bar-label">VISA</span><div class="bar-track"><div class="bar-fill rej" style="width:44%"></div></div><span class="bar-val">1520</span></div>
+              <div class="bar-row"><span class="bar-label">PAYMAYA</span><div class="bar-track"><div class="bar-fill rej" style="width:28%"></div></div><span class="bar-val">980</span></div>
+              <div class="bar-row"><span class="bar-label">Other</span><div class="bar-track"><div class="bar-fill rej" style="width:20%"></div></div><span class="bar-val">690</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>By delivery service</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">BANK</span><div class="bar-track"><div class="bar-fill rej" style="width:72%"></div></div><span class="bar-val">52%</span></div>
+              <div class="bar-row"><span class="bar-label">CASH_PICKUP</span><div class="bar-track"><div class="bar-fill rej" style="width:44%"></div></div><span class="bar-val">31%</span></div>
+              <div class="bar-row"><span class="bar-label">CARD</span><div class="bar-track"><div class="bar-fill rej" style="width:22%"></div></div><span class="bar-val">17%</span></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <h4>By receive country</h4>
+            <div class="bar-list">
+              <div class="bar-row"><span class="bar-label">PH</span><div class="bar-track"><div class="bar-fill rej" style="width:85%"></div></div><span class="bar-val">3610</span></div>
+              <div class="bar-row"><span class="bar-label">IN</span><div class="bar-track"><div class="bar-fill rej" style="width:54%"></div></div><span class="bar-val">2280</span></div>
+              <div class="bar-row"><span class="bar-label">MX</span><div class="bar-track"><div class="bar-fill rej" style="width:38%"></div></div><span class="bar-val">1600</span></div>
+              <div class="bar-row"><span class="bar-label">NG</span><div class="bar-track"><div class="bar-fill rej" style="width:20%"></div></div><span class="bar-val">850</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rejection data table -->
+        <div class="table-wrap">
+          <table id="rejectionTable">
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th>Country</th>
+                <th>Delivery</th>
+                <th>Partner reject reason</th>
+                <th>Substate</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>MASTERCARD</td><td>PH</td><td>BANK</td><td class="mono">LIMIT_EXCEEDED</td><td><span class="pill pill-red">REJECTED</span></td><td>412</td></tr>
+              <tr><td>GCASH</td><td>PH</td><td>CASH_PICKUP</td><td class="mono">AML_CHECK</td><td><span class="pill pill-red">REJECTED</span></td><td>287</td></tr>
+              <tr><td>VISA</td><td>IN</td><td>BANK</td><td class="mono">INVALID_ACCOUNT</td><td><span class="pill pill-amber">PENDING</span></td><td>194</td></tr>
+              <tr><td>PAYMAYA</td><td>MX</td><td>CARD</td><td class="mono">TIMEOUT</td><td><span class="pill pill-red">REJECTED</span></td><td>151</td></tr>
+              <tr><td>MASTERCARD</td><td>NG</td><td>BANK</td><td class="mono">AML_CHECK</td><td><span class="pill pill-red">REJECTED</span></td><td>139</td></tr>
+              <tr><td>GCASH</td><td>IN</td><td>BANK</td><td class="mono">LIMIT_EXCEEDED</td><td><span class="pill pill-red">REJECTED</span></td><td>118</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /rejections -->
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+  /* ── Tab switching ── */
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('view-' + t.dataset.tab).classList.add('active');
+    });
+  });
+
+  /* ── Incident column chips ── */
+  document.querySelectorAll('#incChips .chip').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('on'));
+  });
+  function toggleChips(group, on) {
+    document.querySelectorAll('#incChips .chip').forEach(c => c.classList.toggle('on', on));
+  }
+  function setDefaultChips() {
+    const defaults = ['incident','month','partner','priority','status'];
+    document.querySelectorAll('#incChips .chip').forEach(c => {
+      c.classList.toggle('on', defaults.includes(c.dataset.col));
+    });
+  }
+
+  /* ── Rejection filter chips (single-source, no duplicate DOM) ── */
+  document.querySelectorAll('.chip-row[data-group] .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      const group = c.closest('[data-group]');
+      if (c.dataset.val === 'all') {
+        group.querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+        c.classList.add('on');
+      } else {
+        group.querySelector('[data-val="all"]').classList.remove('on');
+        c.classList.toggle('on');
+        if (!group.querySelector('.chip.on')) {
+          group.querySelector('[data-val="all"]').classList.add('on');
+        }
+      }
+    });
+  });
+  function resetRejChips() {
+    document.querySelectorAll('.chip-row[data-group]').forEach(group => {
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+      group.querySelector('[data-val="all"]').classList.add('on');
+    });
+  }
+</script>
+
+</body>
+</html>

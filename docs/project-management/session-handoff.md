@@ -2,6 +2,11 @@
 
 ## Date: May 15, 2026
 
+### Latest: Pivot builder — save to config (Phase 2)
+
+- Load `services/config-service.js` before `app.js`. **Save chart to dashboard config** appends a chart-shaped widget (`source: "pivot-builder"`) to `payments-dashboard-config` in localStorage and lists titles on the Pivot tab.
+- **Top rows** control (`pivotTopN`: 5 / 10 / 20 / 50 / All) limits pivot table + chart rows after the existing sort-by-total.
+
 ### Latest: Export modal (profiles + presets)
 
 - Export toolbar: built-in **Profile** dropdown (loads `configs/export-profiles.json` with fallback), **Saved preset** dropdown, **Save preset** (localStorage `dashboardExportPresetsV1`), grouped checklist with **All in group / None** per block, default profile applied on open.

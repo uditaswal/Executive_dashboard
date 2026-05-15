@@ -3720,7 +3720,8 @@ APP.getPivotState = () => {
             column: "",
             value: numericFallback,
             agg: "count",
-            chartType: "bar"
+            chartType: "bar",
+            topN: "20"
         };
     }
 
@@ -3736,10 +3737,30 @@ APP.getPivotState = () => {
         APP.PIVOT.value = numericFallback;
     }
 
+    if (APP.PIVOT.topN === undefined || APP.PIVOT.topN === null || APP.PIVOT.topN === "") {
+        APP.PIVOT.topN = "20";
+    }
+
     APP.PIVOT.dataset =
         APP.pivotDataset;
 
     return APP.PIVOT;
+};
+
+APP.getPivotRowLimit = (state) => {
+    const raw =
+        state?.topN ?? "20";
+
+    if (raw === "all" || raw === "0") {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    const n =
+        Number(raw);
+
+    return Number.isFinite(n) && n > 0
+        ? n
+        : 20;
 };
 
 APP.getPivotResult = () => {
@@ -3798,7 +3819,7 @@ APP.getPivotResult = () => {
 
     const orderedColumns =
         [...columnLabels];
-    const bodyRows =
+    const sortedRows =
         Object.entries(matrix)
             .map(([label, values]) => {
                 const cells =
@@ -3811,8 +3832,13 @@ APP.getPivotResult = () => {
                     cells.reduce((sum, value) => sum + value, 0)
                 ];
             })
-            .sort((a, b) => APP.n(b[b.length - 1]) - APP.n(a[a.length - 1]))
-            .slice(0, 20);
+            .sort((a, b) => APP.n(b[b.length - 1]) - APP.n(a[a.length - 1]));
+    const limit =
+        APP.getPivotRowLimit(state);
+    const bodyRows =
+        limit >= sortedRows.length
+            ? sortedRows
+            : sortedRows.slice(0, limit);
 
     return {
         title: `${APP.pivotDataset === "rejections" ? "Rejections" : "Incidents"} Pivot: ${useCount ? "Count" : "Sum"} of ${valueKey || "Rows"} by ${rowKey}${columnKey ? ` and ${columnKey}` : ""}`,
@@ -3874,6 +3900,13 @@ APP.renderPivotBuilder = () => {
 <label class="pivot-field"><span>Values</span><select id="pivotValue">${APP.pivotOptions(columns, state.value, true)}</select></label>
 <label class="pivot-field"><span>Aggregation</span><select id="pivotAgg"><option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option><option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option></select></label>
 <label class="pivot-field"><span>Chart Type</span><select id="pivotChartType"><option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option><option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option><option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option><option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option></select></label>
+<label class="pivot-field"><span>Top rows</span><select id="pivotTopN">
+<option value="5" ${String(state.topN || "20") === "5" ? "selected" : ""}>5</option>
+<option value="10" ${String(state.topN || "20") === "10" ? "selected" : ""}>10</option>
+<option value="20" ${String(state.topN || "20") === "20" ? "selected" : ""}>20</option>
+<option value="50" ${String(state.topN || "20") === "50" ? "selected" : ""}>50</option>
+<option value="all" ${String(state.topN || "20") === "all" ? "selected" : ""}>All</option>
+</select></label>
 `
             : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
 
@@ -3884,7 +3917,8 @@ APP.renderPivotBuilder = () => {
             column: APP.g("pivotColumn")?.value || "",
             value: APP.g("pivotValue")?.value || "",
             agg: APP.g("pivotAgg")?.value || "count",
-            chartType: APP.g("pivotChartType")?.value || "bar"
+            chartType: APP.g("pivotChartType")?.value || "bar",
+            topN: APP.g("pivotTopN")?.value || "20"
         };
 
         const pivot =
@@ -3910,7 +3944,7 @@ APP.renderPivotBuilder = () => {
         APP.drawPivotChart();
     };
 
-    ["pivotRow", "pivotColumn", "pivotValue", "pivotAgg", "pivotChartType"].forEach((id) => {
+    ["pivotRow", "pivotColumn", "pivotValue", "pivotAgg", "pivotChartType", "pivotTopN"].forEach((id) => {
         const el =
             APP.g(id);
         if (el) {
@@ -3919,6 +3953,117 @@ APP.renderPivotBuilder = () => {
     });
 
     syncPivot();
+    void APP.renderPivotSavedWidgetsList();
+};
+
+APP.savePivotBuilderToDashboardConfig = async () => {
+    if (!window.ConfigService) {
+        alert("Config service is not loaded.");
+        return;
+    }
+
+    const pivot =
+        APP.getPivotResult();
+
+    if (!pivot.rows.length) {
+        alert("Build a pivot with at least one row before saving.");
+        return;
+    }
+
+    const state =
+        APP.getPivotState();
+    const rowKey =
+        state.row;
+    const columnKey =
+        state.column;
+    const valueKey =
+        state.value;
+    const useCount =
+        state.agg === "count" ||
+        !valueKey;
+
+    try {
+        const config =
+            await ConfigService.loadDashboardConfig();
+
+        if (!config.widgets) {
+            config.widgets = [];
+        }
+
+        const widget = {
+            id: ConfigService.createWidgetId(),
+            dataset: APP.pivotDataset === "rejections"
+                ? "rejections"
+                : "incidents",
+            dataVersion: "2026.05",
+            section: "Pivot",
+            type: "chart",
+            title: pivot.title,
+            chartType: state.chartType || "bar",
+            rows: [rowKey],
+            columns: columnKey
+                ? [columnKey]
+                : [],
+            values: [useCount
+                ? "COUNT"
+                : valueKey],
+            topN: APP.getPivotRowLimit(state) === Number.POSITIVE_INFINITY
+                ? null
+                : APP.getPivotRowLimit(state),
+            layout: {
+                width: 12,
+                height: 4,
+                order: config.widgets.length + 1
+            },
+            visible: true,
+            createdBy: "pivot-builder",
+            source: "pivot-builder",
+            exportable: true,
+            slideTitle: pivot.title,
+            pivotSpec: {
+                row: rowKey,
+                column: columnKey,
+                value: valueKey,
+                agg: state.agg,
+                chartType: state.chartType,
+                topN: state.topN
+            }
+        };
+
+        config.widgets.push(widget);
+        ConfigService.saveDashboardConfig(config);
+        await APP.renderPivotSavedWidgetsList();
+        alert("Saved pivot chart to dashboard config in this browser.");
+    } catch (err) {
+        console.error(err);
+        alert("Could not save dashboard config. See console for details.");
+    }
+};
+
+APP.renderPivotSavedWidgetsList = async () => {
+    const ul =
+        APP.g("pivotSavedWidgetsList");
+
+    if (!ul || !window.ConfigService) {
+        return;
+    }
+
+    try {
+        const config =
+            await ConfigService.loadDashboardConfig();
+        const pivots =
+            (config.widgets || []).filter((w) => w.source === "pivot-builder");
+
+        ul.innerHTML =
+            pivots.length
+                ? pivots.map((w) =>
+                    `<li><span class="pivot-saved-title-text">${APP.escape(w.title || w.id)}</span> <code class="pivot-saved-id">${APP.escape(w.id)}</code></li>`
+                ).join("")
+                : `<li class="empty-state">No saved pivot widgets yet.</li>`;
+    } catch {
+        ul.innerHTML =
+            `<li class="empty-state">Could not read saved config.</li>`;
+    }
 };
 
 APP.getRejectionRegisterTable = () => {
@@ -4110,6 +4255,12 @@ if (APP.g("btnClearRejectionColumns")) {
             .querySelectorAll(".rejection-column-check")
             .forEach((input) => input.checked = false);
         APP.renderRejectionTable();
+    };
+}
+
+if (APP.g("btnSavePivotToConfig")) {
+    APP.g("btnSavePivotToConfig").onclick = () => {
+        void APP.savePivotBuilderToDashboardConfig();
     };
 }
 

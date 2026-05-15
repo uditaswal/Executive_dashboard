@@ -246,6 +246,16 @@
                     </div>
                     <div id="pivotDatasetToggle" class="pivot-dataset-toggle"></div>
                     <div id="pivotBuilder" class="pivot-builder"></div>
+                    <div class="card pivot-save-panel" id="pivotSavePanel">
+                        <div class="pivot-save-panel__row">
+                            <button type="button" id="btnSavePivotToConfig" class="pivot-save-btn">Save chart to dashboard config</button>
+                            <p class="pivot-save-hint">Appends the current pivot as a chart widget in <code>payments-dashboard-config</code> (localStorage). Use for export/runtime workflows; reset via ConfigService defaults when import UI lands.</p>
+                        </div>
+                        <div class="pivot-saved-wrap">
+                            <h4 class="pivot-saved-heading">Saved from pivot builder</h4>
+                            <ul id="pivotSavedWidgetsList" class="pivot-saved-list"></ul>
+                        </div>
+                    </div>
                     <div class="card chart-card pivot-chart-card">
                         <canvas id="pivotChart"></canvas>
                     </div>
@@ -488,6 +498,7 @@
     <script src='js/rejection-filter-bar.js'></script>
     <script src='js/charts.js'></script>
     <script src='js/views.js'></script>
+    <script src='services/config-service.js'></script>
     <script src='js/app.js'></script>
     <script src='js/widget-renderer.js'></script>
     <script src='js/tab-manager.js'></script>
