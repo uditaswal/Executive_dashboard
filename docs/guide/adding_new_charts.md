@@ -51,9 +51,9 @@ To add a new chart and keep it aligned with the app:
 2. Add a chart renderer in `js/charts.js`.
 3. Add the canvas id to `APP.exportOrder` in `js/charts.js`.
 4. Call the renderer inside `APP.draw()`.
-5. Add a matching table entry in `APP.getGraphTables()` if the chart should appear in the `Tables` tab and global exports.
+5. Add a matching table entry in `APP.getGraphTables()` if the chart should appear in the `Analytics` tab table mode and global exports.
 
-For ad hoc analysis, note that the dashboard now also includes a pivot-style builder in the `Tables` tab. Use a fixed built-in chart only when the visualization needs to be part of the permanent product experience.
+For ad hoc analysis, note that the dashboard now also includes a pivot-style builder in the `Pivot` tab and graph-data tables in `Analytics` table mode. Use a fixed built-in chart only when the visualization needs to be part of the permanent product experience.
 
 ## Step 1: Add The Canvas
 
@@ -141,7 +141,7 @@ APP.draw = () => {
 
 ## Step 5: Add A Matching Table
 
-If the chart should appear in the `Tables` tab and global table exports, add a table object inside `APP.getGraphTables()`.
+If the chart should appear in Analytics table mode and global table exports, add a table object inside `APP.getGraphTables()`.
 
 Simple mapped table:
 

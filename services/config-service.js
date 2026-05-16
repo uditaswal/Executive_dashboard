@@ -234,16 +234,13 @@ window.ConfigService = (() => {
     const clone = (value) =>
         JSON.parse(JSON.stringify(value));
 
-    const downloadJson = (filename, data) => {
-        const jsonString = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonString], { type: "application/json" });
+    const downloadJson = (filename, json) => {
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
         URL.revokeObjectURL(url);
     };
 
@@ -268,6 +265,37 @@ window.ConfigService = (() => {
     const isCompatible = (config) =>
         config &&
         Number(config.schema) === SCHEMA;
+
+    const resetToDefault = () => {
+        localStorage.removeItem(DASHBOARD_KEY);
+        localStorage.removeItem(PROFILE_KEY);
+    };
+
+    const createWidgetId = () =>
+        (window.crypto && typeof window.crypto.randomUUID === "function")
+            ? window.crypto.randomUUID()
+            : `widget-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+
+    const importJsonFile = async (file) => {
+        if (!file) {
+            throw new Error("No file selected.");
+        }
+
+        const text =
+            await file.text();
+        const parsed =
+            safeParse(text);
+
+        if (!parsed) {
+            throw new Error("Selected file is not valid JSON.");
+        }
+
+        return parsed;
+    };
+
+    const exportWorkbook = (filename, workbook) => {
+        XLSX.writeFile(workbook, filename);
+    };
 
     return {
         async loadDashboardConfig() {
@@ -299,7 +327,6 @@ window.ConfigService = (() => {
                 DASHBOARD_KEY,
                 JSON.stringify(config)
             );
-            // Automatically download config as backup
             downloadJson("payments-dashboard-config.json", config);
         },
         saveExportProfiles(profiles) {
@@ -307,61 +334,46 @@ window.ConfigService = (() => {
                 PROFILE_KEY,
                 JSON.stringify(profiles)
             );
-            // Automatically download profiles as backup
-            downloadJson("payments-export-profiles.json", profiles);
+            downloadJson("payments-dashboard-export-profiles.json", profiles);
         },
-        downloadDashboardConfig() {
-            const saved = safeParse(localStorage.getItem(DASHBOARD_KEY));
-            const config = saved || DEFAULT_DASHBOARD_CONFIG;
+        downloadDashboardConfig(config) {
             downloadJson("payments-dashboard-config.json", config);
         },
-        downloadExportProfiles() {
-            const saved = safeParse(localStorage.getItem(PROFILE_KEY));
-            const profiles = saved || DEFAULT_EXPORT_PROFILES;
-            downloadJson("payments-export-profiles.json", profiles);
+        downloadExportProfiles(profiles) {
+            downloadJson("payments-dashboard-export-profiles.json", profiles);
         },
-        importDashboardConfig(jsonData) {
-            try {
-                const config = typeof jsonData === "string"
-                    ? JSON.parse(jsonData)
-                    : jsonData;
+        async importDashboardConfig(file) {
+            const parsed =
+                await importJsonFile(file);
 
-                if (!isCompatible(config)) {
-                    throw new Error("Invalid config schema");
-                }
-
-                this.saveDashboardConfig(config);
-                return { success: true, message: "Dashboard config imported successfully" };
-            } catch (error) {
-                return { success: false, message: `Import failed: ${error.message}` };
+            if (!isCompatible(parsed)) {
+                throw new Error("Dashboard config schema is not compatible.");
             }
+
+            localStorage.setItem(
+                DASHBOARD_KEY,
+                JSON.stringify(parsed)
+            );
+
+            return parsed;
         },
-        importExportProfiles(jsonData) {
-            try {
-                const profiles = typeof jsonData === "string"
-                    ? JSON.parse(jsonData)
-                    : jsonData;
+        async importExportProfiles(file) {
+            const parsed =
+                await importJsonFile(file);
 
-                if (!isCompatible(profiles)) {
-                    throw new Error("Invalid profiles schema");
-                }
-
-                this.saveExportProfiles(profiles);
-                return { success: true, message: "Export profiles imported successfully" };
-            } catch (error) {
-                return { success: false, message: `Import failed: ${error.message}` };
+            if (!isCompatible(parsed)) {
+                throw new Error("Export profiles schema is not compatible.");
             }
+
+            localStorage.setItem(
+                PROFILE_KEY,
+                JSON.stringify(parsed)
+            );
+
+            return parsed;
         },
-        resetToDefault() {
-            localStorage.removeItem(DASHBOARD_KEY);
-            localStorage.removeItem(PROFILE_KEY);
-        },
-        createWidgetId() {
-            return window.crypto?.randomUUID
-                ? window.crypto.randomUUID()
-                : `widget-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        },
-        clone,
-        schema: SCHEMA
+        resetToDefault,
+        createWidgetId,
+        exportWorkbook
     };
 })();

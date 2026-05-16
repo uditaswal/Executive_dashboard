@@ -86,7 +86,23 @@ APP.WidgetRenderer = {
 
         // Limit to topN if specified (post-aggregation, post-sort)
         if (config.topN) {
-            entries = entries.slice(0, config.topN);
+            if (config.groupBy) {
+                // Apply Top N per group if grouped data exists
+                const groupedEntries = {};
+                entries.forEach(([key, value]) => {
+                    const group = key.split(config.groupBy)[0];
+                    if (!groupedEntries[group]) {
+                        groupedEntries[group] = [];
+                    }
+                    groupedEntries[group].push([key, value]);
+                });
+
+                entries = Object.values(groupedEntries).flatMap(group =>
+                    group.sort((a, b) => b[1] - a[1]).slice(0, config.topN)
+                );
+            } else {
+                entries = entries.slice(0, config.topN);
+            }
         }
 
         // Extract labels and data from sorted entries

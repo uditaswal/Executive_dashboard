@@ -14,22 +14,46 @@
     <link rel='stylesheet' href='css/style.css'>
     <link rel='stylesheet' href='css/settings.css'>
     <link rel='stylesheet' href='css/rejections.css'>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            950: "#020617"
+                        }
+                    },
+                    boxShadow: {
+                        panel: "0 10px 30px rgba(15, 23, 42, 0.06)",
+                        float: "0 18px 50px rgba(15, 23, 42, 0.10)"
+                    }
+                }
+            }
+        };
+    </script>
     <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/pptxgenjs/dist/pptxgen.bundle.js'></script>
 </head>
 
-<body>
+<body class="bg-slate-50 text-slate-900 antialiased">
     <header class='top'>
         <div id='title'>Payments Dashboard</div>
         <div id='count'>0 records</div>
     </header>
+    <button id="btnOpenSidebar" class="sidebar-toggle sidebar-toggle--floating hide" type="button"
+        aria-controls="filterSidebar" aria-expanded="false">Filters</button>
     <div class='layout'>
-        <aside class='side'>
+        <aside id="filterSidebar" class='side'>
             <div class="filter-panel-title">
                 <span>Filters</span>
-                <small id="filterRecordHint">Live view</small>
+                <div class="filter-panel-meta">
+                    <small id="filterRecordHint">Live view</small>
+                    <button id="btnCloseSidebar" class="sidebar-toggle sidebar-toggle--inline" type="button"
+                        aria-controls="filterSidebar" aria-expanded="true">Close</button>
+                </div>
             </div>
 
             <label class="filter-field upload-field">
@@ -117,8 +141,7 @@
                     <button class='tab active' data-view='overview'>Overview</button>
                     <button class='tab' data-view='pivot'>Pivot</button>
                     <button class='tab' data-view='analytics'>Analytics</button>
-                    <button class='tab' data-view='tables'>Tables</button>
-                    <button class='tab' data-view='incidents'>Incidents</button>
+                    <button class='tab' data-view='incidents' id="tabIncidents">Incidents</button>
                     <button class='tab' data-view='rejections'>Rejections</button>
                     <button class='tab guide-tab' data-view='guide'>Guide</button>
                 </div>
@@ -189,6 +212,19 @@
                 <br>
             </section>
             <section id='analytics' class='view hide'>
+                <div class="card analytics-view-mode">
+                    <div class="analytics-view-mode__head">
+                        <div>
+                            <h3>Analytics Workspace</h3>
+                            <p>Switch between chart canvases and the matching graph-data tables without leaving this tab.</p>
+                        </div>
+                        <div class="analytics-view-mode__actions" role="tablist" aria-label="Analytics display mode">
+                            <button type="button" class="analytics-mode-btn active" data-analytics-mode="charts">Charts</button>
+                            <button type="button" class="analytics-mode-btn" data-analytics-mode="tables">Tables</button>
+                        </div>
+                    </div>
+                </div>
+                <br>
                 <div class="card export-panel">
                     <div class="export-head">
                         <div>
@@ -213,13 +249,14 @@
                     </div>
                 </div>
                 <br>
-                <div class='charts'>
+                <div id="analyticsChartPanel">
+                    <div class='charts'>
                     <div class='card wide'><canvas id='c1'></canvas></div>
                     <div class='card'><canvas id='c2'></canvas></div>
                     <div class='card'><canvas id='c3'></canvas></div>
-                </div>
-                <br>
-                <div class='charts'>
+                    </div>
+                    <br>
+                    <div class='charts'>
                     <div class='card wide'><canvas id='c4'></canvas></div>
                     <div class='card'><canvas id='c5'></canvas></div>
                     <div class='card'><canvas id='c6'></canvas></div>
@@ -238,12 +275,42 @@
                     <div class='card'><canvas id='c22'></canvas></div>
                     <div class='card wide'><canvas id='c23'></canvas></div>
                     <div class='card wide'><canvas id='c24'></canvas></div>
+                    </div>
+                    <div class="card chart-card tall">
+                        <canvas id="c11"></canvas>
+                    </div>
                 </div>
-
-                <div class="card chart-card tall">
-                    <canvas id="c11"></canvas>
+                <div id="analyticsTablePanel" class="hide">
+                    <div class="card section-box">
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Register</h3>
+                                <p>The former Incidents tab now lives here so analysis and registers stay together.</p>
+                            </div>
+                        </div>
+                        <div id="analyticsIncidentRegisterHost"></div>
+                    </div>
+                    <br>
+                    <div class="card section-box">
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Tables</h3>
+                                <p>Tabular export of the filtered incident analytics.</p>
+                            </div>
+                        </div>
+                        <div id="analyticsIncidentTables" class="table-grid"></div>
+                    </div>
+                    <br>
+                    <div class="card section-box">
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Rejection Tables</h3>
+                                <p>Tabular export of the filtered rejection analytics.</p>
+                            </div>
+                        </div>
+                        <div id="analyticsRejectionTables" class="table-grid"></div>
+                    </div>
                 </div>
-
             </section>
             <section id='pivot' class='view hide'>
                 <div class="card section-box">
@@ -260,9 +327,9 @@
                         <div class="pivot-save-panel__row">
                             <button type="button" id="btnSavePivotToConfig" class="pivot-save-btn">Save chart to
                                 dashboard config</button>
-                            <p class="pivot-save-hint">Appends the current pivot as a chart widget in
-                                <code>payments-dashboard-config</code> (localStorage). Use for export/runtime workflows;
-                                reset via ConfigService defaults when import UI lands.</p>
+                            <button type="button" id="btnPivotSaveInfo" class="pivot-save-info" aria-label="About saved pivot charts"
+                                title="Saved pivot charts are added to the dashboard config in localStorage and can be exported or downloaded later.">?</button>
+                            <span id="pivotSaveStatus" class="pivot-save-status">Unique pivot charts only.</span>
                         </div>
                         <div class="pivot-saved-wrap">
                             <h4 class="pivot-saved-heading">Saved from pivot builder</h4>
@@ -274,17 +341,6 @@
                     </div>
                     <br>
                     <div id="pivotTableWrap"></div>
-                </div>
-            </section>
-            <section id='tables' class='view hide'>
-                <div class="card section-box">
-                    <div class="table-section-head">
-                        <div>
-                            <h3>Graph Data Tables</h3>
-                            <p>Tabular export of the same filtered data used by the graphs.</p>
-                        </div>
-                    </div>
-                    <div id="analyticsTables" class="table-grid"></div>
                 </div>
             </section>
             <section id='incidents' class='view hide'>
@@ -376,6 +432,67 @@
                                 </select>
                             </label>
                         </div>
+                    </div>
+                </div>
+                <br>
+                <div class="charts">
+                    <div class="card wide"><canvas id="rc1"></canvas></div>
+                    <div class="card"><canvas id="rc4"></canvas></div>
+                    <div class="card"><canvas id="rc5"></canvas></div>
+                </div>
+                <br>
+                <div class="charts">
+                    <div class="card wide"><canvas id="rc2"></canvas></div>
+                    <div class="card"><canvas id="rc3"></canvas></div>
+                    <div class="card"><canvas id="rc6"></canvas></div>
+                    <div class="card"><canvas id="rc7"></canvas></div>
+                    <div class="card"><canvas id="rc8"></canvas></div>
+                    <div class="card"><canvas id="rc9"></canvas></div>
+                    <div class="card wide"><canvas id="rc10"></canvas></div>
+                    <div class="card wide"><canvas id="rc11"></canvas></div>
+                    <div class="card wide"><canvas id="rc12"></canvas></div>
+                    <div class="card wide"><canvas id="rc13"></canvas></div>
+                    <div class="card wide"><canvas id="rc14"></canvas></div>
+                </div>
+                <br>
+                <div class="card column-panel">
+                    <div class="column-panel-head">
+                        <div>
+                            <h3>Rejection Register</h3>
+                            <p>Review the filtered rejection rows with selected columns and paging controls.</p>
+                        </div>
+                        <div class="incident-stats">
+                            <span id="rejectionShown">0 shown</span>
+                            <span id="rejectionFilteredCount">0 filtered</span>
+                            <span id="rejectionPageInfo">Page 1 of 1</span>
+                        </div>
+                    </div>
+                    <div class="column-actions">
+                        <button id="btnDefaultRejectionColumns">Default</button>
+                        <button id="btnAllRejectionColumns">All</button>
+                        <button id="btnClearRejectionColumns">Clear</button>
+                    </div>
+                    <br>
+                    <div id="rejectionColumnList" class="column-list"></div>
+                    <div class="rejection-table-toolbar">
+                        <label class="chart-options-select">
+                            <span>Rows per page</span>
+                            <select id="rejectionPageSize">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="250">250</option>
+                            </select>
+                        </label>
+                        <div class="rejection-page-actions">
+                            <button id="btnRejectionPrevPage" type="button">Prev</button>
+                            <button id="btnRejectionNextPage" type="button">Next</button>
+                        </div>
+                    </div>
+                    <div class="incident-table-wrap">
+                        <table class="incident-table">
+                            <thead id="rejectionHead"></thead>
+                            <tbody id="rejectionBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -660,6 +777,7 @@
                             <input type="file" id="inputImportDashboardConfig" accept=".json" style="display: none;">
                         </label>
                         <button id="btnResetDashboardConfig" type="button">Reset to Default</button>
+                        <button id="btnDownloadNormalizedWorkbook" type="button">Download Normalized Data</button>
                     </div>
                 </div>
                 <div class="settings-section">

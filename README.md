@@ -1,56 +1,22 @@
 # Executive Incident Dashboard
 
-A browser-based executive dashboard for reviewing payment incidents, partner impact, SLA breaches, reroutes, APN volume, RCA summaries, and filtered incident details from an Excel workbook.
+Browser-based dashboard for payment incidents and rejection data. The live app runs on the legacy `index.html` + `js/app.js` path; `js/runtime.js` remains parked work and is not the production shell.
 
-The app is built with plain HTML, CSS, and JavaScript. It uses SheetJS to read Excel and CSV files, Chart.js to render charts, `html2canvas` for PNG capture, and `PptxGenJS` for PowerPoint export.
+## Current App Behavior
 
-## Current Project Status
-
-- Primary sample workbook: `data/payments_incident_sample.xlsx`
-- Sample workbook last updated in this repo: `2026-05-06`
-- Optional config workbook also present: `data/config.xlsx`
-- The dashboard title defaults to `Payments Dashboard`
-
-## Features
-
-- Auto-loads `data/payments_incident_sample.xlsx` when served from a local web server.
-- Supports manual upload of `.xlsx`, `.xls`, and `.csv` files.
-- Normalizes sheet names and column names before matching, so casing, spaces, punctuation, and minor naming variations are handled more safely.
-- Applies live multi-select filters for month, partner, status, priority, region, receive country, issue owner, category, impact type, and free-text incident search.
-- Includes four main views: `Overview`, `Analytics`, `Tables`, and `Incidents`.
-- Shows KPI cards, executive summary text, priority breakdown, resolution and impact breakdowns, overview insights, period metrics, WU platform RCA, and vendor issues.
-- Renders 22 analytics charts and matching graph-data tables from the current filtered dataset.
-- Includes a pivot-style builder that can generate charts and tables on the fly from the uploaded Excel data.
-- Lets users choose which Excel columns appear in the incident register.
-- Exports selected overview sections, charts, and tables to PNG, PowerPoint, and Excel.
-- Reads optional multi-sheet data for configuration, suggestions, reroute metrics, and APN volume trends.
-
-## Project Structure
-
-```text
-.
-|-- index.html
-|-- css/
-|   `-- style.css
-|-- js/
-|   |-- app.js
-|   |-- charts.js
-|   |-- data.js
-|   |-- filters.js
-|   `-- views.js
-|-- data/
-|   |-- config.xlsx
-|   |-- payments_incident_sample.xlsx
-|   `-- Sample_PPT.pptx
-`-- docs/
-    |-- README.md
-    |-- EXCEL_SPECIFICATION.md
-    `-- adding_new_charts.md
-```
+- Tabs: `Overview`, `Pivot`, `Analytics`, `Incidents`, `Rejections`, `Guide`
+- The old standalone `Tables` tab has been merged into `Analytics`
+- The left filter panel can be collapsed and reopened
+- Analytics table mode and pivot table output now share Bottom N, sort, label filter, and exclude controls
+- Pivot saves are deduplicated by chart definition, so saving the same pivot twice is blocked
+- The `Rejections` tab includes a visible rejection register with column selection and paging
+- Dashboard config and export profiles can be downloaded, imported, and reset from `Settings`
+- Normalized workbook data can be downloaded from `Settings`
+- PowerPoint export prefers native text, table, and supported chart output, with image fallback when needed
 
 ## How To Run
 
-Because the dashboard fetches the local workbook, use a local web server for auto-load.
+Use a local web server if you want linked CSS and sample workbook autoload to work:
 
 ```bash
 python -m http.server 8000
@@ -62,216 +28,71 @@ Then open:
 http://localhost:8000/index.html
 ```
 
-You can also open `index.html` directly and upload a workbook manually, but `Auto Load` depends on browser access to local files and is most reliable through a local server.
+Direct `file://` usage is still supported for manual workbook upload, but these limitations are expected:
 
-## Default Workbook
+- sample workbook autoload is skipped
+- any dev server URL such as `http://127.0.0.1:5500/...` will fail if that server is not running
+- browser security rules may block local fetch-based workflows
 
-The default workbook path is:
+## Workbook Notes
 
-```text
-data/payments_incident_sample.xlsx
-```
+- Default sample workbook: `data/payments_incident_sample.xlsx`
+- Main incidents sheet: `DATA` when present, otherwise first sheet
+- Rejection sheet aliases accepted: `REJECTIONDATA`, `RejectionData`, `PAYOUT_DATA`, `PayoutData`
+- `CONFIG`, `SUGGESTIONS`, `REROUTE`, and `APN_VOLUME` are optional
+- Month normalization preserves year when it exists in source values, for example `Jan 2026`
 
-Workbook loading behavior:
+## Main Workflows
 
-- The app uses the `DATA` sheet when present.
-- If `DATA` is missing, it falls back to the first workbook sheet.
-- `CONFIG` and `Config` are both accepted for dashboard settings.
-- `REROUTE` and `APN_VOLUME` can be discovered by required columns even if the sheet name differs.
-- Sheet matching is normalized before lookup, so variants like extra spaces, underscore differences, or casing differences are tolerated.
+### Filters
 
-## Normalization Rules
+- Incident filters live in the left sidebar
+- Rejection-specific filters live inside the `Rejections` tab
+- Record counts, charts, KPIs, tables, and pivot output all refresh from the same filtered state
 
-Before matching sheets or columns, the app normalizes names by:
+### Analytics
 
-- trimming whitespace
-- removing Excel `_x000d_` artifacts
-- lowercasing
-- removing spaces and punctuation for comparison
-
-Examples that can now resolve to the same logical field include:
-
-- `CONFIG`, `Config`, `config`
-- `Issue Category`, `issue category`, `Issue-Category`
-- `Issue(WU/Partner)` and spaced or punctuated variants
-- `Receive Country` and minor formatting variations
-
-## Supported Workbook Sheets
-
-| Sheet                | Required | Purpose                                                                                |
-| -------------------- | -------- | -------------------------------------------------------------------------------------- |
-| `DATA`               | Yes      | Main incident records used by filters, charts, KPIs, tables, and the incident register |
-| `CONFIG` or `Config` | No       | Dashboard title and theme color                                                        |
-| `SUGGESTIONS`        | No       | Overview recommendation list                                                           |
-| `REROUTE`            | No       | Rerouted transaction count and saved USD metrics                                       |
-| `APN_VOLUME`         | No       | APN monthly transaction volume trend                                                   |
-
-If a `DATA` sheet is not available, the dashboard uses the first sheet in the workbook as the main dataset.
-
-## Main Filters
-
-The sidebar currently filters by:
-
-- `Month`
-- `Partner`
-- `Status`
-- `PRIORITY`
-- `Region`
-- `Receive Country`
-- `Issue Owner`
-- `Category`
-- `Impact type`
-- Keyword search across each full row
-
-`Issue Owner` is normalized from `Issue(WU/Partner)` or `Issue (WU issue/Partner side)` into values such as `WU side` and `Partner side`.
-
-## Overview View
-
-The `Overview` tab includes:
-
-- Executive summary
-- KPI cards
-- Priority breakdown cards
-- Resolution and impact breakdown panels
-- An overview builder with four subtabs:
-  - `Insights`
-  - `<Period> View`
-  - `WU Issues`
-  - `Vendor Issues`
-- Suggestions
-
-The period label is dynamic. Depending on the current month filter, it can show values like `Jan`, `Jan-Mar`, `Q1`, or a comma-separated month list.
-
-## Analytics View
-
-The `Analytics` tab currently renders these charts:
-
-1. `Monthly Incident Trend`
-2. `Incident Status Split`
-3. `Priority Distribution`
-4. `Top Partner Incident Ranking`
-5. `Top Receive Countries`
-6. `Delayed vs Breached Trend`
-7. `Transaction Loss by Partner`
-8. `APN Monthly Transaction Volume`
-9. `WU vs Partner Side Issues`
-10. `WU vs Partner Side Trend`
-11. `Partner Side Issue Category Trend`
-12. `Top Impacted Wallet Trend`
-13. `Top Partners by Delayed MTCNs`
-14. `Top Wallets by Delayed MTCNs`
-15. `Resolution Time Split`
-16. `Impact Type Split`
-17. `Issue Category by Month`
-18. `Monitoring Gap / Detection Delay`
-19. `Rejected Transactions by Partner`
-20. `Operational Impact by Month`
-21. `Receive Country Impact`
-22. `Insufficient Funds by Partner`
-
-Users can also toggle `Show counts on charts`.
-
-## Tables View
-
-The `Tables` tab now includes two capabilities:
-
-- A pivot-style builder for ad hoc chart and table generation from the currently filtered workbook data
-- The built-in graph-data tables that mirror the analytics charts
-
-The built-in graph-data tables include:
-
-- Monthly trend
-- Status split
-- Priority distribution
-- Partner and country rankings
-- Receive country impact
-- Delayed versus breached monthly totals
-- Transaction loss by partner
-- APN monthly transaction volume
-- WU versus partner ownership
-- Partner-side category trends
-- Wallet trends
-- Delayed, rejected, and operational impact tables
-- Resolution, impact, and monitoring splits
-- Insufficient funds trend
+- `Charts` view shows the canvas-based chart suite
+- `Tables` view shows the matching graph-data tables inside the same tab
+- Top-N controls still apply to chart-heavy analytics and rejection views
+- Table-mode cards include Top/Bottom N, label filtering, sort, and exclusion controls after aggregation
 
 ### Pivot Builder
 
-The pivot builder works on the currently filtered `DATA` rows and lets users choose:
+- Build ad hoc charts and tables from the current filtered dataset
+- Choose incident or rejection dataset
+- Save useful pivots into dashboard config
+- Duplicate pivot definitions are detected and rejected before save
+- Pivot table output uses the same shared table-control model as Analytics table mode
 
-- `Rows`
-- `Columns`
-- `Values`
-- `Aggregation` as `Count` or `Sum`
-- `Chart Type` as `Bar`, `Line`, `Doughnut`, or `Pie`
+### Rejections
 
-It generates:
+- Rejection-specific filters remain inside the `Rejections` tab
+- The visible rejection register uses the filtered rejection dataset as its source of truth
+- Selected rejection columns affect both the visible register and exports
 
-- a chart from the selected pivot setup
-- a matching table showing the same grouped output
+### Settings
 
-This is intended to feel similar to a lightweight Excel pivot chart workflow inside the dashboard.
+- Download dashboard config JSON
+- Import dashboard config JSON
+- Reset dashboard config to bundled defaults
+- Download export profiles JSON
+- Import export profiles JSON
+- Reset export profiles to bundled defaults
+- Download normalized workbook data as `.xlsx`
 
-## Incidents View
+## Important Files
 
-The `Incidents` tab includes:
+- [index.html](index.html)
+- [js/app.js](js/app.js)
+- [js/data.js](js/data.js)
+- [js/filters.js](js/filters.js)
+- [js/charts.js](js/charts.js)
+- [services/config-service.js](services/config-service.js)
+- [docs/task/plan.md](docs/task/plan.md)
 
-- Live counts for shown incidents, open incidents, and major incidents
-- A column picker sourced from the uploaded Excel headers
-- `Default`, `All`, and `Clear` column actions
-- A filtered incident register capped to the first 500 rows in the UI
+## Known Direction
 
-Default incident columns include:
-
-```text
-Incident
-Month
-Partner
-Receive Country
-Issue (WU issue/Partner side)
-issue category
-Status
-PRIORITY
-Impact type
-Time Taken for Resolution
-Delayed Transaction
-Delivery Breached
-```
-
-## Exports
-
-The current export modal supports:
-
-- PNG export of selected overview sections, charts, and graph tables
-- PowerPoint export of selected overview sections, charts, and graph tables
-- Excel export of selected overview sections, charts, and graph tables
-
-Excel export writes separate sheets for each selected chart or table and names the file using the current review period, for example:
-
-```text
-dashboard-export-q1.xlsx
-```
-
-## Notes About Current Summary Text
-
-The executive summary in the UI mixes live metrics with fixed 2026 narrative lines. At the time of this update, these statements are still hard-coded in `js/app.js` rather than calculated from workbook data:
-
-- APN transaction volume averaging 7 million per month in 2026 with 75% real time
-- Retail versus digital processing mix of 55% and 45%
-- Overall rejection rate stable at about 1.38% of volume
-
-If those figures change, update the summary logic in `js/app.js` in addition to refreshing workbook data.
-
-## Main Files
-
-- `index.html` defines the dashboard layout, filter controls, tabs, export modal, overview builder, chart canvases, and incident register.
-- `js/data.js` loads workbook sheets, cleans Excel text, applies config, and initializes app state.
-- `js/filters.js` populates filter dropdowns and applies the active filters.
-- `js/charts.js` defines chart helpers, graph-data tables, export order, and all analytics charts.
-- `js/app.js` renders summary content, KPIs, overview tables, suggestions, incident columns, and export flows.
-- `js/views.js` handles main tab switching.
-- `css/style.css` contains all dashboard styling.
-
-## Adding New Charts
-
-See `docs/adding_new_charts.md` for the current chart and table workflow
+- Keep the legacy dashboard stable first
+- Reuse runtime/service helpers only when they can be safely isolated
+- Treat `js/runtime.js` as parked WIP until a controlled migration is explicitly resumed

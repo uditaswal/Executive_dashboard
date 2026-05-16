@@ -151,12 +151,13 @@ APP.resetRejectionFilters = () => {
     }
 };
 
-globalFilters.rejections = {
+APP.globalFilters = APP.globalFilters || {};
+APP.globalFilters.rejections = APP.globalFilters.rejections || {
     month: [],
     partner: [],
     country: [],
     deliveryService: [],
-    bankname: [],
-    bankcode: [],
+    bankName: [],
+    bankCode: [],
     status: []
 };

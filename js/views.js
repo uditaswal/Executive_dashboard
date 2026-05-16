@@ -5,6 +5,11 @@
  */
 
 APP.view = (id) => {
+    if (id === "incidents") {
+        id = "analytics";
+        APP.analyticsMode = "tables";
+    }
+
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hide"));
     APP.g(id).classList.remove("hide");
     document

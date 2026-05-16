@@ -261,5 +261,11 @@ APP.PPTExporter = {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
-    APP.TabManager.renderTabs();
+    const tabsContainer = document.querySelector(".tabs");
+    const hasStaticTabs =
+        tabsContainer?.querySelector("[data-view='overview']");
+
+    if (!hasStaticTabs) {
+        APP.TabManager.renderTabs();
+    }
 });

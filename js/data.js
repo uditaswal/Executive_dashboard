@@ -139,13 +139,26 @@ APP.normalizeCell = (value, type) => {
     if (!s) return "";
 
     if (type === "month") {
+        const yearMatch =
+            s.match(/(?:19|20)\d{2}|\d{2}$/);
         const compact =
             s
-                .replace(/[-/\s]?\d{2,4}$/i, "")
+                .replace(/[-/\s]?(?:19|20)?\d{2}$/i, "")
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, "");
+        const month =
+            APP.MONTH_MAP[compact] || s;
 
-        return APP.MONTH_MAP[compact] || s;
+        if (!yearMatch) {
+            return month;
+        }
+
+        const year =
+            String(yearMatch[0]).length === 2
+                ? `20${yearMatch[0]}`
+                : String(yearMatch[0]);
+
+        return `${month} ${year}`;
     }
 
     if (type === "upper") {
@@ -363,6 +376,17 @@ APP.applyConfig = () => {
     APP.SETTINGS = cfg;
 };
 APP.loadLocal = async () => {
+    if (
+        typeof window !== "undefined" &&
+        window.location &&
+        window.location.protocol === "file:"
+    ) {
+        console.info(
+            "Sample workbook autoload is disabled for file:// URLs. Upload a workbook manually or serve the app over http://localhost."
+        );
+        return;
+    }
+
     try {
         const res = await fetch(
             `data/payments_incident_sample.xlsx?v=${Date.now()}`,
@@ -377,9 +401,15 @@ APP.loadLocal = async () => {
             await res.arrayBuffer();
         APP.parse(buf);
     } catch (err) {
-        console.warn(
-            "Local Excel file not found."
-        );
+        if (
+            typeof window !== "undefined" &&
+            window.location &&
+            /^https?:$/i.test(window.location.protocol)
+        ) {
+            console.info(
+                "Sample workbook autoload skipped because data/payments_incident_sample.xlsx was not available. Upload a workbook manually if needed."
+            );
+        }
     }
 };
 APP.bindUpload = () => {

@@ -6,11 +6,11 @@
 
 APP.render = () => {
     APP.g("count").textContent =
-        APP.DATA.length + " records";
+        `${APP.DATA.length} records`;
 
     if (APP.g("filterRecordHint")) {
         APP.g("filterRecordHint").textContent =
-            APP.DATA.length + " shown";
+            `${APP.DATA.length} incidents | ${APP.filteredRejections.length} rejections`;
     }
 
     APP.renderSummary();
@@ -19,13 +19,37 @@ APP.render = () => {
     APP.renderSecondaryBreakdowns();
     APP.renderOverviewTabs();
     APP.renderSuggestions();
-    APP.renderAnalyticsTables();
-    APP.renderPivotBuilder();
+    APP.renderRejectionKPIs();
     APP.renderIncidentColumnPicker();
+    APP.renderRejectionColumnPicker();
     APP.renderTable();
+    APP.renderRejectionTable();
     APP.draw();
+    APP.renderAnalyticsTables();
+    APP.renderRejectionTables();
+    APP.renderPivotBuilder();
     APP.renderExportOptions();
 };
+
+if (APP.g("analyticsTopN")) {
+    APP.g("analyticsTopN").onchange = (e) => {
+        APP.analyticsTopN =
+            e.target.value
+                ? Number(e.target.value)
+                : null;
+        APP.render();
+    };
+}
+
+if (APP.g("rejectionsTopN")) {
+    APP.g("rejectionsTopN").onchange = (e) => {
+        APP.rejectionsTopN =
+            e.target.value
+                ? Number(e.target.value)
+                : null;
+        APP.render();
+    };
+}
 
 APP.defaultIncidentColumns = [
     "Incident",
@@ -130,7 +154,7 @@ APP.renderTable = () => {
 
     if (APP.g("incidentShown")) {
         APP.g("incidentShown").textContent =
-            APP.DATA.length + " shown";
+            `${APP.DATA.length} shown`;
     }
 
     if (APP.g("incidentOpen")) {
@@ -148,23 +172,19 @@ APP.renderTable = () => {
 
     if (APP.g("incidentHead")) {
         APP.g("incidentHead").innerHTML = `
-<tr>
-${columns.map(column => `<th>${APP.escape(column)}</th>`).join("")}
-</tr>
+<tr>${columns.map(column => `<th>${APP.escape(column)}</th>`).join("")}</tr>
 `;
     }
 
-    APP.g("tbody").innerHTML =
-        APP.DATA.slice(0, 500)
-            .map(
-                r => `
-<tr>
-${columns.map(column => APP.renderIncidentCell(r, column)).join("")}
-</tr>
-`
-            )
-            .join("") ||
-        `<tr><td colspan="${Math.max(columns.length, 1)}">No incidents match the current filters.</td></tr>`;
+    if (APP.g("incidentBody")) {
+        APP.g("incidentBody").innerHTML =
+            APP.DATA.slice(0, 500)
+                .map(
+                    r => `
+<tr>${columns.map(column => `<td>${APP.escape(APP.rowValue(r, column) ?? "")}</td>`).join("")}</tr>
+`).join("") ||
+            `<tr><td colspan="${Math.max(columns.length, 1)}">No incidents match the current filters.</td></tr>`;
+    }
 };
 
 APP.renderIncidentCell = (row, column) => {
@@ -577,6 +597,49 @@ APP.getSelectedMonths = () => {
                     )
             )
         );
+};
+
+APP.getReviewPeriod = () => {
+    const months =
+        APP.getSelectedMonths();
+
+    if (!months.length) {
+        return "All Periods";
+    }
+
+    if (months.length === 1) {
+        return months[0];
+    }
+
+    const indexes =
+        months.map((month) => APP.monthOrder.indexOf(month))
+            .filter((index) => index >= 0)
+            .sort((a, b) => a - b);
+
+    if (!indexes.length) {
+        return months.join(", ");
+    }
+
+    const isContiguous =
+        indexes.every((index, position) =>
+            position === 0 ||
+            index === indexes[position - 1] + 1
+        );
+
+    if (isContiguous) {
+        if (indexes.length === 3) {
+            const quarter =
+                Math.floor(indexes[0] / 3) + 1;
+
+            if ((indexes[0] % 3) === 0) {
+                return `Q${quarter}`;
+            }
+        }
+
+        return `${months[0]}-${months[months.length - 1]}`;
+    }
+
+    return months.join(", ");
 };
 
 APP.matchesTrendBaseFilters = (row) => {
@@ -1261,14 +1324,26 @@ APP.renderAnalyticsTables = () => {
 };
 
 APP.getPivotColumns = () =>
-    APP.getExcelColumns().filter(Boolean);
+    (() => {
+        const rows =
+            APP.getDataRows();
+
+        return rows.length
+            ? Object.keys(rows[0]).filter(Boolean)
+            : [];
+    })();
+
+APP.getDataRows = () =>
+    APP.pivotDataset === "rejections"
+        ? (APP.filteredRejections || [])
+        : (APP.DATA || []);
 
 APP.getPivotState = () => {
     const columns =
         APP.getPivotColumns();
     const numericFallback =
         columns.find(column =>
-            APP.DATA.some(
+            APP.getDataRows().some(
                 row =>
                     APP.n(
                         APP.rowValue(
@@ -1281,7 +1356,9 @@ APP.getPivotState = () => {
 
     if (!APP.PIVOT) {
         APP.PIVOT = {
-            row: columns.includes("Partner") ? "Partner" : (columns[0] || ""),
+            row: columns.includes(APP.pivotDataset === "rejections" ? "PARTNERNAME" : "Partner")
+                ? (APP.pivotDataset === "rejections" ? "PARTNERNAME" : "Partner")
+                : (columns[0] || ""),
             column: "",
             value: numericFallback,
             agg: "count",
@@ -1327,7 +1404,7 @@ APP.getPivotResult = () => {
     const state =
         APP.getPivotState();
     const rows =
-        APP.DATA;
+        APP.getDataRows();
     const rowKey =
         state.row;
 
@@ -1503,2471 +1580,6 @@ APP.drawPivotChart = () => {
                     : {}
             )
         });
-};
-
-APP.renderPivotBuilder = () => {
-    const panel =
-        APP.g("pivotBuilder");
-    const tableBox =
-        APP.g("pivotTableWrap");
-
-    if (!panel || !tableBox) return;
-
-    const columns =
-        APP.getPivotColumns();
-    const state =
-        APP.getPivotState();
-
-    panel.innerHTML =
-        columns.length
-            ? `
-<label class="pivot-field">
-    <span>Rows</span>
-    <select id="pivotRow">${APP.pivotOptions(columns, state.row)}</select>
-</label>
-<label class="pivot-field">
-    <span>Columns</span>
-    <select id="pivotColumn">${APP.pivotOptions(columns, state.column, true)}</select>
-</label>
-<label class="pivot-field">
-    <span>Values</span>
-    <select id="pivotValue">${APP.pivotOptions(columns, state.value, true)}</select>
-</label>
-<label class="pivot-field">
-    <span>Aggregation</span>
-    <select id="pivotAgg">
-        <option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option>
-        <option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option>
-    </select>
-</label>
-<label class="pivot-field">
-    <span>Chart Type</span>
-    <select id="pivotChartType">
-        <option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option>
-        <option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option>
-        <option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option>
-        <option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option>
-    </select>
-</label>
-`
-            : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
-
-    const syncPivot = () => {
-        APP.PIVOT = {
-            row:
-                APP.g("pivotRow")?.value || "",
-            column:
-                APP.g("pivotColumn")?.value || "",
-            value:
-                APP.g("pivotValue")?.value || "",
-            agg:
-                APP.g("pivotAgg")?.value || "count",
-            chartType:
-                APP.g("pivotChartType")?.value || "bar"
-        };
-
-        const pivot =
-            APP.getPivotResult();
-
-        tableBox.innerHTML =
-            pivot.rows.length
-                ? `
-<div class="data-table-card">
-    <div class="data-table-head">
-        <h4>${APP.escape(pivot.title)}</h4>
-        <span>${pivot.rows.length} rows</span>
-    </div>
-    <div class="data-table-scroll">
-        <table class="data-table">
-            <thead>
-                <tr>${pivot.headers.map(header => `<th>${APP.escape(header)}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-                ${pivot.rows.map(row => `<tr>${row.map(cell => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")}
-            </tbody>
-        </table>
-    </div>
-</div>
-`
-                : `<div class="empty-state">No pivot output is available for the current setup.</div>`;
-
-        APP.drawPivotChart();
-    };
-
-    [
-        "pivotRow",
-        "pivotColumn",
-        "pivotValue",
-        "pivotAgg",
-        "pivotChartType"
-    ].forEach((id) => {
-        const el =
-            APP.g(id);
-        if (el) {
-            el.onchange = syncPivot;
-        }
-    });
-
-    syncPivot();
-};
-
-APP.renderExportOptions = () => {
-    const box =
-        APP.g("chartExportList");
-
-    if (!box) return;
-
-    const charts =
-        Object.keys(APP.charts || {})
-            .sort(
-                (a, b) =>
-                    APP.exportOrder.indexOf(a) -
-                    APP.exportOrder.indexOf(b)
-            );
-
-    box.innerHTML =
-        charts.map((id) => `
-<label class="chart-export-item">
-    <input type="checkbox" class="chart-export-check" value="${APP.escape(id)}" checked>
-    <span>${APP.escape(APP.chartTitles?.[id] || id)}</span>
-</label>
-`).join("") ||
-        `<div class="empty-state">Open the Analytics tab after data loads to select charts for export.</div>`;
-};
-
-APP.getSelectedChartIds = () =>
-    [...document.querySelectorAll(".chart-export-check:checked")]
-        .map(input => input.value)
-        .filter(id => APP.charts[id]);
-
-APP.download = (href, filename) => {
-    const link =
-        document.createElement("a");
-
-    link.href = href;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-};
-
-APP.chartImage = (id, type = "image/jpeg") => {
-    const canvas =
-        APP.g(id);
-
-    if (!canvas) return "";
-
-    const out =
-        document.createElement("canvas");
-
-    out.width = canvas.width;
-    out.height = canvas.height;
-
-    const ctx =
-        out.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-
-    return out.toDataURL(type, 0.92);
-};
-
-APP.exportSelectedJpg = () => {
-    const ids =
-        APP.getSelectedChartIds();
-
-    if (!ids.length) {
-        alert("Select at least one chart to export.");
-        return;
-    }
-
-    ids.forEach((id) => {
-        const title =
-            APP.slug(APP.chartTitles?.[id] || id);
-
-        APP.download(
-            APP.chartImage(id, "image/jpeg"),
-            `${title}.jpg`
-        );
-    });
-};
-
-APP.chartDataRows = (id) => {
-    const chart =
-        APP.charts[id];
-
-    if (!chart) return [];
-
-    const labels =
-        chart.data.labels || [];
-
-    const datasets =
-        chart.data.datasets || [];
-
-    return labels.map((label, index) => {
-        const row = {
-            Label: label
-        };
-
-        datasets.forEach((dataset) => {
-            row[dataset.label || "Value"] =
-                Array.isArray(dataset.data)
-                    ? dataset.data[index]
-                    : "";
-        });
-
-        return row;
-    });
-};
-
-APP.tableToObjects = (table) =>
-    table.rows.map((row) => {
-        const out = {};
-
-        table.headers.forEach((header, i) => {
-            out[header] =
-                row[i] ?? "";
-        });
-
-        return out;
-    });
-
-APP.sheetFromTable = (table) => {
-    const ws =
-        XLSX.utils.json_to_sheet(APP.tableToObjects(table));
-
-    ws["!cols"] =
-        table.headers.map((header) => ({
-            wch:
-                /RCA/i.test(header)
-                    ? 48
-                    : /Impact|Country/i.test(header)
-                        ? 28
-                        : 18
-        }));
-
-    Object.keys(ws)
-        .filter(key => key[0] !== "!")
-        .forEach((key) => {
-            ws[key].s =
-                ws[key].s || {};
-
-            ws[key].s.alignment = {
-                wrapText: true,
-                vertical: "top"
-            };
-        });
-
-    return ws;
-};
-
-APP.getIncidentRegisterTable = () => {
-    const columns =
-        APP.getIncidentColumns();
-
-    return {
-        id: "incident-register",
-        title: "Incident Register",
-        headers: columns,
-        rows:
-            APP.DATA.map(row =>
-                columns.map(column => APP.rowValue(row, column) ?? "")
-            )
-    };
-};
-
-APP.getOverviewExportSections = () => [
-    {
-        type: "section",
-        id: "overview-page",
-        elementId: "overview",
-        title: "Entire Overview Page"
-    },
-    {
-        type: "section",
-        id: "overview-summary",
-        elementId: "overviewSummarySection",
-        title: "Executive Summary"
-    },
-    {
-        type: "section",
-        id: "overview-kpis",
-        elementId: "overviewKpiSection",
-        title: "KPI Section"
-    },
-    {
-        type: "section",
-        id: "overview-priority",
-        elementId: "overviewPrioritySection",
-        title: "Priority Breakdown"
-    },
-    {
-        type: "section",
-        id: "overview-impact",
-        elementId: "overviewImpactSection",
-        title: "Resolution & Impact Breakdown"
-    },
-    {
-        type: "section",
-        id: "overview-builder",
-        elementId: "overviewBuilderSection",
-        title: "Executive View Builder"
-    },
-    {
-        type: "section",
-        id: "overview-suggestions",
-        elementId: "overviewSuggestionsSection",
-        title: "Suggestions"
-    }
-].filter(section => APP.g(section.elementId));
-
-APP.getOverviewSectionTable = (section) => {
-    const rows = [];
-
-    if (section.id === "overview-page" || section.id === "overview-kpis") {
-        document
-            .querySelectorAll("#kpis .kpi")
-            .forEach((card) => {
-                rows.push([
-                    "KPI",
-                    card.querySelector("h4")?.textContent || "",
-                    card.querySelector("strong")?.textContent || ""
-                ]);
-            });
-    }
-
-    if (section.id === "overview-page" || section.id === "overview-impact") {
-        document
-            .querySelectorAll("#resolutionBreakdown .mini-breakdown-row, #impactBreakdown .mini-breakdown-row")
-            .forEach((row) => {
-                rows.push([
-                    "Breakdown",
-                    row.querySelector("span")?.textContent || "",
-                    row.querySelector("strong")?.textContent || ""
-                ]);
-            });
-    }
-
-    if (section.id === "overview-page" || section.id === "overview-priority") {
-        document
-            .querySelectorAll("#priorityBreakdown .priority-card")
-            .forEach((card) => {
-                rows.push([
-                    "Priority",
-                    card.querySelector(".priority-title")?.textContent || "",
-                    card.querySelector(".priority-count")?.textContent || ""
-                ]);
-            });
-    }
-
-    if (!rows.length) {
-        const el =
-            APP.g(section.elementId);
-
-        (el?.innerText || "")
-            .split(/\n+/)
-            .map(line => line.trim())
-            .filter(Boolean)
-            .forEach(line => {
-                rows.push([
-                    section.title,
-                    "Content",
-                    line
-                ]);
-            });
-    }
-
-    return {
-        id: `${section.id}-data`,
-        title: section.title,
-        headers: ["Section", "Metric", "Value"],
-        rows
-    };
-};
-
-APP.EXPORT_PRESET_STORAGE_KEY = "dashboardExportPresetsV1";
-
-APP.PROFILE_WIDGET_EXPORT_KEYS = {
-    "overview-summary": ["section:overview-summary"],
-    "overview-kpi-incidents": ["section:overview-kpis"],
-    "overview-kpi-rejections": ["section:overview-kpis"],
-    "overview-kpi-partner": ["section:overview-kpis"],
-    "executive-summary-text": ["section:overview-summary"],
-    "incidents-monthly-trend": ["chart:c1"],
-    "incidents-by-partner": ["chart:c4"],
-    "rejections-monthly-trend": ["chart:rc1"],
-    "rejections-by-bank": ["chart:rc10"],
-    "rejections-register": ["table:rejection-register"]
-};
-
-APP.exportProfilesCatalog = null;
-
-APP.ensureExportProfilesLoaded = async () => {
-    if (APP.exportProfilesCatalog) {
-        return;
-    }
-
-    const fallback = {
-        schema: 1,
-        profiles: [
-            {
-                id: "executive-review",
-                title: "Executive Review",
-                widgetIds: ["overview-summary", "overview-kpi-incidents", "overview-kpi-rejections", "executive-summary-text"]
-            },
-            {
-                id: "monthly-ops",
-                title: "Monthly Ops",
-                widgetIds: ["incidents-monthly-trend", "incidents-by-partner", "rejections-monthly-trend", "rejections-by-bank"]
-            },
-            {
-                id: "vendor-rca",
-                title: "Vendor RCA",
-                widgetIds: ["vendor-rca-table"]
-            },
-            {
-                id: "reject-analysis",
-                title: "Reject Analysis",
-                widgetIds: ["rejections-monthly-trend", "rejections-by-bank", "rejections-register"]
-            }
-        ]
-    };
-
-    try {
-        const res =
-            await fetch("configs/export-profiles.json");
-
-        if (res.ok) {
-            APP.exportProfilesCatalog = await res.json();
-        } else {
-            APP.exportProfilesCatalog = fallback;
-        }
-    } catch {
-        APP.exportProfilesCatalog = fallback;
-    }
-};
-
-APP.getDefaultExportProfileId = () =>
-    APP.exportProfilesCatalog?.profiles?.[0]?.id ||
-    "executive-review";
-
-APP.buildExportKeysFromProfile = (profile) => {
-    const keys = new Set();
-    const components =
-        APP.getGlobalExportComponents();
-
-    (profile?.widgetIds || []).forEach((wid) => {
-        const mapped =
-            APP.PROFILE_WIDGET_EXPORT_KEYS[wid];
-
-        if (mapped) {
-            mapped.forEach((k) => keys.add(k));
-        }
-
-        if (wid === "vendor-rca-table") {
-            components.tables
-                .filter((t) =>
-                    /rca|vendor/i.test(`${t.title || ""} ${t.id || ""}`)
-                )
-                .forEach((t) =>
-                    keys.add(`table:${t.id}`)
-                );
-        }
-    });
-
-    return keys;
-};
-
-APP.applyExportSelectionKeySet = (keySet) => {
-    document
-        .querySelectorAll(".global-export-check")
-        .forEach((input) => {
-            input.checked =
-                keySet.has(input.value);
-        });
-};
-
-APP.applyBuiltinExportProfileById = (profileId) => {
-    const profile =
-        APP.exportProfilesCatalog?.profiles?.find((p) => p.id === profileId);
-
-    if (!profile) {
-        return;
-    }
-
-    APP.applyExportSelectionKeySet(
-        APP.buildExportKeysFromProfile(profile)
-    );
-};
-
-APP.getExportPresetsList = () => {
-    try {
-        const raw =
-            localStorage.getItem(APP.EXPORT_PRESET_STORAGE_KEY);
-
-        const parsed =
-            raw
-                ? JSON.parse(raw)
-                : [];
-
-        return Array.isArray(parsed)
-            ? parsed
-            : [];
-    } catch {
-        return [];
-    }
-};
-
-APP.saveCurrentExportSelectionAsPreset = (name) => {
-    const trimmed =
-        String(name || "").trim();
-
-    if (!trimmed) {
-        alert("Enter a preset name.");
-        return;
-    }
-
-    const keys =
-        [...document.querySelectorAll(".global-export-check:checked")]
-            .map((input) => input.value);
-
-    const presets =
-        APP.getExportPresetsList();
-
-    presets.push({
-        id: `preset-${Date.now()}`,
-        title: trimmed,
-        keys
-    });
-
-    localStorage.setItem(
-        APP.EXPORT_PRESET_STORAGE_KEY,
-        JSON.stringify(presets)
-    );
-    APP.renderUserPresetSelectOptions();
-};
-
-APP.applyExportPresetById = (presetId) => {
-    const preset =
-        APP.getExportPresetsList()
-            .find((p) => p.id === presetId);
-
-    if (!preset || !Array.isArray(preset.keys)) {
-        return;
-    }
-
-    APP.applyExportSelectionKeySet(new Set(preset.keys));
-};
-
-APP.renderExportProfileSelectOptions = () => {
-    const sel =
-        APP.g("exportProfileSelect");
-
-    if (!sel) {
-        return;
-    }
-
-    const profiles =
-        APP.exportProfilesCatalog?.profiles ||
-        [];
-
-    sel.innerHTML =
-        `<option value="__custom__">Custom selection</option>` +
-        profiles.map((p) =>
-            `<option value="${APP.escape(p.id)}">${APP.escape(p.title)}</option>`
-        ).join("");
-};
-
-APP.renderUserPresetSelectOptions = () => {
-    const sel =
-        APP.g("exportUserPresetSelect");
-
-    if (!sel) {
-        return;
-    }
-
-    const presets =
-        APP.getExportPresetsList();
-
-    sel.innerHTML =
-        `<option value="">Saved presets</option>` +
-        presets.map((p) =>
-            `<option value="${APP.escape(p.id)}">${APP.escape(p.title)}</option>`
-        ).join("");
-};
-
-APP.openGlobalExportModal = async () => {
-    const modal =
-        APP.g("exportModal");
-
-    if (!modal) {
-        return;
-    }
-
-    await APP.ensureExportProfilesLoaded();
-    APP.renderExportProfileSelectOptions();
-    APP.renderUserPresetSelectOptions();
-    APP.renderGlobalExportList();
-
-    const profileSel =
-        APP.g("exportProfileSelect");
-
-    if (profileSel) {
-        const def =
-            APP.getDefaultExportProfileId();
-        const opt =
-            profileSel.querySelector(`option[value="${def}"]`);
-
-        if (opt) {
-            profileSel.value = def;
-        } else if (profileSel.options.length > 1) {
-            profileSel.selectedIndex = 1;
-        } else {
-            profileSel.value = "__custom__";
-        }
-
-        if (profileSel.value !== "__custom__") {
-            APP.applyBuiltinExportProfileById(profileSel.value);
-        }
-    }
-
-    const presetSel =
-        APP.g("exportUserPresetSelect");
-
-    if (presetSel) {
-        presetSel.value = "";
-    }
-
-    modal.classList.remove("hide");
-};
-
-APP.closeGlobalExportModal = () => {
-    const modal =
-        APP.g("exportModal");
-
-    if (modal) {
-        modal.classList.add("hide");
-    }
-};
-
-APP.exportItemMarkup = (item, groupId) => {
-    const val =
-        `${item.type}:${item.id}`;
-    const g =
-        APP.escape(groupId);
-
-    return (
-        `<label class="global-export-item">` +
-        `<input type="checkbox" class="global-export-check" data-export-group="${g}" ` +
-        `value="${APP.escape(val)}" ` +
-        `${item.checked === false ? "" : "checked"}>` +
-        `<span>${APP.escape(item.title)}</span>` +
-        `</label>`
-    );
-};
-
-APP.renderGlobalExportList = () => {
-    const box =
-        APP.g("globalExportList");
-
-    if (!box) {
-        return;
-    }
-
-    const components =
-        APP.getGlobalExportComponents();
-
-    const incidentCharts =
-        components.charts.filter((c) => !String(c.id).startsWith("rc"));
-    const rejectionCharts =
-        components.charts.filter((c) => String(c.id).startsWith("rc"));
-
-    const groupBlock = (groupId, title, items) => {
-        const gid =
-            APP.escape(groupId);
-        const body =
-            items.length
-                ? items.map((item) => APP.exportItemMarkup(item, groupId)).join("")
-                : `<div class="empty-state">No ${APP.escape(title.toLowerCase())} available.</div>`;
-
-        return (
-            `<div class="global-export-group" data-export-group-root="${gid}">` +
-            `<div class="global-export-group-head">` +
-            `<h4>${APP.escape(title)}</h4>` +
-            `<div class="export-group-actions">` +
-            `<button type="button" class="export-group-all" data-export-group="${gid}">All in group</button>` +
-            `<button type="button" class="export-group-none" data-export-group="${gid}">None</button>` +
-            `</div></div>` +
-            `<div class="global-export-items">${body}</div>` +
-            `</div>`
-        );
-    };
-
-    box.innerHTML =
-        groupBlock("overview", "Overview — page and sections", components.sections) +
-        groupBlock("charts-incident", "Analytics — incident charts", incidentCharts) +
-        groupBlock("charts-rejection", "Analytics — rejection charts", rejectionCharts) +
-        groupBlock("builder", "Executive View Builder", components.builder) +
-        groupBlock("tables", "Tables", components.tables);
-};
-
-APP.getSelectedExportComponents = () => {
-    const selected =
-        new Set(
-            [...document.querySelectorAll(".global-export-check:checked")]
-                .map(input => input.value)
-        );
-
-    const components =
-        APP.getGlobalExportComponents();
-
-    return {
-        sections:
-            components.sections.filter(item =>
-                selected.has(`section:${item.id}`)
-            ),
-        charts:
-            components.charts.filter(item =>
-                selected.has(`chart:${item.id}`)
-            ),
-        tableBundles:
-            components.builder.filter(item =>
-                item.type === "tableBundle" &&
-                selected.has(`tableBundle:${item.id}`)
-            ),
-        builderSections:
-            components.builder.filter(item =>
-                item.type === "section" &&
-                selected.has(`section:${item.id}`)
-            ),
-        builderTables:
-            components.builder.filter(item =>
-                item.type === "table" &&
-                selected.has(`table:${item.id}`)
-            ),
-        tables:
-            components.tables.filter(item =>
-                selected.has(`table:${item.id}`)
-            )
-    };
-};
-
-APP.getSelectedExportSections = (selected) => [
-    ...selected.sections,
-    ...selected.builderSections
-];
-
-APP.getSelectedExportTables = (selected) => {
-    const map =
-        new Map();
-
-    [
-        ...selected.builderTables,
-        ...selected.tableBundles.flatMap(bundle => bundle.tables || []),
-        ...selected.tables
-    ].forEach((table) => {
-        if (table.rows && table.rows.length) {
-            map.set(table.id || table.title, table);
-        }
-    });
-
-    return [...map.values()];
-};
-
-APP.safeSheetName = (name, fallback) =>
-    String(name || fallback)
-        .replace(/[\\/?*[\]:]/g, "")
-        .slice(0, 31) ||
-    fallback;
-
-APP.appendSheet = (wb, ws, name, fallback) => {
-    const base =
-        APP.safeSheetName(name, fallback);
-
-    let sheetName =
-        base;
-
-    let suffix =
-        2;
-
-    while (wb.SheetNames.includes(sheetName)) {
-        const tail =
-            ` ${suffix}`;
-
-        sheetName =
-            base.slice(0, 31 - tail.length) + tail;
-
-        suffix += 1;
-    }
-
-    XLSX.utils.book_append_sheet(
-        wb,
-        ws,
-        sheetName
-    );
-};
-
-APP.exportGlobalExcel = () => {
-    const selected =
-        APP.getSelectedExportComponents();
-
-    const sections =
-        APP.getSelectedExportSections(selected);
-
-    const tables =
-        APP.getSelectedExportTables(selected);
-
-    if (!sections.length && !selected.charts.length && !tables.length) {
-        alert("Select at least one overview section, chart, or table to export.");
-        return;
-    }
-
-    const wb =
-        XLSX.utils.book_new();
-
-    selected.charts.forEach((chart, index) => {
-        APP.appendSheet(
-            wb,
-            XLSX.utils.json_to_sheet(APP.chartDataRows(chart.id)),
-            chart.title,
-            `Chart ${index + 1}`
-        );
-    });
-
-    sections.forEach((section, index) => {
-        const table =
-            APP.getOverviewSectionTable(section);
-
-        if (!table.rows.length && section.id !== "overview-page") return;
-
-        APP.appendSheet(
-            wb,
-            APP.sheetFromTable(table),
-            table.title,
-            `Overview ${index + 1}`
-        );
-    });
-
-    tables.forEach((table, index) => {
-        APP.appendSheet(
-            wb,
-            APP.sheetFromTable(table),
-            table.title,
-            `Table ${index + 1}`
-        );
-    });
-
-    XLSX.writeFile(
-        wb,
-        `dashboard-export-${APP.slug(APP.getReviewPeriod())}.xlsx`
-    );
-};
-
-APP.tableHtml = (table) => `
-<table xmlns="http://www.w3.org/1999/xhtml" style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;background:#ffffff;">
-    <thead>
-        <tr>
-            ${table.headers.map(header => `<th style="background:#0f2d52;color:#ffffff;border:1px solid #d1d5db;padding:8px;text-align:left;">${APP.escape(header)}</th>`).join("")}
-        </tr>
-    </thead>
-    <tbody>
-        ${table.rows.map((row, rowIndex) => `
-        <tr style="background:${rowIndex % 2 ? "#eaf6ff" : "#ffffff"};">
-            ${row.map(cell => `<td style="border:1px solid #d1d5db;padding:8px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;">${APP.escape(cell).replace(/\n/g, "<br>")}</td>`).join("")}
-        </tr>
-        `).join("")}
-    </tbody>
-</table>
-`;
-
-APP.tableSvgImage = (table) => {
-    const width =
-        Math.max(900, table.headers.length * 170);
-
-    const height =
-        Math.max(180, Math.min(1200, (table.rows.length + 2) * 42));
-
-    const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;background:#ffffff;padding:12px;">
-            <h3 style="margin:0 0 10px;font-family:Arial,sans-serif;color:#0f172a;">${APP.escape(table.title)}</h3>
-            ${APP.tableHtml(table)}
-        </div>
-    </foreignObject>
-</svg>`;
-
-    return "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(svg);
-};
-
-APP.tablePngImage = (table) =>
-    new Promise((resolve) => {
-        const img =
-            new Image();
-
-        img.onload = () => {
-            const canvas =
-                document.createElement("canvas");
-
-            canvas.width =
-                img.width;
-
-            canvas.height =
-                img.height;
-
-            const ctx =
-                canvas.getContext("2d");
-
-            ctx.fillStyle =
-                "#ffffff";
-
-            ctx.fillRect(
-                0,
-                0,
-                canvas.width,
-                canvas.height
-            );
-
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/png"));
-        };
-
-        img.onerror = () =>
-            resolve(APP.tableSvgImage(table));
-
-        img.src =
-            APP.tableSvgImage(table);
-    });
-
-APP.sectionFallbackImage = (section) => {
-    const el =
-        APP.g(section.elementId);
-
-    const width =
-        Math.max(900, Math.min(1400, el?.scrollWidth || 1000));
-
-    const height =
-        Math.max(320, Math.min(1800, el?.scrollHeight || 700));
-
-    const html =
-        APP.escape(el?.innerText || section.title)
-            .replace(/\n/g, "<br>");
-
-    const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="box-sizing:border-box;width:${width}px;min-height:${height}px;background:#f4f7fb;padding:18px;font-family:Arial,sans-serif;color:#111827;">
-            <h2 style="margin:0 0 12px;color:#0f172a;">${APP.escape(section.title)}</h2>
-            <div style="line-height:1.55;font-size:13px;background:#ffffff;border:1px solid #e8edf4;border-radius:8px;padding:16px;">${html}</div>
-        </div>
-    </foreignObject>
-</svg>`;
-
-    return "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(svg);
-};
-
-APP.captureElementImage = async (section) => {
-    const el =
-        APP.g(section.elementId);
-
-    if (!el) return "";
-
-    const hiddenViews =
-        [...document.querySelectorAll(".view.hide")];
-
-    hiddenViews.forEach(view => view.classList.remove("hide"));
-
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    try {
-        if (window.html2canvas) {
-            const canvas =
-                await html2canvas(el, {
-                    backgroundColor: "#f4f7fb",
-                    scale: 2,
-                    useCORS: true
-                });
-
-            return canvas.toDataURL("image/png");
-        }
-    } catch (err) {
-        console.warn("Overview capture failed, using fallback image.", err);
-    } finally {
-        hiddenViews.forEach(view => view.classList.add("hide"));
-    }
-
-    return APP.sectionFallbackImage(section);
-};
-
-APP.exportGlobalPng = async () => {
-    const selected =
-        APP.getSelectedExportComponents();
-
-    const sections =
-        APP.getSelectedExportSections(selected);
-
-    const tables =
-        APP.getSelectedExportTables(selected);
-
-    if (!sections.length && !selected.charts.length && !tables.length) {
-        alert("Select at least one overview section, chart, or table to export.");
-        return;
-    }
-
-    const sectionImages =
-        await Promise.all(
-            sections.map(section =>
-                APP.captureElementImage(section)
-                    .then(data => ({
-                        section,
-                        data
-                    }))
-            )
-        );
-
-    sectionImages.forEach(({ section, data }) => {
-        APP.download(
-            data,
-            `${APP.slug(section.title)}.png`
-        );
-    });
-
-    selected.charts.forEach((chart) => {
-        APP.download(
-            APP.chartImage(chart.id, "image/png"),
-            `${APP.slug(chart.title)}.png`
-        );
-    });
-
-    const tableImages =
-        await Promise.all(
-            tables.map(table =>
-                APP.tablePngImage(table)
-                    .then(data => ({
-                        table,
-                        data
-                    }))
-            )
-        );
-
-    tableImages.forEach(({ table, data }) => {
-        APP.download(
-            data,
-            `${APP.slug(table.title)}.png`
-        );
-    });
-};
-
-APP.addTableToSlide = (slide, table) => {
-    const rows = [
-        table.headers,
-        ...table.rows.slice(0, 18)
-    ];
-
-    if (slide.addTable) {
-        slide.addTable(rows, {
-            x: 0.45,
-            y: 0.85,
-            w: 12.4,
-            h: 6.25,
-            border: {
-                color: "D1D5DB",
-                pt: 1
-            },
-            fontSize: 8,
-            color: "111827",
-            fill: "FFFFFF",
-            margin: 0.04
-        });
-    } else {
-        slide.addText(
-            rows.map(row => row.join(" | ")).join("\n"),
-            {
-                x: 0.55,
-                y: 0.9,
-                w: 12,
-                h: 6,
-                fontSize: 8,
-                color: "111827",
-                breakLine: false
-            }
-        );
-    }
-};
-
-APP.exportGlobalPpt = async () => {
-    const selected =
-        APP.getSelectedExportComponents();
-
-    const sections =
-        APP.getSelectedExportSections(selected);
-
-    const tables =
-        APP.getSelectedExportTables(selected);
-
-    if (!sections.length && !selected.charts.length && !tables.length) {
-        alert("Select at least one overview section, chart, or table to export.");
-        return;
-    }
-
-    const PptxGen =
-        window.pptxgen ||
-        window.PptxGenJS;
-
-    if (!PptxGen) {
-        alert("PowerPoint export library is still loading. Try again in a moment.");
-        return;
-    }
-
-    const pptx =
-        new PptxGen();
-
-    pptx.layout = "LAYOUT_WIDE";
-    pptx.author = "Payments Dashboard";
-    pptx.subject = "Filtered dashboard export";
-    pptx.title = "Payments Dashboard Export";
-
-    const sectionImages =
-        await Promise.all(
-            sections.map(section =>
-                APP.captureElementImage(section)
-                    .then(data => ({
-                        section,
-                        data
-                    }))
-            )
-        );
-
-    sectionImages.forEach(({ section, data }) => {
-        const slide =
-            pptx.addSlide();
-
-        slide.background = {
-            color: "F8FAFC"
-        };
-
-        slide.addText(section.title, {
-            x: 0.45,
-            y: 0.25,
-            w: 12.4,
-            h: 0.35,
-            fontSize: 18,
-            bold: true,
-            color: "0F172A"
-        });
-
-        slide.addImage({
-            data,
-            x: 0.35,
-            y: 0.75,
-            w: 12.65,
-            h: 6.35,
-            sizingCrop: true
-        });
-    });
-
-    selected.charts.forEach((chart) => {
-        const slide =
-            pptx.addSlide();
-
-        slide.background = {
-            color: "F8FAFC"
-        };
-
-        slide.addText(chart.title, {
-            x: 0.45,
-            y: 0.25,
-            w: 12.4,
-            h: 0.35,
-            fontSize: 18,
-            bold: true,
-            color: "0F172A"
-        });
-
-        slide.addImage({
-            data: APP.chartImage(chart.id, "image/png"),
-            x: 0.65,
-            y: 0.8,
-            w: 12,
-            h: 6.25
-        });
-    });
-
-    tables.forEach((table) => {
-        const slide =
-            pptx.addSlide();
-
-        slide.background = {
-            color: "F8FAFC"
-        };
-
-        slide.addText(table.title, {
-            x: 0.45,
-            y: 0.25,
-            w: 12.4,
-            h: 0.35,
-            fontSize: 18,
-            bold: true,
-            color: "0F172A"
-        });
-
-        APP.addTableToSlide(slide, table);
-    });
-
-    await pptx.writeFile({
-        fileName: `dashboard-export-${APP.slug(APP.getReviewPeriod())}.pptx`
-    });
-};
-
-APP.exportSelectedExcel = () => {
-    const ids =
-        APP.getSelectedChartIds();
-
-    if (!ids.length) {
-        alert("Select at least one chart to export.");
-        return;
-    }
-
-    const wb =
-        XLSX.utils.book_new();
-
-    ids.forEach((id, index) => {
-        const rows =
-            APP.chartDataRows(id);
-
-        const ws =
-            XLSX.utils.json_to_sheet(rows);
-
-        const name =
-            (APP.chartTitles?.[id] || `Chart ${index + 1}`)
-                .replace(/[\\/?*[\]:]/g, "")
-                .slice(0, 31);
-
-        XLSX.utils.book_append_sheet(
-            wb,
-            ws,
-            name || `Chart ${index + 1}`
-        );
-    });
-
-    XLSX.writeFile(
-        wb,
-        "dashboard-chart-data.xlsx"
-    );
-};
-
-APP.exportTablesExcel = () => {
-    const tables =
-        APP.getGraphTables
-            ? APP.getGraphTables()
-            : [];
-
-    if (!tables.length) {
-        alert("No table data is available to export.");
-        return;
-    }
-
-    const wb =
-        XLSX.utils.book_new();
-
-    tables.forEach((table, index) => {
-        const rows =
-            table.rows.map((row) => {
-                const out = {};
-
-                table.headers.forEach((header, i) => {
-                    out[header] =
-                        row[i] ?? "";
-                });
-
-                return out;
-            });
-
-        const ws =
-            XLSX.utils.json_to_sheet(rows);
-
-        const name =
-            table.title
-                .replace(/[\\/?*[\]:]/g, "")
-                .slice(0, 31) ||
-            `Table ${index + 1}`;
-
-        XLSX.utils.book_append_sheet(
-            wb,
-            ws,
-            name
-        );
-    });
-
-    const incidentColumns =
-        APP.getIncidentColumns();
-
-    if (incidentColumns.length) {
-        const incidentRows =
-            APP.DATA.map((row) => {
-                const out = {};
-
-                incidentColumns.forEach((column) => {
-                    out[column] =
-                        row[column] ?? "";
-                });
-
-                return out;
-            });
-
-        XLSX.utils.book_append_sheet(
-            wb,
-            XLSX.utils.json_to_sheet(incidentRows),
-            "Incident Register"
-        );
-    }
-
-    XLSX.writeFile(
-        wb,
-        "dashboard-tables.xlsx"
-    );
-};
-
-APP.exportSelectedPpt = async () => {
-    const ids =
-        APP.getSelectedChartIds();
-
-    if (!ids.length) {
-        alert("Select at least one chart to export.");
-        return;
-    }
-
-    const PptxGen =
-        window.pptxgen ||
-        window.PptxGenJS;
-
-    if (!PptxGen) {
-        alert("PowerPoint export library is still loading. Try again in a moment.");
-        return;
-    }
-
-    const pptx =
-        new PptxGen();
-
-    pptx.layout = "LAYOUT_WIDE";
-    pptx.author = "Payments Dashboard";
-    pptx.subject = "Filtered dashboard chart export";
-    pptx.title = "Payments Dashboard Charts";
-
-    ids.forEach((id) => {
-        const slide =
-            pptx.addSlide();
-
-        const title =
-            APP.chartTitles?.[id] || id;
-
-        slide.background = {
-            color: "F8FAFC"
-        };
-
-        slide.addText(title, {
-            x: 0.45,
-            y: 0.25,
-            w: 12.4,
-            h: 0.35,
-            fontSize: 18,
-            bold: true,
-            color: "0F172A"
-        });
-
-        slide.addImage({
-            data: APP.chartImage(id, "image/png"),
-            x: 0.65,
-            y: 0.8,
-            w: 12,
-            h: 6.25
-        });
-    });
-
-    await pptx.writeFile({
-        fileName: "dashboard-charts.pptx"
-    });
-};
-
-APP.getReviewPeriod = () => {
-    const monthOrder = APP.monthOrder || [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-
-    const selectedMonths =
-        APP.filterValues
-            ? APP.filterValues("fMonth")
-            : [];
-
-    if (selectedMonths.length === 1) return selectedMonths[0];
-    if (selectedMonths.length > 1) return selectedMonths.join(", ");
-
-    const months =
-        APP.u(
-            APP.DATA.map(
-                r =>
-                    APP.rowValue(
-                        r,
-                        "Month"
-                    )
-            )
-        );
-
-    const sorted =
-        monthOrder.filter(
-            month => months.includes(month)
-        );
-
-    if (!sorted.length) return "Current";
-    if (sorted.length === 1) return sorted[0];
-
-    const indexes =
-        sorted.map(month => monthOrder.indexOf(month));
-
-    const isContiguous =
-        indexes.every(
-            (index, i) =>
-                i === 0 ||
-                index === indexes[i - 1] + 1
-        );
-
-    const quarterMap = {
-        "Jan,Feb,Mar": "Q1",
-        "Apr,May,Jun": "Q2",
-        "Jul,Aug,Sep": "Q3",
-        "Oct,Nov,Dec": "Q4"
-    };
-
-    const quarter =
-        quarterMap[sorted.join(",")];
-
-    if (quarter) return quarter;
-
-    if (!isContiguous) {
-        return sorted.join(", ");
-    }
-
-    return `${sorted[0]}-${sorted[sorted.length - 1]}`;
-};
-
-APP.renderSummary = () => {
-    const total = APP.DATA.length;
-
-    const vendor =
-        APP.DATA.filter(
-            x =>
-                APP.isPartnerSideCategory(x) &&
-                APP.isVendorIssue(x)
-        ).length;
-
-    const vendorPct =
-        total
-            ? Math.round(
-                vendor / total * 100
-            )
-            : 0;
-
-    const topPartners =
-        Object.entries(
-            APP.cb("Partner")
-        )
-            .sort(
-                (a, b) =>
-                    b[1] - a[1]
-            )
-            .slice(0, 3)
-            .map(x => x[0])
-            .join(", ") || "N/A";
-
-    const p1 =
-        APP.DATA.filter(
-            x =>
-                String(
-                    APP.rowValue(
-                        x,
-                        "PRIORITY"
-                    )
-                ) === "1"
-        ).length;
-
-    const open =
-        APP.DATA.filter(
-            x =>
-                APP.rowValue(
-                    x,
-                    "Status"
-                ) === "Open"
-        ).length;
-
-    const delayed =
-        APP.DATA.reduce(
-            (s, r) =>
-                s +
-                APP.n(
-                    r["Delayed Transaction"]
-                ),
-            0
-        );
-
-    const breached =
-        APP.DATA.reduce(
-            (s, r) =>
-                s +
-                APP.n(
-                    r["Delivery Breached"]
-                ),
-            0
-        );
-
-    const rejected =
-        APP.DATA.reduce(
-            (s, r) =>
-                s +
-                APP.n(
-                    r["Transaction REJECTED"]
-                ),
-            0
-        );
-
-    const majorImpact =
-        APP.DATA.filter(
-            x =>
-                /major/i.test(
-                    x["Impact type"] || ""
-                )
-        ).length;
-
-    const resolvedWithinOneDay =
-        APP.DATA.filter(
-            r =>
-                /within 1 day|less than 1 day/i.test(
-                    r["Time Taken for Resolution"] || ""
-                )
-        ).length;
-
-    const reroute =
-        APP.getRerouteMetrics();
-
-    const volume =
-        APP.getVolumeMetrics();
-
-    const period =
-        APP.getReviewPeriod();
-
-    APP.g("execSummary").innerHTML = `
-<strong>${period} 2026</strong>
-
-<ul style="margin-top:8px; padding-left:18px; line-height:1.8">
-  <li>A total of <b>${total}</b> incidents were recorded across the APN during the review period (${period} 2026).</li>
-  <li>Vendor/partner side issues accounted for <b>${vendorPct}%</b> of incidents, with top contributors being <b>${topPartners}</b>.</li>
-  <li><b>${majorImpact}</b> major incidents were created, and <b>${resolvedWithinOneDay}</b> incidents were resolved within one day.</li>
- <li> APN transaction volumes are on a steady upward trajectory, averaging 7 million transactions per month in 2026 with 75% real time.</li>
-<li>Processing mix is balanced, with 55% of volume from retail channels and 45% from digital channels.</li>
-<li>Overall rejection rate is stable at ~1.38% of total volume, with most rejections originating from processors and beneficiary banks.</li>
-</ul>
-`;
-};
-
-APP.renderSuggestions = () => {
-    const box =
-        APP.g("suggestions");
-
-    if (
-        !APP.SUGGESTIONS ||
-        !APP.SUGGESTIONS.length
-    ) {
-        box.innerHTML =
-            "<li>No suggestions provided.</li>";
-
-        return;
-    }
-
-    box.innerHTML =
-        APP.SUGGESTIONS
-            .sort(
-                (a, b) =>
-                    APP.n(
-                        APP.rowValue(
-                            a,
-                            "priority"
-                        )
-                    ) -
-                    APP.n(
-                        APP.rowValue(
-                            b,
-                            "priority"
-                        )
-                    )
-            )
-            .map(
-                row =>
-                    APP.rowValue(
-                        row,
-                        "suggestion"
-                    )
-                        ? `<li>${APP.rowValue(row, "suggestion")}</li>`
-                        : ""
-            )
-            .join("");
-};
-
-fileInput.onchange = async (e) => {
-    if (
-        e.target.files[0]
-    ) {
-        APP.parse(
-            await e.target.files[0]
-                .arrayBuffer()
-        );
-    }
-};
-
-btnLoad.onclick = APP.loadLocal;
-btnApply.onclick = APP.apply;
-btnReset.onclick = APP.reset;
-
-[
-    "fMonth",
-    "fPartner",
-    "fStatus",
-    "fPriority",
-    "fRegion",
-    "fCountry",
-    "fOwner",
-    "fCategory",
-    "fImpact",
-    "fRejMonth",
-    "fRejPartner",
-    "fRejCountry",
-    "fRejDelivery",
-    "fRejBankName",
-    "fRejBankCode",
-    "fRejStatus"
-].forEach((id) => {
-    const el =
-        APP.g(id);
-
-    if (el) {
-        el.onchange =
-            APP.apply;
-    }
-});
-
-if (APP.g("search")) {
-    APP.g("search").oninput =
-        APP.apply;
-}
-
-if (APP.g("btnGlobalExport")) {
-    APP.g("btnGlobalExport").onclick = () => {
-        void APP.openGlobalExportModal();
-    };
-}
-
-if (APP.g("btnCloseExportModal")) {
-    APP.g("btnCloseExportModal").onclick =
-        APP.closeGlobalExportModal;
-}
-
-if (APP.g("exportModal")) {
-    APP.g("exportModal").onclick = (event) => {
-        if (event.target === APP.g("exportModal")) {
-            APP.closeGlobalExportModal();
-        }
-    };
-}
-
-if (APP.g("btnExportSelectAll")) {
-    APP.g("btnExportSelectAll").onclick = () => {
-        document
-            .querySelectorAll(".global-export-check")
-            .forEach(
-                (input) => input.checked = true
-            );
-        const ps =
-            APP.g("exportProfileSelect");
-        if (ps) {
-            ps.value = "__custom__";
-        }
-        const us =
-            APP.g("exportUserPresetSelect");
-        if (us) {
-            us.value = "";
-        }
-    };
-}
-
-if (APP.g("btnExportClearAll")) {
-    APP.g("btnExportClearAll").onclick = () => {
-        document
-            .querySelectorAll(".global-export-check")
-            .forEach(
-                (input) => input.checked = false
-            );
-        const ps =
-            APP.g("exportProfileSelect");
-        if (ps) {
-            ps.value = "__custom__";
-        }
-        const us =
-            APP.g("exportUserPresetSelect");
-        if (us) {
-            us.value = "";
-        }
-    };
-}
-
-if (APP.g("btnExportPngGlobal")) {
-    APP.g("btnExportPngGlobal").onclick =
-        APP.exportGlobalPng;
-}
-
-if (APP.g("btnExportPptGlobal")) {
-    APP.g("btnExportPptGlobal").onclick =
-        APP.exportGlobalPpt;
-}
-
-if (APP.g("btnExportExcelGlobal")) {
-    APP.g("btnExportExcelGlobal").onclick =
-        APP.exportGlobalExcel;
-}
-
-if (APP.g("exportProfileSelect")) {
-    APP.g("exportProfileSelect").onchange = (e) => {
-        const v =
-            e.target.value;
-
-        if (v === "__custom__") {
-            return;
-        }
-
-        APP.applyBuiltinExportProfileById(v);
-
-        const us =
-            APP.g("exportUserPresetSelect");
-        if (us) {
-            us.value = "";
-        }
-    };
-}
-
-if (APP.g("exportUserPresetSelect")) {
-    APP.g("exportUserPresetSelect").onchange = (e) => {
-        const v =
-            e.target.value;
-
-        if (!v) {
-            return;
-        }
-
-        APP.applyExportPresetById(v);
-
-        const ps =
-            APP.g("exportProfileSelect");
-        if (ps) {
-            ps.value = "__custom__";
-        }
-    };
-}
-
-if (APP.g("btnSaveExportPreset")) {
-    APP.g("btnSaveExportPreset").onclick = () => {
-        const name =
-            APP.g("exportPresetNameInput")?.value;
-        APP.saveCurrentExportSelectionAsPreset(name);
-
-        if (APP.g("exportPresetNameInput")) {
-            APP.g("exportPresetNameInput").value = "";
-        }
-    };
-}
-
-if (APP.g("globalExportList")) {
-    APP.g("globalExportList").addEventListener("click", (e) => {
-        const allBtn =
-            e.target.closest(".export-group-all");
-        const noneBtn =
-            e.target.closest(".export-group-none");
-
-        if (!allBtn && !noneBtn) {
-            return;
-        }
-
-        const g =
-            (allBtn || noneBtn).getAttribute("data-export-group");
-        const on =
-            Boolean(allBtn);
-
-        document
-            .querySelectorAll(".global-export-check")
-            .forEach((input) => {
-                if (input.getAttribute("data-export-group") === g) {
-                    input.checked = on;
-                }
-            });
-
-        const ps =
-            APP.g("exportProfileSelect");
-        if (ps) {
-            ps.value = "__custom__";
-        }
-        const us =
-            APP.g("exportUserPresetSelect");
-        if (us) {
-            us.value = "";
-        }
-    });
-
-    APP.g("globalExportList").addEventListener("change", (e) => {
-        const t =
-            e.target;
-
-        if (!t.classList || !t.classList.contains("global-export-check")) {
-            return;
-        }
-
-        const ps =
-            APP.g("exportProfileSelect");
-        if (ps) {
-            ps.value = "__custom__";
-        }
-        const us =
-            APP.g("exportUserPresetSelect");
-        if (us) {
-            us.value = "";
-        }
-    });
-}
-
-// Settings Modal Handlers
-if (APP.g("btnSettings")) {
-    APP.g("btnSettings").onclick = () => {
-        APP.g("settingsModal").classList.remove("hide");
-    };
-}
-
-if (APP.g("btnCloseSettingsModal")) {
-    APP.g("btnCloseSettingsModal").onclick = () => {
-        APP.g("settingsModal").classList.add("hide");
-    };
-}
-
-if (APP.g("btnCloseSettings")) {
-    APP.g("btnCloseSettings").onclick = () => {
-        APP.g("settingsModal").classList.add("hide");
-    };
-}
-
-if (APP.g("settingsModal")) {
-    APP.g("settingsModal").onclick = (event) => {
-        if (event.target === APP.g("settingsModal")) {
-            APP.g("settingsModal").classList.add("hide");
-        }
-    };
-}
-
-if (APP.g("btnDownloadDashboardConfig")) {
-    APP.g("btnDownloadDashboardConfig").onclick = () => {
-        ConfigService.downloadDashboardConfig();
-    };
-}
-
-if (APP.g("btnDownloadExportProfiles")) {
-    APP.g("btnDownloadExportProfiles").onclick = () => {
-        ConfigService.downloadExportProfiles();
-    };
-}
-
-if (APP.g("inputImportDashboardConfig")) {
-    APP.g("inputImportDashboardConfig").onchange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const text = await file.text();
-            const result = ConfigService.importDashboardConfig(text);
-
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert("Error: " + result.message);
-            }
-        } catch (error) {
-            alert("Import failed: " + error.message);
-        }
-
-        e.target.value = "";
-    };
-}
-
-if (APP.g("inputImportExportProfiles")) {
-    APP.g("inputImportExportProfiles").onchange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const text = await file.text();
-            const result = ConfigService.importExportProfiles(text);
-
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert("Error: " + result.message);
-            }
-        } catch (error) {
-            alert("Import failed: " + error.message);
-        }
-
-        e.target.value = "";
-    };
-}
-
-if (APP.g("btnResetDashboardConfig")) {
-    APP.g("btnResetDashboardConfig").onclick = () => {
-        if (confirm("Reset dashboard config to default? This cannot be undone.")) {
-            ConfigService.resetToDefault();
-            location.reload();
-        }
-    };
-}
-
-if (APP.g("btnResetExportProfiles")) {
-    APP.g("btnResetExportProfiles").onclick = () => {
-        if (confirm("Reset export profiles to default? This cannot be undone.")) {
-            ConfigService.resetToDefault();
-            location.reload();
-        }
-    };
-}
-
-if (APP.g("btnSelectCharts")) {
-    APP.g("btnSelectCharts").onclick = () => {
-        document
-            .querySelectorAll(".chart-export-check")
-            .forEach(
-                input => input.checked = true
-            );
-    };
-}
-
-if (APP.g("btnClearCharts")) {
-    APP.g("btnClearCharts").onclick = () => {
-        document
-            .querySelectorAll(".chart-export-check")
-            .forEach(
-                input => input.checked = false
-            );
-    };
-}
-
-if (APP.g("btnExportJpg")) {
-    APP.g("btnExportJpg").onclick =
-        APP.exportSelectedJpg;
-}
-
-if (APP.g("btnExportPpt")) {
-    APP.g("btnExportPpt").onclick =
-        APP.exportSelectedPpt;
-}
-
-if (APP.g("btnExportTablesExcel")) {
-    APP.g("btnExportTablesExcel").onclick =
-        APP.exportTablesExcel;
-}
-
-if (APP.g("btnDefaultColumns")) {
-    APP.g("btnDefaultColumns").onclick = () => {
-        const excelColumns =
-            APP.getExcelColumns();
-
-        APP.selectedIncidentColumns =
-            APP.defaultIncidentColumns
-                .map(column =>
-                    APP.findColumnName(
-                        APP.RAW,
-                        column
-                    )
-                )
-                .filter(column => excelColumns.includes(column));
-
-        APP.renderIncidentColumnPicker();
-        APP.renderTable();
-    };
-}
-
-if (APP.g("btnAllColumns")) {
-    APP.g("btnAllColumns").onclick = () => {
-        APP.selectedIncidentColumns =
-            APP.getExcelColumns();
-
-        APP.renderIncidentColumnPicker();
-        APP.renderTable();
-    };
-}
-
-if (APP.g("btnClearColumns")) {
-    APP.g("btnClearColumns").onclick = () => {
-        APP.selectedIncidentColumns = [];
-
-        document
-            .querySelectorAll(".incident-column-check")
-            .forEach(
-                input => input.checked = false
-            );
-
-        APP.renderTable();
-    };
-}
-
-// Chart labels toggle handler
-if (APP.g("toggleChartLabels")) {
-    APP.g("toggleChartLabels").onclick = (e) => {
-        APP.showChartLabels = e.target.checked;
-
-        // Redraw charts with new settings
-        if (Object.keys(APP.charts).length > 0) {
-            APP.draw();
-        }
-    };
-}
-
-document
-    .querySelectorAll(".tab")
-    .forEach(
-        t =>
-            t.onclick =
-            () =>
-                APP.view(
-                    t.dataset.view
-                )
-    );
-
-APP.selectedRejectionColumns = null;
-APP.defaultRejectionColumns = [
-    "MONTH",
-    "PARTNERNAME",
-    "RECEIVECOUNTRYCODE",
-    "DELIVERYSERVICE",
-    "CHANNEL",
-    "SUBSTATE",
-    "PARTNER_REJECTREASON",
-    "APN_REJECTREASON",
-    "DESCRIPTION",
-    "PURPOSE"
-];
-
-APP.getRejectionExcelColumns = () =>
-    APP.REJECTIONS.length
-        ? Object.keys(APP.REJECTIONS[0])
-        : [];
-
-APP.getRejectionColumns = () => {
-    const excelColumns =
-        APP.getRejectionExcelColumns();
-
-    if (APP.selectedRejectionColumns === null) {
-        APP.selectedRejectionColumns =
-            APP.defaultRejectionColumns
-                .map((column) =>
-                    APP.findColumnName(
-                        APP.REJECTIONS,
-                        column
-                    )
-                )
-                .filter(Boolean);
-    }
-
-    return APP.selectedRejectionColumns.filter((column) =>
-        excelColumns.includes(column)
-    );
-};
-
-APP.isRejectedRow = (row) =>
-    APP.rowValue(row, "SUBSTATE") === "Rejected" ||
-    !!APP.rowValue(row, "PARTNER_REJECTREASON");
-
-APP.renderRejectionKPIs = () => {
-    const box =
-        APP.g("rejectionKpis");
-
-    if (!box) return;
-
-    const total =
-        APP.filteredRejections.length;
-    const rejected =
-        APP.filteredRejections.filter(
-            APP.isRejectedRow
-        ).length;
-    const uniquePartners =
-        APP.u(
-            APP.filteredRejections.map((row) =>
-                APP.rowValue(
-                    row,
-                    "PARTNERNAME"
-                )
-            )
-        ).length;
-
-    box.innerHTML = `
-        <div class="kpi"><h4>Total Records</h4><strong>${APP.formatNum(total)}</strong></div>
-        <div class="kpi"><h4>Total Rejected</h4><strong>${APP.formatNum(rejected)}</strong></div>
-        <div class="kpi"><h4>Rejection Rate %</h4><strong>${APP.percent(rejected, total, 1)}</strong></div>
-        <div class="kpi"><h4>Unique Partners</h4><strong>${APP.formatNum(uniquePartners)}</strong></div>
-    `;
-};
-
-APP.renderRejectionColumnPicker = () => {
-    const box =
-        APP.g("rejectionColumnList");
-
-    if (!box) return;
-
-    const columns =
-        APP.getRejectionExcelColumns();
-    const selected =
-        new Set(
-            APP.getRejectionColumns()
-        );
-
-    box.innerHTML =
-        columns.map((column) => `
-<label class="column-item">
-    <input type="checkbox" class="rejection-column-check" value="${APP.escape(column)}" ${selected.has(column) ? "checked" : ""}>
-    <span>${APP.escape(column)}</span>
-</label>
-`).join("") ||
-        `<div class="empty-state">Load an Excel workbook to choose rejection columns.</div>`;
-
-    document
-        .querySelectorAll(".rejection-column-check")
-        .forEach((input) => {
-            input.onchange = () => {
-                APP.selectedRejectionColumns =
-                    [...document.querySelectorAll(".rejection-column-check:checked")]
-                        .map((item) => item.value);
-                APP.renderRejectionTable();
-            };
-        });
-};
-
-APP.renderRejectionTable = () => {
-    const columns =
-        APP.getRejectionColumns();
-    const rows =
-        APP.filteredRejections.slice(0, 500);
-    const rejected =
-        APP.filteredRejections.filter(
-            APP.isRejectedRow
-        ).length;
-    const partners =
-        APP.u(
-            APP.filteredRejections.map((row) =>
-                APP.rowValue(
-                    row,
-                    "PARTNERNAME"
-                )
-            )
-        ).length;
-
-    if (APP.g("rejectionShown")) {
-        APP.g("rejectionShown").textContent =
-            `${APP.filteredRejections.length} shown`;
-    }
-
-    if (APP.g("rejectionRejected")) {
-        APP.g("rejectionRejected").textContent =
-            `${rejected} rejected`;
-    }
-
-    if (APP.g("rejectionPartners")) {
-        APP.g("rejectionPartners").textContent =
-            `${partners} partners`;
-    }
-
-    if (APP.g("rejectionHead")) {
-        APP.g("rejectionHead").innerHTML = `
-<tr>${columns.map((column) => `<th>${APP.escape(column)}</th>`).join("")}</tr>
-`;
-    }
-
-    if (APP.g("rejectionBody")) {
-        APP.g("rejectionBody").innerHTML =
-            rows.map((row) => `
-<tr>${columns.map((column) => `<td>${APP.escape(APP.rowValue(row, column) ?? "")}</td>`).join("")}</tr>
-`).join("") ||
-            `<tr><td colspan="${Math.max(columns.length, 1)}">No rejection rows match the current filters.</td></tr>`;
-    }
-};
-
-APP.tableFromChart = (id) => {
-    const rows =
-        APP.chartDataRows(id);
-    const title =
-        APP.chartTitles?.[id] || id;
-    const headers =
-        rows.length
-            ? Object.keys(rows[0])
-            : ["Label", "Value"];
-
-    return {
-        id: `chart-table-${id}`,
-        title,
-        headers,
-        rows:
-            rows.map((row) =>
-                headers.map((header) => row[header] ?? "")
-            )
-    };
-};
-
-APP.getGraphTables = () =>
-    [
-        "c1", "c2", "c3", "c4", "c5", "c6", "c7",
-        "c10", "c12", "c13", "c14", "c15", "c16",
-        "c17", "c18", "c19", "c20", "c21", "c22",
-        "c23", "c24", "c11"
-    ].filter((id) => APP.charts[id])
-        .map(APP.tableFromChart);
-
-APP.getRejectionGraphTables = () =>
-    [
-        "rc1", "rc2", "rc3", "rc4", "rc5", "rc6", "rc7",
-        "rc8", "rc9", "rc10", "rc11", "rc12", "rc13", "rc14"
-    ].filter((id) => APP.charts[id])
-        .map(APP.tableFromChart);
-
-APP.renderTableCards = (
-    containerId,
-    tables,
-    topN
-) => {
-    const container =
-        APP.g(containerId);
-
-    if (!container) return;
-
-    container.innerHTML =
-        tables.map((table) => `
-<article class="data-table-card">
-    <div class="data-table-head">
-        <h4>${APP.escape(table.title)}</h4>
-        <span class="${topN ? "topn-hint" : ""}">${topN ? `Top ${topN}` : `${table.rows.length} rows`}</span>
-    </div>
-    <div class="data-table-scroll">
-        <table class="data-table">
-            <thead>
-                <tr>${table.headers.map((header) => `<th>${APP.escape(header)}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-                ${table.rows.map((row) => `<tr>${row.map((cell) => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")}
-            </tbody>
-        </table>
-    </div>
-</article>
-`).join("") ||
-        `<div class="empty-state">No graph table data available for the current filter selection.</div>`;
-};
-
-APP.renderAnalyticsTables = () =>
-    APP.renderTableCards(
-        "analyticsTables",
-        APP.getGraphTables(),
-        APP.analyticsTopN
-    );
-
-APP.renderRejectionTables = () =>
-    APP.renderTableCards(
-        "rejectionTables",
-        APP.getRejectionGraphTables(),
-        APP.rejectionsTopN
-    );
-
-APP.getPivotRows = () =>
-    APP.pivotDataset === "rejections"
-        ? APP.filteredRejections
-        : APP.DATA;
-
-APP.getPivotColumns = () => {
-    const rows =
-        APP.getPivotRows();
-    return rows.length
-        ? Object.keys(rows[0]).filter(Boolean)
-        : [];
-};
-
-APP.getPivotState = () => {
-    const columns =
-        APP.getPivotColumns();
-    const rows =
-        APP.getPivotRows();
-    const numericFallback =
-        columns.find((column) =>
-            rows.some((row) =>
-                APP.n(
-                    APP.rowValue(
-                        row,
-                        column
-                    )
-                ) > 0
-            )
-        ) || "";
-    const preferredRow =
-        APP.pivotDataset === "rejections"
-            ? (columns.includes("PARTNERNAME") ? "PARTNERNAME" : (columns[0] || ""))
-            : (columns.includes("Partner") ? "Partner" : (columns[0] || ""));
-
-    if (!APP.PIVOT || APP.PIVOT.dataset !== APP.pivotDataset) {
-        APP.PIVOT = {
-            dataset: APP.pivotDataset,
-            row: preferredRow,
-            column: "",
-            value: numericFallback,
-            agg: "count",
-            chartType: "bar",
-            topN: "20"
-        };
-    }
-
-    if (APP.PIVOT.row && !columns.includes(APP.PIVOT.row)) {
-        APP.PIVOT.row = preferredRow;
-    }
-
-    if (APP.PIVOT.column && !columns.includes(APP.PIVOT.column)) {
-        APP.PIVOT.column = "";
-    }
-
-    if (APP.PIVOT.value && !columns.includes(APP.PIVOT.value)) {
-        APP.PIVOT.value = numericFallback;
-    }
-
-    if (APP.PIVOT.topN === undefined || APP.PIVOT.topN === null || APP.PIVOT.topN === "") {
-        APP.PIVOT.topN = "20";
-    }
-
-    APP.PIVOT.dataset =
-        APP.pivotDataset;
-
-    return APP.PIVOT;
-};
-
-APP.getPivotRowLimit = (state) => {
-    const raw =
-        state?.topN ?? "20";
-
-    if (raw === "all" || raw === "0") {
-        return Number.POSITIVE_INFINITY;
-    }
-
-    const n =
-        Number(raw);
-
-    return Number.isFinite(n) && n > 0
-        ? n
-        : 20;
-};
-
-APP.getPivotResult = () => {
-    const state =
-        APP.getPivotState();
-    const rows =
-        APP.getPivotRows();
-    const rowKey =
-        state.row;
-
-    if (!rowKey) {
-        return {
-            title: "Pivot Result",
-            headers: [],
-            rows: [],
-            chart: null
-        };
-    }
-
-    const columnKey =
-        state.column;
-    const valueKey =
-        state.value;
-    const useCount =
-        state.agg === "count" ||
-        !valueKey;
-    const matrix = {};
-    const columnLabels =
-        new Set();
-
-    rows.forEach((row) => {
-        const rowLabel =
-            APP.rowValue(row, rowKey) || "Unknown";
-        const columnLabel =
-            columnKey
-                ? APP.rowValue(row, columnKey) || "Unknown"
-                : "Value";
-        const measure =
-            useCount
-                ? 1
-                : APP.n(
-                    APP.rowValue(
-                        row,
-                        valueKey
-                    )
-                );
-
-        if (!matrix[rowLabel]) {
-            matrix[rowLabel] = {};
-        }
-
-        matrix[rowLabel][columnLabel] =
-            (matrix[rowLabel][columnLabel] || 0) + measure;
-        columnLabels.add(columnLabel);
-    });
-
-    const orderedColumns =
-        [...columnLabels];
-    const sortedRows =
-        Object.entries(matrix)
-            .map(([label, values]) => {
-                const cells =
-                    orderedColumns.map((key) =>
-                        APP.n(values[key])
-                    );
-                return [
-                    label,
-                    ...cells,
-                    cells.reduce((sum, value) => sum + value, 0)
-                ];
-            })
-            .sort((a, b) => APP.n(b[b.length - 1]) - APP.n(a[a.length - 1]));
-    const limit =
-        APP.getPivotRowLimit(state);
-    const bodyRows =
-        limit >= sortedRows.length
-            ? sortedRows
-            : sortedRows.slice(0, limit);
-
-    return {
-        title: `${APP.pivotDataset === "rejections" ? "Rejections" : "Incidents"} Pivot: ${useCount ? "Count" : "Sum"} of ${valueKey || "Rows"} by ${rowKey}${columnKey ? ` and ${columnKey}` : ""}`,
-        headers: [rowKey, ...orderedColumns, "Total"],
-        rows:
-            bodyRows.map((row) => [
-                row[0],
-                ...row.slice(1).map((value) => APP.formatNum(value))
-            ]),
-        chart: {
-            labels: bodyRows.map((row) => row[0]),
-            datasets: orderedColumns.map((label, index) => ({
-                label,
-                data: bodyRows.map((row) => APP.n(row[index + 1])),
-                backgroundColor: APP.colors[index % APP.colors.length],
-                borderColor: APP.colors[index % APP.colors.length],
-                borderRadius: 6
-            }))
-        }
-    };
 };
 
 APP.renderPivotBuilder = () => {
@@ -4283,6 +1895,1479 @@ APP.getGlobalExportComponents = () => {
     };
 };
 
+APP.analyticsMode = APP.analyticsMode || "charts";
+APP.sidebarStorageKey = "payments-dashboard-sidebar-collapsed";
+
+APP.setPivotSaveStatus = (message, tone = "muted") => {
+    const el =
+        APP.g("pivotSaveStatus");
+
+    if (!el) return;
+
+    el.textContent = message;
+    el.dataset.tone = tone;
+};
+
+APP.getPivotIdentity = (widgetOrSpec) =>
+    JSON.stringify({
+        dataset: widgetOrSpec.dataset || APP.pivotDataset || "incidents",
+        section: widgetOrSpec.section || "Pivot",
+        title: widgetOrSpec.title || "",
+        chartType: widgetOrSpec.chartType || "",
+        rows: widgetOrSpec.rows || [],
+        columns: widgetOrSpec.columns || [],
+        values: widgetOrSpec.values || [],
+        topN: widgetOrSpec.topN || null,
+        pivotSpec: widgetOrSpec.pivotSpec || null
+    });
+
+APP.shortenMiddle = (value, limit = 46) => {
+    const text =
+        String(value || "");
+
+    if (text.length <= limit) {
+        return text;
+    }
+
+    const edge =
+        Math.max(8, Math.floor((limit - 3) / 2));
+
+    return `${text.slice(0, edge)}...${text.slice(-edge)}`;
+};
+
+APP.download = (href, filename) => {
+    const link =
+        document.createElement("a");
+    link.href = href;
+    link.download = filename;
+    link.click();
+};
+
+APP.renderSummary = APP.renderSummary || (() => {
+    const box =
+        APP.g("execSummary");
+
+    if (!box) return;
+
+    const metrics =
+        APP.getOverviewMetrics();
+    box.innerHTML = `
+<p><b>${APP.formatNum(metrics.total)}</b> incidents and <b>${APP.formatNum(APP.filteredRejections.length)}</b> rejection rows are currently in scope.</p>
+<p>Top partners: <b>${APP.escape(metrics.topPartners)}</b>. Primary root causes: <b>${APP.escape(metrics.primaryRootCauses)}</b>.</p>
+`;
+});
+
+APP.renderSuggestions = APP.renderSuggestions || (() => {
+    const list =
+        APP.g("suggestions");
+
+    if (!list) return;
+
+    const suggestions =
+        APP.SUGGESTIONS.length
+            ? APP.SUGGESTIONS.map((row) =>
+                APP.rowValue(row, ["Suggestion", "suggestion", "Recommendation", "recommendation"])
+            ).filter(Boolean)
+            : [
+                "Review the highest-volume partner-side incidents first.",
+                "Investigate the top rejection partner and bank combination in the current filter scope.",
+                "Use the pivot builder to compare impacted countries and issue categories before export."
+            ];
+
+    list.innerHTML =
+        suggestions.map((item) => `<li>${APP.escape(item)}</li>`).join("");
+});
+
+APP.getIncidentRegisterTable = () => {
+    const columns =
+        APP.getIncidentColumns();
+
+    return {
+        id: "incident-register",
+        title: "Incident Register",
+        headers: columns,
+        rows:
+            APP.DATA.map((row) =>
+                columns.map((column) =>
+                    APP.rowValue(row, column) ?? ""
+                )
+            )
+    };
+};
+
+APP.defaultRejectionColumns = APP.defaultRejectionColumns || [
+    "MONTH",
+    "PARTNERNAME",
+    "BANKNAME",
+    "BANKCODE",
+    "RECEIVECOUNTRYCODE",
+    "STATUS",
+    "SUBSTATE",
+    "PARTNER_REJECTREASON"
+];
+
+APP.selectedRejectionColumns = APP.selectedRejectionColumns || null;
+
+APP.getRejectionExcelColumns = () =>
+    APP.REJECTIONS.length
+        ? Object.keys(APP.REJECTIONS[0])
+        : [];
+
+APP.getRejectionColumns = () => {
+    const excelColumns =
+        APP.getRejectionExcelColumns();
+
+    if (APP.selectedRejectionColumns === null) {
+        APP.selectedRejectionColumns =
+            APP.defaultRejectionColumns.filter((column) =>
+                excelColumns.includes(column)
+            );
+    }
+
+    return APP.selectedRejectionColumns.filter((column) =>
+        excelColumns.includes(column)
+    );
+};
+
+APP.renderRejectionColumnPicker = APP.renderRejectionColumnPicker || (() => {});
+
+APP.renderRejectionTable = APP.renderRejectionTable || (() => {});
+
+APP.tableViewState = APP.tableViewState || {};
+APP.rejectionTableState = APP.rejectionTableState || {
+    page: 1,
+    pageSize: 100
+};
+
+APP.getTableState = (tableId) => {
+    if (!APP.tableViewState[tableId]) {
+        APP.tableViewState[tableId] = {
+            topN: "",
+            bottomN: "",
+            sortBy: "value",
+            sortDir: "desc",
+            labelFilter: "",
+            excludedLabels: [],
+            controlsOpen: false
+        };
+    }
+
+    return APP.tableViewState[tableId];
+};
+
+APP.tableCellValue = (value) => {
+    const raw =
+        String(value ?? "").replace(/,/g, "").trim();
+    const numeric =
+        Number(raw);
+
+    return Number.isFinite(numeric) && raw !== ""
+        ? numeric
+        : String(value ?? "");
+};
+
+APP.applyTableState = (table, state) => {
+    const labelIndex = 0;
+    const valueIndex = Math.max(0, (table.headers?.length || 1) - 1);
+    let rows =
+        [...(table.rows || [])];
+
+    if (state.labelFilter) {
+        const needle =
+            state.labelFilter.toLowerCase();
+        rows =
+            rows.filter((row) =>
+                String(row[labelIndex] ?? "")
+                    .toLowerCase()
+                    .includes(needle)
+            );
+    }
+
+    if (state.excludedLabels?.length) {
+        const excluded =
+            new Set(state.excludedLabels);
+        rows =
+            rows.filter((row) =>
+                !excluded.has(String(row[labelIndex] ?? ""))
+            );
+    }
+
+    rows.sort((a, b) => {
+        const aValue =
+            state.sortBy === "label"
+                ? String(a[labelIndex] ?? "").toLowerCase()
+                : APP.tableCellValue(a[valueIndex]);
+        const bValue =
+            state.sortBy === "label"
+                ? String(b[labelIndex] ?? "").toLowerCase()
+                : APP.tableCellValue(b[valueIndex]);
+
+        if (aValue === bValue) return 0;
+
+        const direction =
+            state.sortDir === "asc"
+                ? 1
+                : -1;
+
+        return aValue > bValue
+            ? direction
+            : -direction;
+    });
+
+    if (state.topN) {
+        rows =
+            rows.slice(0, Number(state.topN));
+    } else if (state.bottomN) {
+        rows =
+            rows.slice(Math.max(0, rows.length - Number(state.bottomN)));
+    }
+
+    return {
+        ...table,
+        rows
+    };
+};
+
+APP.tableLabelOptions = (table) =>
+    APP.u((table.rows || []).map((row) => String(row[0] ?? ""))).slice(0, 40);
+
+APP.renderTableControls = (tableId, table) => {
+    const state =
+        APP.getTableState(tableId);
+    const labelOptions =
+        APP.tableLabelOptions(table);
+
+    return `
+<div class="data-table-controls" data-table-controls="${APP.escape(tableId)}">
+    <label class="pivot-field">
+        <span>Top N</span>
+        <select data-table-input="topN" data-table-id="${APP.escape(tableId)}">
+            <option value="" ${!state.topN ? "selected" : ""}>All</option>
+            <option value="5" ${state.topN === "5" ? "selected" : ""}>5</option>
+            <option value="10" ${state.topN === "10" ? "selected" : ""}>10</option>
+            <option value="20" ${state.topN === "20" ? "selected" : ""}>20</option>
+        </select>
+    </label>
+    <label class="pivot-field">
+        <span>Bottom N</span>
+        <select data-table-input="bottomN" data-table-id="${APP.escape(tableId)}">
+            <option value="" ${!state.bottomN ? "selected" : ""}>None</option>
+            <option value="5" ${state.bottomN === "5" ? "selected" : ""}>5</option>
+            <option value="10" ${state.bottomN === "10" ? "selected" : ""}>10</option>
+            <option value="20" ${state.bottomN === "20" ? "selected" : ""}>20</option>
+        </select>
+    </label>
+    <label class="pivot-field">
+        <span>Sort By</span>
+        <select data-table-input="sortBy" data-table-id="${APP.escape(tableId)}">
+            <option value="value" ${state.sortBy === "value" ? "selected" : ""}>Value</option>
+            <option value="label" ${state.sortBy === "label" ? "selected" : ""}>Label</option>
+        </select>
+    </label>
+    <label class="pivot-field">
+        <span>Direction</span>
+        <select data-table-input="sortDir" data-table-id="${APP.escape(tableId)}">
+            <option value="desc" ${state.sortDir === "desc" ? "selected" : ""}>Descending</option>
+            <option value="asc" ${state.sortDir === "asc" ? "selected" : ""}>Ascending</option>
+        </select>
+    </label>
+    <label class="pivot-field">
+        <span>Label Filter</span>
+        <input type="text" value="${APP.escape(state.labelFilter)}" placeholder="Contains text" data-table-input="labelFilter" data-table-id="${APP.escape(tableId)}">
+    </label>
+</div>
+${labelOptions.length ? `
+<div class="table-exclude-list">
+    ${labelOptions.map((label) => `
+    <button type="button" class="table-exclude-chip ${state.excludedLabels.includes(label) ? "active" : ""}" data-table-exclude="${APP.escape(label)}" data-table-id="${APP.escape(tableId)}">${APP.escape(APP.shortenMiddle(label, 28))}</button>
+    `).join("")}
+</div>
+<div class="table-control-note">Filter first, then exclude labels, then sort, then apply Top N or Bottom N.</div>` : ""}
+`;
+};
+
+APP.renderManagedTableCard = (table, tableId, titleOverride = "") => {
+    const managed =
+        APP.applyTableState(table, APP.getTableState(tableId));
+    const state =
+        APP.getTableState(tableId);
+
+    return `
+<article class="data-table-card" data-table-card="${APP.escape(tableId)}">
+    <div class="data-table-head">
+        <div class="data-table-head-main">
+            <button type="button" class="table-controls-toggle" data-table-toggle="${APP.escape(tableId)}">${state.controlsOpen ? "Hide filters" : "Show filters"}</button>
+            <h4>${APP.escape(titleOverride || table.title)}</h4>
+        </div>
+        <span>${managed.rows.length} rows</span>
+    </div>
+    ${APP.renderTableControls(tableId, table)
+        .replace('data-table-controls"', `data-table-controls${state.controlsOpen ? "" : " hide"}"`)
+        .replace('table-exclude-list"', `table-exclude-list${state.controlsOpen ? "" : " hide"}"`)
+        .replace('table-control-note"', `table-control-note${state.controlsOpen ? "" : " hide"}"`)}
+    <div class="data-table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>${managed.headers.map((header) => `<th>${APP.escape(header)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+                ${managed.rows.length
+                    ? managed.rows.map((row) => `<tr>${row.map((cell) => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")
+                    : `<tr><td colspan="${Math.max(1, managed.headers.length)}">No rows match the active table controls.</td></tr>`}
+            </tbody>
+        </table>
+    </div>
+</article>
+`;
+};
+
+APP.mergeIncidentSectionIntoAnalytics = () => {
+    const host =
+        APP.g("analyticsIncidentRegisterHost");
+    const section =
+        APP.g("incidents");
+    const tab =
+        APP.g("tabIncidents");
+
+    if (!host || !section || section.dataset.merged === "1") {
+        if (tab) {
+            tab.classList.add("hide");
+        }
+        return;
+    }
+
+    while (section.firstChild) {
+        host.appendChild(section.firstChild);
+    }
+
+    section.dataset.merged = "1";
+    section.classList.add("hide");
+    if (tab) {
+        tab.classList.add("hide");
+    }
+};
+
+APP.bindTableControlEvents = (scope = document) => {
+    scope.querySelectorAll("[data-table-toggle]").forEach((button) => {
+        if (button.dataset.bound === "1") return;
+        button.dataset.bound = "1";
+        button.addEventListener("click", APP.handleTableToggle);
+    });
+    scope.querySelectorAll("[data-table-input]").forEach((input) => {
+        if (input.dataset.bound === "1") return;
+        input.dataset.bound = "1";
+        input.addEventListener("input", APP.handleTableControlInput);
+        input.addEventListener("change", APP.handleTableControlInput);
+    });
+
+    scope.querySelectorAll("[data-table-exclude]").forEach((button) => {
+        if (button.dataset.bound === "1") return;
+        button.dataset.bound = "1";
+        button.addEventListener("click", APP.handleTableExcludeToggle);
+    });
+};
+
+APP.handleTableToggle = (event) => {
+    const tableId =
+        event.currentTarget.dataset.tableToggle;
+
+    if (!tableId) return;
+
+    const state =
+        APP.getTableState(tableId);
+    state.controlsOpen =
+        !state.controlsOpen;
+    APP.render();
+};
+
+APP.handleTableControlInput = (event) => {
+    const tableId =
+        event.target.dataset.tableId;
+    const key =
+        event.target.dataset.tableInput;
+
+    if (!tableId || !key) return;
+
+    const state =
+        APP.getTableState(tableId);
+    state[key] =
+        event.target.value;
+
+    if (key === "topN" && state.topN) {
+        state.bottomN = "";
+    }
+
+    if (key === "bottomN" && state.bottomN) {
+        state.topN = "";
+    }
+
+    APP.render();
+};
+
+APP.handleTableExcludeToggle = (event) => {
+    const tableId =
+        event.currentTarget.dataset.tableId;
+    const label =
+        event.currentTarget.dataset.tableExclude;
+
+    if (!tableId) return;
+
+    const state =
+        APP.getTableState(tableId);
+    const excluded =
+        new Set(state.excludedLabels || []);
+
+    if (excluded.has(label)) {
+        excluded.delete(label);
+    } else {
+        excluded.add(label);
+    }
+
+    state.excludedLabels =
+        [...excluded];
+    APP.render();
+};
+
+APP.getOverviewExportSections = () => [
+    {
+        id: "overview-summary",
+        title: "Overview Summary",
+        elementId: "overviewSummarySection"
+    },
+    {
+        id: "overview-builder",
+        title: "Operational Insights",
+        elementId: "overviewBuilderSection"
+    },
+    {
+        id: "overview-suggestions",
+        title: "Suggestions",
+        elementId: "overviewSuggestionsSection"
+    }
+];
+
+APP.getRejectionRegisterTable = () => {
+    const columns =
+        APP.getRejectionColumns();
+
+    return {
+        id: "rejection-register",
+        title: "Rejection Register",
+        headers: columns,
+        rows:
+            (APP.filteredRejections || []).map((row) =>
+                columns.map((column) =>
+                    APP.rowValue(row, column) ?? ""
+                )
+            )
+    };
+};
+
+APP.getRejectionGraphTables = () => {
+    const rejectionRows =
+        APP.rejectionRows?.() || [];
+    const byPartner =
+        APP.groupCountEntries
+            ? APP.groupCountEntries(rejectionRows, "PARTNERNAME", "rejections")
+            : [];
+    const byBank =
+        APP.groupCountEntries
+            ? APP.groupCountEntries(rejectionRows, "BANKNAME", "rejections")
+            : [];
+    const byStatus =
+        APP.groupCountEntries
+            ? APP.groupCountEntries(APP.filteredRejections, "STATUS", "rejections")
+            : [];
+
+    return [
+        {
+            title: "Rejected Transactions by Partner",
+            headers: ["Partner", "Rejected Transactions"],
+            rows: byPartner.map(([label, value]) => [label, APP.formatNum(value)])
+        },
+        {
+            title: "Top Rejection Banks",
+            headers: ["Bank", "Rejected Transactions"],
+            rows: byBank.map(([label, value]) => [label, APP.formatNum(value)])
+        },
+        {
+            title: "Rejection Status Distribution",
+            headers: ["Status", "Rows"],
+            rows: byStatus.map(([label, value]) => [label, APP.formatNum(value)])
+        }
+    ].filter((table) => table.rows.length);
+};
+
+APP.renderRejectionKPIs = () => {
+    const box =
+        APP.g("rejectionKpis");
+
+    if (!box) return;
+
+    const rows =
+        APP.filteredRejections || [];
+    const rejected =
+        APP.rejectionRows?.() || [];
+    const partnerCount =
+        APP.u(rows.map((row) => APP.rowValue(row, "PARTNERNAME"))).length;
+    const topBank =
+        (APP.groupCountEntries?.(rejected, "BANKNAME", "rejections") || [])[0];
+
+    const cards = [
+        ["Filtered Rows", APP.formatNum(rows.length)],
+        ["Rejected Rows", APP.formatNum(rejected.length)],
+        ["Partners", APP.formatNum(partnerCount)],
+        ["Top Bank", topBank ? `${topBank[0]} (${APP.formatNum(topBank[1])})` : "N/A"]
+    ];
+
+    box.innerHTML =
+        cards.map(([label, value], index) => `
+<article class="kpi-card kpi-${index}">
+    <div class="kpi-label">${APP.escape(label)}</div>
+    <div class="kpi-number">${APP.escape(value)}</div>
+</article>
+`).join("");
+};
+
+APP.renderRejectionColumnPicker = () => {
+    const box =
+        APP.g("rejectionColumnList");
+
+    if (!box) return;
+
+    const columns =
+        APP.getRejectionExcelColumns();
+    const selected =
+        new Set(APP.getRejectionColumns());
+
+    box.innerHTML =
+        columns.length
+            ? columns.map((column) => `
+<label class="column-item">
+    <input type="checkbox" class="rejection-column-check" value="${APP.escape(column)}" ${selected.has(column) ? "checked" : ""}>
+    <span>${APP.escape(column)}</span>
+</label>
+`).join("")
+            : `<div class="empty-state">Load a workbook to choose rejection columns.</div>`;
+
+    box.querySelectorAll(".rejection-column-check").forEach((input) => {
+        input.onchange = () => {
+            APP.selectedRejectionColumns =
+                [...box.querySelectorAll(".rejection-column-check:checked")]
+                    .map((item) => item.value);
+            APP.rejectionTableState.page = 1;
+            APP.renderRejectionTable();
+        };
+    });
+};
+
+APP.renderRejectionTable = () => {
+    const head =
+        APP.g("rejectionHead");
+    const body =
+        APP.g("rejectionBody");
+
+    if (!head || !body) return;
+
+    const table =
+        APP.getRejectionRegisterTable();
+    const pageSize =
+        Number(APP.rejectionTableState.pageSize) || 100;
+    const totalRows =
+        table.rows.length;
+    const totalPages =
+        Math.max(1, Math.ceil(totalRows / pageSize));
+
+    APP.rejectionTableState.page =
+        Math.min(
+            Math.max(1, APP.rejectionTableState.page || 1),
+            totalPages
+        );
+
+    const page =
+        APP.rejectionTableState.page;
+    const start =
+        (page - 1) * pageSize;
+    const visibleRows =
+        table.rows.slice(start, start + pageSize);
+
+    head.innerHTML =
+        `<tr>${table.headers.map((header) => `<th>${APP.escape(header)}</th>`).join("")}</tr>`;
+    body.innerHTML =
+        visibleRows.length
+            ? visibleRows.map((row) => `<tr>${row.map((cell) => `<td>${APP.escape(cell)}</td>`).join("")}</tr>`).join("")
+            : `<tr><td colspan="${Math.max(1, table.headers.length)}">No rejection rows match the current filters.</td></tr>`;
+
+    if (APP.g("rejectionShown")) {
+        APP.g("rejectionShown").textContent =
+            `${visibleRows.length} shown`;
+    }
+
+    if (APP.g("rejectionFilteredCount")) {
+        APP.g("rejectionFilteredCount").textContent =
+            `${totalRows} filtered`;
+    }
+
+    if (APP.g("rejectionPageInfo")) {
+        APP.g("rejectionPageInfo").textContent =
+            `Page ${page} of ${totalPages}`;
+    }
+
+    if (APP.g("rejectionPageSize")) {
+        APP.g("rejectionPageSize").value =
+            String(pageSize);
+    }
+
+    if (APP.g("btnRejectionPrevPage")) {
+        APP.g("btnRejectionPrevPage").disabled =
+            page <= 1;
+    }
+
+    if (APP.g("btnRejectionNextPage")) {
+        APP.g("btnRejectionNextPage").disabled =
+            page >= totalPages;
+    }
+};
+
+APP.renderAnalyticsTables = () => {
+    const incidentContainer =
+        APP.g("analyticsIncidentTables");
+    const rejectionContainer =
+        APP.g("analyticsRejectionTables");
+
+    const incidentTables =
+        APP.getGraphTables?.() || [];
+    const rejectionTables =
+        APP.getRejectionGraphTables?.() || [];
+
+    if (incidentContainer) {
+        incidentContainer.innerHTML =
+            incidentTables.length
+                ? incidentTables.map((table, index) =>
+                    APP.renderManagedTableCard(
+                        table,
+                        table.id || `incident-table-${index}`
+                    )
+                ).join("")
+                : `<div class="empty-state">No incident table data available for the current filter selection.</div>`;
+        APP.bindTableControlEvents(incidentContainer);
+    }
+
+    if (rejectionContainer) {
+        rejectionContainer.innerHTML =
+            rejectionTables.length
+                ? rejectionTables.map((table, index) =>
+                    APP.renderManagedTableCard(
+                        table,
+                        table.id || `rejection-table-${index}`
+                    )
+                ).join("")
+                : `<div class="empty-state">No rejection table data available for the current filter selection.</div>`;
+        APP.bindTableControlEvents(rejectionContainer);
+    }
+};
+
+APP.renderRejectionTables = APP.renderAnalyticsTables;
+
+APP.renderExportOptions = () => {
+    const list =
+        APP.g("globalExportList");
+
+    if (!list) return;
+
+    const groups =
+        APP.getGlobalExportComponents();
+
+    const entries = [
+        ["Overview sections", groups.sections],
+        ["Builder tables", groups.builder],
+        ["Charts", groups.charts],
+        ["Tables", groups.tables]
+    ].filter(([, items]) => items.length);
+
+    list.innerHTML =
+        entries.map(([label, items], groupIndex) => `
+<div class="global-export-group" data-export-group="${groupIndex}">
+    <div class="global-export-group-head">
+        <h4>${APP.escape(label)}</h4>
+        <div class="export-group-actions">
+            <button type="button" data-export-select="${groupIndex}">All</button>
+            <button type="button" data-export-clear="${groupIndex}">None</button>
+        </div>
+    </div>
+    <div class="global-export-items">
+        ${items.map((item) => `
+        <label class="global-export-item">
+            <input type="checkbox" class="global-export-check" data-export-group-index="${groupIndex}" value="${APP.escape(item.id)}" ${item.checked === false ? "" : "checked"}>
+            <span>${APP.escape(item.title)}</span>
+        </label>`).join("")}
+    </div>
+</div>`).join("");
+
+    list.querySelectorAll("[data-export-select]").forEach((button) => {
+        button.onclick = () => {
+            const groupIndex =
+                button.dataset.exportSelect;
+            list.querySelectorAll(`.global-export-check[data-export-group-index="${groupIndex}"]`)
+                .forEach((input) => {
+                    input.checked = true;
+                });
+        };
+    });
+
+    list.querySelectorAll("[data-export-clear]").forEach((button) => {
+        button.onclick = () => {
+            const groupIndex =
+                button.dataset.exportClear;
+            list.querySelectorAll(`.global-export-check[data-export-group-index="${groupIndex}"]`)
+                .forEach((input) => {
+                    input.checked = false;
+                });
+        };
+    });
+};
+
+APP.getSelectedExportItems = () => {
+    const selectedIds =
+        [...document.querySelectorAll(".global-export-check:checked")]
+            .map((input) => input.value);
+    const groups =
+        APP.getGlobalExportComponents();
+
+    return [
+        ...groups.sections,
+        ...groups.builder,
+        ...groups.charts,
+        ...groups.tables
+    ].filter((item) => selectedIds.includes(item.id));
+};
+
+APP.exportTableToWorksheet = (table) => {
+    const rows =
+        table.rows.map((row) => {
+            const out = {};
+            table.headers.forEach((header, index) => {
+                out[header] = row[index] ?? "";
+            });
+            return out;
+        });
+
+    return XLSX.utils.json_to_sheet(rows);
+};
+
+APP.addNativeTableSlide = (slide, item) => {
+    const body =
+        (item.rows || []).slice(0, 20).map((row) => row.map((cell) => String(cell ?? "")));
+    const tableRows =
+        [item.headers, ...body];
+
+    slide.addTable(tableRows, {
+        x: 0.4,
+        y: 0.9,
+        w: 12.4,
+        h: 5.9,
+        fontSize: 10,
+        border: { type: "solid", pt: 1, color: "D8E1EC" },
+        color: "1E293B",
+        fill: "FFFFFF",
+        bold: false,
+        autoFit: true,
+        margin: 0.06,
+        rowH: 0.28
+    });
+};
+
+APP.addNativeTextSlide = (slide, item) => {
+    const lines =
+        item.rows?.map((row) => row.join(" ")) || [];
+    slide.addText(lines.join("\n"), {
+        x: 0.55,
+        y: 1.0,
+        w: 12.0,
+        h: 5.5,
+        fontSize: 16,
+        color: "0F172A",
+        breakLine: false,
+        valign: "top",
+        margin: 0.08
+    });
+};
+
+APP.addNativeChartSlide = (slide, item) => {
+    const chart =
+        APP.charts[item.id];
+
+    if (!chart) {
+        throw new Error(`Chart ${item.title} is not available.`);
+    }
+
+    const labels =
+        chart.data?.labels || [];
+    const chartData =
+        (chart.data?.datasets || []).map((dataset) => ({
+            name: dataset.label || item.title,
+            labels,
+            values: dataset.data || []
+        }));
+    const typeMap = {
+        bar: PptxGenJS.ChartType.bar,
+        line: PptxGenJS.ChartType.line,
+        pie: PptxGenJS.ChartType.pie,
+        doughnut: PptxGenJS.ChartType.doughnut
+    };
+    const chartType =
+        typeMap[chart.config?.type || "bar"];
+
+    if (!chartType) {
+        throw new Error("Unsupported native chart type.");
+    }
+
+    slide.addChart(chartType, chartData, {
+        x: 0.45,
+        y: 0.95,
+        w: 12.2,
+        h: 5.8,
+        showLegend: true,
+        showTitle: false,
+        catAxisLabelFontSize: 10,
+        valAxisLabelFontSize: 10
+    });
+};
+
+APP.captureElementPng = async (element) => {
+    const canvas =
+        await html2canvas(element, {
+            backgroundColor: "#f8fafc",
+            scale: 2,
+            useCORS: true
+        });
+
+    return canvas.toDataURL("image/png");
+};
+
+APP.resolveExportTextItem = (item) => {
+    if (item.type === "text") {
+        return item;
+    }
+
+    if (item.type === "section") {
+        if (item.id === "overview-summary") {
+            const text =
+                APP.g("execSummary")?.innerText?.trim();
+            return text
+                ? {
+                    ...item,
+                    type: "text",
+                    rows: text.split(/\n+/).map((line) => [line.trim()]).filter((row) => row[0])
+                }
+                : null;
+        }
+
+        if (item.id === "overview-suggestions") {
+            const rows =
+                [...(APP.g("suggestions")?.querySelectorAll("li") || [])]
+                    .map((li) => [li.textContent.trim()])
+                    .filter((row) => row[0]);
+            return rows.length
+                ? {
+                    ...item,
+                    type: "text",
+                    rows
+                }
+                : null;
+        }
+    }
+
+    if (
+        item.rows?.length &&
+        (
+            item.headers?.length === 1 ||
+            (item.headers?.length === 2 && item.rows.length <= 12 && item.type !== "tableBundle")
+        )
+    ) {
+        return {
+            ...item,
+            type: "text"
+        };
+    }
+
+    return null;
+};
+
+APP.expandPptExportItems = (items) =>
+    items.flatMap((item) => {
+        if (item.type === "tableBundle" && item.tables?.length) {
+            return item.tables.map((table, index) => ({
+                ...table,
+                id: `${item.id}-${index + 1}`,
+                type: "table",
+                title: table.title || `${item.title} ${index + 1}`
+            }));
+        }
+
+        return [item];
+    });
+
+APP.exportSelectedItemsToPpt = async () => {
+    const items =
+        APP.expandPptExportItems(
+            APP.getSelectedExportItems()
+        );
+
+    if (!items.length) {
+        alert("Select at least one export item.");
+        return;
+    }
+
+    const pres =
+        new PptxGenJS();
+    pres.layout = "LAYOUT_WIDE";
+    pres.author = "Payments Dashboard";
+    pres.title = "Payments Dashboard Export";
+
+    for (const item of items) {
+        const slide =
+            pres.addSlide();
+        slide.background = { color: "F8FAFC" };
+        slide.addText(item.title, {
+            x: 0.45,
+            y: 0.25,
+            w: 12.3,
+            h: 0.35,
+            fontSize: 18,
+            bold: true,
+            color: "0F172A"
+        });
+
+        try {
+            const textItem =
+                APP.resolveExportTextItem(item);
+
+            if (textItem) {
+                APP.addNativeTextSlide(slide, textItem);
+                continue;
+            }
+
+            if (item.type === "table") {
+                APP.addNativeTableSlide(slide, item);
+                continue;
+            }
+
+            if (item.type === "chart") {
+                APP.addNativeChartSlide(slide, item);
+                continue;
+            }
+
+            if (item.type === "section" && item.elementId) {
+                const sectionEl =
+                    APP.g(item.elementId);
+                if (sectionEl) {
+                    const image =
+                        await APP.captureElementPng(sectionEl);
+                    slide.addImage({
+                        data: image,
+                        x: 0.45,
+                        y: 0.85,
+                        w: 12.2,
+                        h: 5.9
+                    });
+                    continue;
+                }
+            }
+        } catch (error) {
+            console.warn(`Falling back to image export for ${item.title}.`, error);
+        }
+
+        const fallbackEl =
+            item.elementId
+                ? APP.g(item.elementId)
+                : document.querySelector(`[data-export-id="${item.id}"]`) ||
+                    document.getElementById(item.id);
+
+        if (fallbackEl) {
+            const image =
+                await APP.captureElementPng(fallbackEl);
+            slide.addImage({
+                data: image,
+                x: 0.45,
+                y: 0.85,
+                w: 12.2,
+                h: 5.9
+            });
+        } else if (item.rows?.length) {
+            APP.addNativeTableSlide(slide, item);
+        }
+    }
+
+    await pres.writeFile({
+        fileName: `payments-dashboard-${new Date().toISOString().slice(0, 10)}.pptx`
+    });
+};
+
+APP.exportSelectedItemsToExcel = () => {
+    const items =
+        APP.getSelectedExportItems();
+
+    if (!items.length) {
+        alert("Select at least one export item.");
+        return;
+    }
+
+    const workbook =
+        XLSX.utils.book_new();
+
+    items.forEach((item, index) => {
+        if (item.type === "tableBundle") {
+            (item.tables || []).forEach((table, tableIndex) => {
+                XLSX.utils.book_append_sheet(
+                    workbook,
+                    APP.exportTableToWorksheet(table),
+                    APP.shortenMiddle(`${table.title || item.title}-${tableIndex + 1}`, 28)
+                );
+            });
+            return;
+        }
+
+        if (item.rows?.length && item.headers?.length) {
+            XLSX.utils.book_append_sheet(
+                workbook,
+                APP.exportTableToWorksheet(item),
+                APP.shortenMiddle(item.title || `Sheet ${index + 1}`, 28)
+            );
+        }
+    });
+
+    XLSX.writeFile(workbook, "payments-dashboard-export.xlsx");
+};
+
+APP.exportSelectedItemsToPng = async () => {
+    const items =
+        APP.getSelectedExportItems();
+
+    if (!items.length) {
+        alert("Select at least one export item.");
+        return;
+    }
+
+    for (const item of items) {
+        const el =
+            item.elementId
+                ? APP.g(item.elementId)
+                : document.getElementById(item.id);
+
+        if (!el) continue;
+
+        const image =
+            await APP.captureElementPng(el);
+        APP.download(image, `${APP.slug(item.title)}.png`);
+    }
+};
+
+APP.bindSettingsModal = () => {
+    const modal =
+        APP.g("settingsModal");
+    const open = () => modal?.classList.remove("hide");
+    const close = () => modal?.classList.add("hide");
+
+    APP.g("btnSettings")?.addEventListener("click", open);
+    APP.g("btnCloseSettings")?.addEventListener("click", close);
+    APP.g("btnCloseSettingsModal")?.addEventListener("click", close);
+
+    APP.g("btnDownloadDashboardConfig")?.addEventListener("click", async () => {
+        const config =
+            await ConfigService.loadDashboardConfig();
+        ConfigService.downloadDashboardConfig(config);
+    });
+
+    APP.g("btnDownloadExportProfiles")?.addEventListener("click", async () => {
+        const profiles =
+            await ConfigService.loadExportProfiles();
+        ConfigService.downloadExportProfiles(profiles);
+    });
+
+    APP.g("inputImportDashboardConfig")?.addEventListener("change", async (event) => {
+        try {
+            await ConfigService.importDashboardConfig(event.target.files?.[0]);
+            APP.setPivotSaveStatus("Dashboard config imported.", "success");
+            void APP.renderPivotSavedWidgetsList();
+        } catch (error) {
+            alert(error.message);
+        }
+        event.target.value = "";
+    });
+
+    APP.g("inputImportExportProfiles")?.addEventListener("change", async (event) => {
+        try {
+            await ConfigService.importExportProfiles(event.target.files?.[0]);
+            APP.setPivotSaveStatus("Export profiles imported.", "success");
+        } catch (error) {
+            alert(error.message);
+        }
+        event.target.value = "";
+    });
+
+    APP.g("btnResetDashboardConfig")?.addEventListener("click", () => {
+        localStorage.removeItem("payments-dashboard-config");
+        APP.setPivotSaveStatus("Dashboard config reset to bundled defaults.", "success");
+        void APP.renderPivotSavedWidgetsList();
+    });
+
+    APP.g("btnResetExportProfiles")?.addEventListener("click", () => {
+        localStorage.removeItem("payments-dashboard-export-profiles");
+        APP.setPivotSaveStatus("Export profiles reset to bundled defaults.", "success");
+    });
+
+    APP.g("btnDownloadNormalizedWorkbook")?.addEventListener("click", () => {
+        const workbook =
+            XLSX.utils.book_new();
+
+        if (APP.RAW.length) {
+            XLSX.utils.book_append_sheet(
+                workbook,
+                XLSX.utils.json_to_sheet(APP.RAW),
+                "DATA"
+            );
+        }
+
+        if (APP.REJECTIONS.length) {
+            XLSX.utils.book_append_sheet(
+                workbook,
+                XLSX.utils.json_to_sheet(APP.REJECTIONS),
+                "REJECTIONS"
+            );
+        }
+
+        ConfigService.exportWorkbook(
+            "payments-dashboard-normalized.xlsx",
+            workbook
+        );
+    });
+};
+
+APP.bindExportModal = () => {
+    const modal =
+        APP.g("exportModal");
+    const open = () => {
+        APP.renderExportOptions();
+        modal?.classList.remove("hide");
+    };
+    const close = () => modal?.classList.add("hide");
+
+    APP.g("btnGlobalExport")?.addEventListener("click", open);
+    APP.g("btnCloseExportModal")?.addEventListener("click", close);
+    APP.g("btnExportSelectAll")?.addEventListener("click", () => {
+        document.querySelectorAll(".global-export-check").forEach((input) => {
+            input.checked = true;
+        });
+    });
+    APP.g("btnExportClearAll")?.addEventListener("click", () => {
+        document.querySelectorAll(".global-export-check").forEach((input) => {
+            input.checked = false;
+        });
+    });
+    APP.g("btnExportPptGlobal")?.addEventListener("click", () => {
+        void APP.exportSelectedItemsToPpt();
+    });
+    APP.g("btnExportExcelGlobal")?.addEventListener("click", APP.exportSelectedItemsToExcel);
+    APP.g("btnExportPngGlobal")?.addEventListener("click", () => {
+        void APP.exportSelectedItemsToPng();
+    });
+};
+
+APP.renderPivotBuilder = () => {
+    const toggle =
+        APP.g("pivotDatasetToggle");
+    const panel =
+        APP.g("pivotBuilder");
+    const tableBox =
+        APP.g("pivotTableWrap");
+
+    if (!toggle || !panel || !tableBox) return;
+
+    toggle.innerHTML = `
+<label><input type="radio" name="pivotDataset" value="incidents" ${APP.pivotDataset !== "rejections" ? "checked" : ""}> Pivot on: Incidents</label>
+<label><input type="radio" name="pivotDataset" value="rejections" ${APP.pivotDataset === "rejections" ? "checked" : ""}> Pivot on: Rejections</label>
+`;
+
+    document
+        .querySelectorAll('input[name="pivotDataset"]')
+        .forEach((input) => {
+            input.onchange = () => {
+                APP.pivotDataset =
+                    input.value;
+                APP.PIVOT = null;
+                APP.renderPivotBuilder();
+            };
+        });
+
+    const columns =
+        APP.getPivotColumns();
+    const state =
+        APP.getPivotState();
+
+    panel.innerHTML =
+        columns.length
+            ? `
+<label class="pivot-field"><span>Rows</span><select id="pivotRow">${APP.pivotOptions(columns, state.row)}</select></label>
+<label class="pivot-field"><span>Columns</span><select id="pivotColumn">${APP.pivotOptions(columns, state.column, true)}</select></label>
+<label class="pivot-field"><span>Values</span><select id="pivotValue">${APP.pivotOptions(columns, state.value, true)}</select></label>
+<label class="pivot-field"><span>Aggregation</span><select id="pivotAgg"><option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option><option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option></select></label>
+<label class="pivot-field"><span>Chart Type</span><select id="pivotChartType"><option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option><option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option><option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option><option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option></select></label>
+<label class="pivot-field"><span>Top rows</span><select id="pivotTopN">
+<option value="5" ${String(state.topN || "20") === "5" ? "selected" : ""}>5</option>
+<option value="10" ${String(state.topN || "20") === "10" ? "selected" : ""}>10</option>
+<option value="20" ${String(state.topN || "20") === "20" ? "selected" : ""}>20</option>
+<option value="50" ${String(state.topN || "20") === "50" ? "selected" : ""}>50</option>
+<option value="all" ${String(state.topN || "20") === "all" ? "selected" : ""}>All</option>
+</select></label>
+`
+            : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
+
+    const syncPivot = () => {
+        APP.PIVOT = {
+            dataset: APP.pivotDataset,
+            row: APP.g("pivotRow")?.value || "",
+            column: APP.g("pivotColumn")?.value || "",
+            value: APP.g("pivotValue")?.value || "",
+            agg: APP.g("pivotAgg")?.value || "count",
+            chartType: APP.g("pivotChartType")?.value || "bar",
+            topN: APP.g("pivotTopN")?.value || "20"
+        };
+
+        const pivot =
+            APP.getPivotResult();
+
+        tableBox.innerHTML =
+            pivot.rows.length
+                ? APP.renderManagedTableCard(
+                    {
+                        ...pivot,
+                        id: "pivot-output-table"
+                    },
+                    "pivot-output-table",
+                    pivot.title
+                )
+                : `<div class="empty-state">No pivot output is available for the current setup.</div>`;
+
+        APP.drawPivotChart();
+        APP.bindTableControlEvents(tableBox);
+    };
+
+    ["pivotRow", "pivotColumn", "pivotValue", "pivotAgg", "pivotChartType", "pivotTopN"].forEach((id) => {
+        const el =
+            APP.g(id);
+        if (el) {
+            el.onchange = syncPivot;
+        }
+    });
+
+    syncPivot();
+    void APP.renderPivotSavedWidgetsList();
+};
+
+APP.setAnalyticsMode = (mode) => {
+    APP.analyticsMode =
+        mode === "tables"
+            ? "tables"
+            : "charts";
+
+    APP.g("analyticsChartPanel")?.classList.toggle("hide", APP.analyticsMode !== "charts");
+    APP.g("analyticsTablePanel")?.classList.toggle("hide", APP.analyticsMode !== "tables");
+
+    document.querySelectorAll(".analytics-mode-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.analyticsMode === APP.analyticsMode);
+    });
+};
+
+APP.bindAnalyticsMode = () => {
+    document.querySelectorAll(".analytics-mode-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+            APP.setAnalyticsMode(button.dataset.analyticsMode);
+        });
+    });
+    APP.setAnalyticsMode(APP.analyticsMode);
+};
+
+APP.setSidebarCollapsed = (collapsed) => {
+    APP.g("filterSidebar")?.closest(".layout")?.classList.toggle("sidebar-collapsed", collapsed);
+    APP.g("btnOpenSidebar")?.classList.toggle("hide", !collapsed);
+    APP.g("btnOpenSidebar")?.setAttribute("aria-expanded", String(!collapsed));
+    APP.g("btnCloseSidebar")?.setAttribute("aria-expanded", String(!collapsed));
+    localStorage.setItem(APP.sidebarStorageKey, collapsed ? "1" : "0");
+};
+
+APP.bindSidebar = () => {
+    const collapsed =
+        localStorage.getItem(APP.sidebarStorageKey) === "1";
+
+    APP.g("btnCloseSidebar")?.addEventListener("click", () => {
+        APP.setSidebarCollapsed(true);
+    });
+    APP.g("btnOpenSidebar")?.addEventListener("click", () => {
+        APP.setSidebarCollapsed(false);
+    });
+
+    APP.setSidebarCollapsed(collapsed && window.innerWidth <= 1200);
+};
+
+APP.renderOverviewInsights = () => {
+    const metrics =
+        APP.getOverviewMetrics();
+    const rejectionRows =
+        APP.rejectionRows?.() || [];
+    const topRejectReason =
+        APP.groupCountEntries?.(rejectionRows, "PARTNER_REJECTREASON", "rejections")?.[0];
+    const topRejectPartner =
+        APP.groupCountEntries?.(rejectionRows, "PARTNERNAME", "rejections")?.[0];
+    const monthCount =
+        APP.sortedMonths?.().length || 0;
+    const incidentRate =
+        monthCount
+            ? Math.round((APP.DATA.length / monthCount) * 10) / 10
+            : APP.DATA.length;
+
+    return `
+<div class="card section-box">
+    <h4>Summary & Suggestions</h4>
+    <ul class="overview-bullets">
+        <li>Top rejection reason is <b>${APP.escape(topRejectReason?.[0] || "N/A")}</b>${topRejectReason ? ` with <b>${APP.formatNum(topRejectReason[1])}</b> rows` : ""}</li>
+        <li>Partner with the highest rejection volume is <b>${APP.escape(topRejectPartner?.[0] || "N/A")}</b></li>
+        <li>Average filtered incident volume is <b>${APP.escape(String(incidentRate))}</b> per active month</li>
+        <li>Suggested action: review routing and operational follow-up for the highest-rejection partner and bank combination in the current filter scope</li>
+    </ul>
+</div>
+<ul class="overview-bullets">
+    <li><b>${metrics.partnerSidePct}</b> partner-side incidents in the filtered period</li>
+    <li>Funding failures count is <b>${APP.formatNum(metrics.fundingCount)}</b>, representing <b>${metrics.fundingPct}</b> of incidents</li>
+    <li>Top partners (<b>${APP.escape(metrics.topPartners)}</b>) cause <b>${metrics.topPartnerShare}%</b> of incidents</li>
+    <li>Mostly impacted region is <b>${APP.escape(metrics.topRegion)}</b> with <b>${APP.formatNum(metrics.topRegionDelayed)}</b> delayed transactions${metrics.topRegionBreached ? ` and <b>${APP.formatNum(metrics.topRegionBreached)}</b> breached transactions` : ""}</li>
+    <li>Repeated geographies: <b>${metrics.countries}</b></li>
+    <li><b>${metrics.breachedPct}</b> of delayed transactions breached delivery sla</li>
+    <li><b>${metrics.resolvedWithinOneDayPct}</b> issues were resolved within 1 day</li>
+    <li>Approx <b>${APP.formatNum(metrics.reroute.txnCount)}</b> transactions worth <b>${APP.formatNum(metrics.reroute.usd)} USD</b> were manually rerouted to save transactions</li>
+</ul>
+`;
+};
+
+APP.savePivotBuilderToDashboardConfig = async () => {
+    if (!window.ConfigService) {
+        alert("Config service is not loaded.");
+        return;
+    }
+
+    const pivot =
+        APP.getPivotResult();
+
+    if (!pivot.rows.length) {
+        alert("Build a pivot with at least one row before saving.");
+        return;
+    }
+
+    const state =
+        APP.getPivotState();
+    const rowKey =
+        state.row;
+    const columnKey =
+        state.column;
+    const valueKey =
+        state.value;
+    const useCount =
+        state.agg === "count" ||
+        !valueKey;
+
+    try {
+        const config =
+            await ConfigService.loadDashboardConfig();
+
+        if (!config.widgets) {
+            config.widgets = [];
+        }
+
+        const draft = {
+            dataset: APP.pivotDataset === "rejections" ? "rejections" : "incidents",
+            section: "Pivot",
+            title: pivot.title,
+            chartType: state.chartType || "bar",
+            rows: [rowKey],
+            columns: columnKey ? [columnKey] : [],
+            values: [useCount ? "COUNT" : valueKey],
+            topN: APP.getPivotRowLimit(state) === Number.POSITIVE_INFINITY ? null : APP.getPivotRowLimit(state),
+            pivotSpec: {
+                row: rowKey,
+                column: columnKey,
+                value: valueKey,
+                agg: state.agg,
+                chartType: state.chartType,
+                topN: state.topN
+            }
+        };
+        const duplicate =
+            config.widgets.find((widget) =>
+                widget.source === "pivot-builder" &&
+                APP.getPivotIdentity(widget) === APP.getPivotIdentity(draft)
+            );
+
+        if (duplicate) {
+            APP.setPivotSaveStatus("This pivot chart is already saved in the dashboard config.", "warning");
+            alert("This pivot chart is already saved.");
+            return;
+        }
+
+        config.widgets.push({
+            id: ConfigService.createWidgetId(),
+            dataVersion: "2026.05",
+            layout: {
+                width: 12,
+                height: 4,
+                order: config.widgets.length + 1
+            },
+            visible: true,
+            createdBy: "pivot-builder",
+            source: "pivot-builder",
+            exportable: true,
+            slideTitle: pivot.title,
+            ...draft
+        });
+        ConfigService.saveDashboardConfig(config);
+        await APP.renderPivotSavedWidgetsList();
+        APP.setPivotSaveStatus("Pivot chart saved to dashboard config.", "success");
+    } catch (err) {
+        console.error(err);
+        APP.setPivotSaveStatus("Could not save dashboard config.", "error");
+        alert("Could not save dashboard config. See console for details.");
+    }
+};
+
+APP.renderPivotSavedWidgetsList = async () => {
+    const ul =
+        APP.g("pivotSavedWidgetsList");
+
+    if (!ul || !window.ConfigService) {
+        return;
+    }
+
+    try {
+        const config =
+            await ConfigService.loadDashboardConfig();
+        const pivots =
+            (config.widgets || []).filter((w) => w.source === "pivot-builder");
+
+        ul.innerHTML =
+            pivots.length
+                ? pivots.map((w) => {
+                    const title =
+                        w.title || w.id;
+                    const detail =
+                        `${w.dataset || "incidents"} | ${w.chartType || "chart"} | ${w.pivotSpec?.row || "row"}${w.pivotSpec?.column ? ` x ${w.pivotSpec.column}` : ""}`;
+                    return `<li title="${APP.escape(`${title} (${w.id})`)}"><span class="pivot-saved-title-text">${APP.escape(APP.shortenMiddle(title, 56))}</span><span class="pivot-saved-meta">${APP.escape(detail)}</span><code class="pivot-saved-id">${APP.escape(APP.shortenMiddle(w.id, 34))}</code></li>`;
+                }).join("")
+                : `<li class="empty-state">No saved pivot widgets yet.</li>`;
+    } catch {
+        ul.innerHTML =
+            `<li class="empty-state">Could not read saved config.</li>`;
+    }
+};
+
 APP.render = () => {
     APP.g("count").textContent =
         `${APP.DATA.length} records`;
@@ -4292,85 +3377,126 @@ APP.render = () => {
             `${APP.DATA.length} incidents | ${APP.filteredRejections.length} rejections`;
     }
 
-    APP.renderSummary();
-    APP.renderKPIs();
-    APP.renderPriorityBreakdown();
-    APP.renderSecondaryBreakdowns();
-    APP.renderOverviewTabs();
-    APP.renderSuggestions();
-    APP.renderRejectionKPIs();
-    APP.renderIncidentColumnPicker();
-    APP.renderRejectionColumnPicker();
-    APP.renderTable();
-    APP.renderRejectionTable();
-    APP.draw();
-    APP.renderAnalyticsTables();
-    APP.renderRejectionTables();
-    APP.renderPivotBuilder();
-    APP.renderExportOptions();
+    APP.renderSummary?.();
+    APP.renderKPIs?.();
+    APP.renderPriorityBreakdown?.();
+    APP.renderSecondaryBreakdowns?.();
+    APP.renderOverviewTabs?.();
+    APP.renderSuggestions?.();
+    APP.renderRejectionKPIs?.();
+    APP.renderIncidentColumnPicker?.();
+    APP.renderRejectionColumnPicker?.();
+    APP.renderTable?.();
+    APP.renderRejectionTable?.();
+    APP.draw?.();
+    APP.renderAnalyticsTables?.();
+    APP.renderPivotBuilder?.();
+    APP.renderExportOptions?.();
+    APP.setAnalyticsMode?.(APP.analyticsMode);
 };
 
-if (APP.g("analyticsTopN")) {
-    APP.g("analyticsTopN").onchange = (e) => {
-        APP.analyticsTopN =
-            e.target.value
-                ? Number(e.target.value)
-                : null;
-        APP.render();
-    };
-}
-
-if (APP.g("rejectionsTopN")) {
-    APP.g("rejectionsTopN").onchange = (e) => {
-        APP.rejectionsTopN =
-            e.target.value
-                ? Number(e.target.value)
-                : null;
-        APP.render();
-    };
-}
-
-if (APP.g("btnDefaultRejectionColumns")) {
-    APP.g("btnDefaultRejectionColumns").onclick = () => {
+APP.bindLegacyControls = () => {
+    document.querySelectorAll(".tab[data-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+            APP.view(button.dataset.view);
+        });
+    });
+    APP.g("btnLoad")?.addEventListener("click", () => {
+        void APP.loadLocal();
+    });
+    APP.g("btnApply")?.addEventListener("click", APP.apply);
+    APP.g("btnReset")?.addEventListener("click", APP.reset);
+    APP.g("btnDefaultColumns")?.addEventListener("click", () => {
         const excelColumns =
-            APP.getRejectionExcelColumns();
-        APP.selectedRejectionColumns =
-            APP.defaultRejectionColumns
+            APP.getExcelColumns();
+        APP.selectedIncidentColumns =
+            APP.defaultIncidentColumns
                 .map((column) =>
                     APP.findColumnName(
-                        APP.REJECTIONS,
+                        APP.RAW,
                         column
                     )
                 )
                 .filter((column) => excelColumns.includes(column));
+        APP.renderIncidentColumnPicker();
+        APP.renderTable();
+    });
+    APP.g("btnAllColumns")?.addEventListener("click", () => {
+        APP.selectedIncidentColumns =
+            APP.getExcelColumns();
+        APP.renderIncidentColumnPicker();
+        APP.renderTable();
+    });
+    APP.g("btnClearColumns")?.addEventListener("click", () => {
+        APP.selectedIncidentColumns = [];
+        document.querySelectorAll(".incident-column-check").forEach((input) => {
+            input.checked = false;
+        });
+        APP.renderTable();
+    });
+    APP.g("analyticsTopN")?.addEventListener("change", (e) => {
+        APP.analyticsTopN = e.target.value ? Number(e.target.value) : null;
+        APP.render();
+    });
+    APP.g("rejectionsTopN")?.addEventListener("change", (e) => {
+        APP.rejectionsTopN = e.target.value ? Number(e.target.value) : null;
+        APP.render();
+    });
+    APP.g("btnSavePivotToConfig")?.addEventListener("click", () => {
+        void APP.savePivotBuilderToDashboardConfig();
+    });
+    APP.g("rejectionPageSize")?.addEventListener("change", (event) => {
+        APP.rejectionTableState.pageSize =
+            Number(event.target.value) || 100;
+        APP.rejectionTableState.page = 1;
+        APP.renderRejectionTable();
+    });
+    APP.g("btnRejectionPrevPage")?.addEventListener("click", () => {
+        APP.rejectionTableState.page =
+            Math.max(1, (APP.rejectionTableState.page || 1) - 1);
+        APP.renderRejectionTable();
+    });
+    APP.g("btnRejectionNextPage")?.addEventListener("click", () => {
+        APP.rejectionTableState.page =
+            (APP.rejectionTableState.page || 1) + 1;
+        APP.renderRejectionTable();
+    });
+    APP.g("btnDefaultRejectionColumns")?.addEventListener("click", () => {
+        const excelColumns =
+            APP.getRejectionExcelColumns();
+        APP.selectedRejectionColumns =
+            APP.defaultRejectionColumns.filter((column) =>
+                excelColumns.includes(column)
+            );
+        APP.rejectionTableState.page = 1;
         APP.renderRejectionColumnPicker();
         APP.renderRejectionTable();
-    };
-}
-
-if (APP.g("btnAllRejectionColumns")) {
-    APP.g("btnAllRejectionColumns").onclick = () => {
+    });
+    APP.g("btnAllRejectionColumns")?.addEventListener("click", () => {
         APP.selectedRejectionColumns =
             APP.getRejectionExcelColumns();
+        APP.rejectionTableState.page = 1;
         APP.renderRejectionColumnPicker();
         APP.renderRejectionTable();
-    };
-}
-
-if (APP.g("btnClearRejectionColumns")) {
-    APP.g("btnClearRejectionColumns").onclick = () => {
+    });
+    APP.g("btnClearRejectionColumns")?.addEventListener("click", () => {
         APP.selectedRejectionColumns = [];
-        document
-            .querySelectorAll(".rejection-column-check")
-            .forEach((input) => input.checked = false);
+        APP.rejectionTableState.page = 1;
+        APP.renderRejectionColumnPicker();
         APP.renderRejectionTable();
-    };
-}
+    });
+};
 
-if (APP.g("btnSavePivotToConfig")) {
-    APP.g("btnSavePivotToConfig").onclick = () => {
-        void APP.savePivotBuilderToDashboardConfig();
-    };
-}
+APP.initLegacyDashboard = () => {
+    APP.bindUpload?.();
+    APP.bindLegacyControls();
+    APP.bindSidebar();
+    APP.bindAnalyticsMode();
+    APP.bindSettingsModal();
+    APP.bindExportModal();
+    APP.setPivotSaveStatus("Unique pivot charts only.");
+    void APP.renderPivotSavedWidgetsList();
+    void APP.loadLocal();
+};
 
-APP.loadLocal();
+APP.initLegacyDashboard();
