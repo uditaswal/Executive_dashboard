@@ -4,19 +4,20 @@ Browser-based dashboard for payment incidents and rejection data. The live app r
 
 ## Current App Behavior
 
-- Tabs: `Overview`, `Pivot`, `Analytics`, `Incidents`, `Rejections`, `Guide`
-- The old standalone `Tables` tab has been merged into `Analytics`
+- Tabs: `Overview`, `Incident`, `Rejections`, `Guide`
+- The old standalone `Incidents`, `Tables`, and dedicated `Pivot` tabs have been folded into the live workspace
 - The left filter panel can be collapsed and reopened
 - Analytics table mode and pivot table output now share Bottom N, sort, label filter, and exclude controls
 - Pivot saves are deduplicated by chart definition, so saving the same pivot twice is blocked
 - The `Rejections` tab includes a visible rejection register with column selection and paging
+- Export modal includes a bundled `Base Profile` and `Base Preset`
 - Dashboard config and export profiles can be downloaded, imported, and reset from `Settings`
 - Normalized workbook data can be downloaded from `Settings`
 - PowerPoint export prefers native text, table, and supported chart output, with image fallback when needed
 
 ## How To Run
 
-Use a local web server if you want linked CSS and sample workbook autoload to work:
+Use a local web server when you want fetch-based sample workbook autoload:
 
 ```bash
 python -m http.server 8000
@@ -28,7 +29,7 @@ Then open:
 http://localhost:8000/index.html
 ```
 
-Direct `file://` usage is still supported for manual workbook upload, but these limitations are expected:
+Direct `file://` usage is still supported for manual workbook upload. These limitations are expected:
 
 - sample workbook autoload is skipped
 - any dev server URL such as `http://127.0.0.1:5500/...` will fail if that server is not running
@@ -36,11 +37,11 @@ Direct `file://` usage is still supported for manual workbook upload, but these 
 
 ## Workbook Notes
 
-- Default sample workbook: `data/payments_incident_sample.xlsx`
 - Main incidents sheet: `DATA` when present, otherwise first sheet
-- Rejection sheet aliases accepted: `REJECTIONDATA`, `RejectionData`, `PAYOUT_DATA`, `PayoutData`
+- Rejection sheet aliases accepted: `REJECTIONDATA`, `Rejection Data`, `RejectionData`, `PAYOUT_DATA`, `PayoutData`
 - `CONFIG`, `SUGGESTIONS`, `REROUTE`, and `APN_VOLUME` are optional
 - Month normalization preserves year when it exists in source values, for example `Jan 2026`
+- The live Guide and `docs/guide/EXCEL_SPECIFICATION.md` describe the current WU workbook contract more accurately than the sample workbook alone
 
 ## Main Workflows
 
@@ -54,20 +55,13 @@ Direct `file://` usage is still supported for manual workbook upload, but these 
 
 - `Charts` view shows the canvas-based chart suite
 - `Tables` view shows the matching graph-data tables inside the same tab
-- Top-N controls still apply to chart-heavy analytics and rejection views
+- `Pivot` view inside the Incident workspace supports ad hoc incident pivots without leaving the tab
 - Table-mode cards include Top/Bottom N, label filtering, sort, and exclusion controls after aggregation
-
-### Pivot Builder
-
-- Build ad hoc charts and tables from the current filtered dataset
-- Choose incident or rejection dataset
-- Save useful pivots into dashboard config
-- Duplicate pivot definitions are detected and rejected before save
-- Pivot table output uses the same shared table-control model as Analytics table mode
 
 ### Rejections
 
 - Rejection-specific filters remain inside the `Rejections` tab
+- Rejection chart options no longer duplicate the tab filter controls
 - The visible rejection register uses the filtered rejection dataset as its source of truth
 - Selected rejection columns affect both the visible register and exports
 

@@ -21,6 +21,104 @@ APP.filterValues = (id) => {
         .filter(Boolean);
 };
 
+APP.copySelectOptions = (sourceId, targetId) => {
+    const source = APP.g(sourceId);
+    const target = APP.g(targetId);
+
+    if (!source || !target) return;
+
+    target.innerHTML = [...source.options]
+        .filter((option) => option.value)
+        .map((option) => `<option value="${APP.escape(option.value)}">${APP.escape(option.textContent)}</option>`)
+        .join("");
+};
+
+APP.syncSelectSelection = (sourceId, targetId) => {
+    const source = APP.g(sourceId);
+    const target = APP.g(targetId);
+
+    if (!source || !target) return;
+
+    const selected =
+        new Set([...source.selectedOptions].map((option) => option.value));
+
+    [...target.options].forEach((option) => {
+        option.selected =
+            selected.has(option.value);
+    });
+};
+
+APP.syncChartFilterMirrors = () => {
+    [
+        ["fMonth", "cfMonth"],
+        ["fPartner", "cfPartner"],
+        ["fStatus", "cfStatus"],
+        ["fPriority", "cfPriority"],
+        ["fRegion", "cfRegion"],
+        ["fRejMonth", "rcfMonth"],
+        ["fRejPartner", "rcfPartner"],
+        ["fRejCountry", "rcfCountry"],
+        ["fRejDelivery", "rcfDelivery"],
+        ["fRejBankName", "rcfBankName"],
+        ["fRejStatus", "rcfStatus"]
+    ].forEach(([sourceId, targetId]) => {
+        APP.copySelectOptions(sourceId, targetId);
+        APP.syncSelectSelection(sourceId, targetId);
+    });
+
+    if (APP.g("cfSearch") && APP.g("search")) {
+        APP.g("cfSearch").value = APP.g("search").value;
+    }
+};
+
+APP.copyMirrorSelectionBack = (mirrorId, sourceId) => {
+    const mirror = APP.g(mirrorId);
+    const source = APP.g(sourceId);
+
+    if (!mirror || !source) return;
+
+    const selected =
+        new Set([...mirror.selectedOptions].map((option) => option.value));
+
+    [...source.options].forEach((option) => {
+        option.selected =
+            selected.has(option.value);
+    });
+};
+
+APP.applyAnalyticsChartFilters = () => {
+    [
+        ["cfMonth", "fMonth"],
+        ["cfPartner", "fPartner"],
+        ["cfStatus", "fStatus"],
+        ["cfPriority", "fPriority"],
+        ["cfRegion", "fRegion"]
+    ].forEach(([mirrorId, sourceId]) => {
+        APP.copyMirrorSelectionBack(mirrorId, sourceId);
+    });
+
+    if (APP.g("search") && APP.g("cfSearch")) {
+        APP.g("search").value = APP.g("cfSearch").value;
+    }
+
+    APP.apply();
+};
+
+APP.applyRejectionChartFilters = () => {
+    [
+        ["rcfMonth", "fRejMonth"],
+        ["rcfPartner", "fRejPartner"],
+        ["rcfCountry", "fRejCountry"],
+        ["rcfDelivery", "fRejDelivery"],
+        ["rcfBankName", "fRejBankName"],
+        ["rcfStatus", "fRejStatus"]
+    ].forEach(([mirrorId, sourceId]) => {
+        APP.copyMirrorSelectionBack(mirrorId, sourceId);
+    });
+
+    APP.apply();
+};
+
 APP.matchesFilter = (id, value) => {
     const selected =
         APP.filterValues(id);
@@ -52,6 +150,8 @@ APP.populate = () => {
     if (typeof APP.syncRejectionFilterAccordion === "function") {
         APP.syncRejectionFilterAccordion();
     }
+
+    APP.syncChartFilterMirrors?.();
 };
 APP.apply = () => {
     const q = APP.g("search").value.toLowerCase();
@@ -91,6 +191,7 @@ APP.apply = () => {
         ));
 
     APP.render();
+    APP.syncChartFilterMirrors?.();
 };
 APP.reset = () => {
     ["fMonth", "fPartner", "fStatus", "fPriority", "fRegion", "fCountry", "fOwner", "fCategory", "fImpact", "fRejMonth", "fRejPartner", "fRejCountry", "fRejDelivery", "fRejBankName", "fRejBankCode", "fRejStatus"].forEach(
@@ -123,6 +224,7 @@ APP.reset = () => {
     }
 
     APP.apply();
+    APP.syncChartFilterMirrors?.();
 
     if (typeof APP.notifyRejectionFilterChange === "function") {
         APP.notifyRejectionFilterChange();
@@ -145,6 +247,7 @@ APP.resetRejectionFilters = () => {
     }
 
     APP.apply();
+    APP.syncChartFilterMirrors?.();
 
     if (typeof APP.notifyRejectionFilterChange === "function") {
         APP.notifyRejectionFilterChange();

@@ -11,6 +11,10 @@
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width,initial-scale=1'>
     <title>Payments Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="assets/wu-favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel='stylesheet' href='css/style.css'>
     <link rel='stylesheet' href='css/settings.css'>
     <link rel='stylesheet' href='css/rejections.css'>
@@ -20,6 +24,21 @@
             theme: {
                 extend: {
                     colors: {
+                        page: "#F5F6FA",
+                        surface: "#FFFFFF",
+                        sidebar: "#0F172A",
+                        accent: {
+                            blue: "#2563EB",
+                            red: "#DC2626",
+                            green: "#16A34A",
+                            orange: "#EA580C",
+                            purple: "#7C3AED"
+                        },
+                        text: {
+                            primary: "#0F172A",
+                            muted: "#64748B"
+                        },
+                        border: "#E2E8F0",
                         slate: {
                             950: "#020617"
                         }
@@ -139,9 +158,7 @@
             <div class='main-head'>
                 <div class='tabs'>
                     <button class='tab active' data-view='overview'>Overview</button>
-                    <button class='tab' data-view='pivot'>Pivot</button>
-                    <button class='tab' data-view='analytics'>Analytics</button>
-                    <button class='tab' data-view='incidents' id="tabIncidents">Incidents</button>
+                    <button class='tab' data-view='analytics'>Incident</button>
                     <button class='tab' data-view='rejections'>Rejections</button>
                     <button class='tab guide-tab' data-view='guide'>Guide</button>
                 </div>
@@ -151,13 +168,13 @@
                 </div>
             </div>
             <section id='overview' class='view'>
-                <div id="overviewKpiSection" class="card section-box">
+                <div id="overviewKpiSection" class="card section-box" data-collapsible>
                     <h3>KEY PERFORMANCE INDICATORS</h3>
                     <div id="kpis" class="grid"></div>
                 </div>
                 <br>
 
-                <div id="overviewPrioritySection" class="card section-box">
+                <div id="overviewPrioritySection" class="card section-box" data-collapsible>
                     <h3>Priority Breakdown</h3>
                     <div id="priorityBreakdown" class="priority-grid"></div>
                 </div>
@@ -169,7 +186,7 @@
                 </div>
                 <br>
  -->
-                <div id="overviewImpactSection" class="card section-box">
+                <div id="overviewImpactSection" class="card section-box" data-collapsible>
                     <h3>Resolution & Impact Breakdown</h3>
                     <div class="secondary-breakdowns">
                         <div class="breakdown-panel">
@@ -182,18 +199,16 @@
                         </div>
                     </div>
                 </div>
-
-                <div id="overviewSummarySection" class="card summary-box">
-                    <h3>Summary</h3>
-                    <div id="execSummary"></div>
-                </div>
-                <br>
-                <div id="overviewBuilderSection" class="card section-box overview-builder">
+                <div id="overviewBuilderSection" class="card section-box overview-builder" data-collapsible>
                     <div class="overview-builder-head">
                         <h3>Operational Insights</h3>
                         <div class="overview-subtabs" role="tablist" aria-label="Executive overview tables">
                             <button class="overview-subtab active" type="button"
+                                data-overview-tab="summary">Summary</button>
+                            <button class="overview-subtab" type="button"
                                 data-overview-tab="insights">Insights</button>
+                            <button class="overview-subtab" type="button"
+                                data-overview-tab="suggestions">Suggestions</button>
                             <button class="overview-subtab" type="button" data-overview-tab="metrics"><span
                                     id="overviewPeriodTabLabel">Period</span> View</button>
                             <button class="overview-subtab" type="button" data-overview-tab="platform">WU Platform
@@ -205,27 +220,23 @@
                     <div id="overviewTabContent"></div>
                 </div>
                 <br>
-                <div id="overviewSuggestionsSection" class="card section-box">
-                    <h3>SUGGESTIONS</h3>
-                    <ul id="suggestions"></ul>
-                </div>
-                <br>
             </section>
             <section id='analytics' class='view hide'>
-                <div class="card analytics-view-mode">
+                <div class="card analytics-view-mode" data-collapsible>
                     <div class="analytics-view-mode__head">
                         <div>
-                            <h3>Analytics Workspace</h3>
-                            <p>Switch between chart canvases and the matching graph-data tables without leaving this tab.</p>
+                            <h3>Incident Workspace</h3>
+                            <p>Switch between incident charts, registers, graph-data tables, and pivot output without leaving this tab.</p>
                         </div>
                         <div class="analytics-view-mode__actions" role="tablist" aria-label="Analytics display mode">
                             <button type="button" class="analytics-mode-btn active" data-analytics-mode="charts">Charts</button>
                             <button type="button" class="analytics-mode-btn" data-analytics-mode="tables">Tables</button>
+                            <button type="button" class="analytics-mode-btn" data-analytics-mode="pivot">Pivot</button>
                         </div>
                     </div>
                 </div>
                 <br>
-                <div class="card export-panel">
+                <div class="card export-panel" data-collapsible>
                     <div class="export-head">
                         <div>
                             <h3>Chart Options</h3>
@@ -236,20 +247,11 @@
                                 <input type="checkbox" id="toggleChartLabels">
                                 <span>Show counts on charts</span>
                             </label>
-                            <label class="chart-options-select">
-                                <span>Show top</span>
-                                <select id="analyticsTopN">
-                                    <option value="">All</option>
-                                    <option value="5">5</option>
-                                    <option value="10">10</option>
-                                    <option value="20">20</option>
-                                </select>
-                            </label>
                         </div>
                     </div>
                 </div>
                 <br>
-                <div id="analyticsChartPanel">
+                <div id="analyticsChartPanel" class="collapsible-panel" data-collapsible data-collapsible-title="Incident Charts">
                     <div class='charts'>
                     <div class='card wide'><canvas id='c1'></canvas></div>
                     <div class='card'><canvas id='c2'></canvas></div>
@@ -281,17 +283,48 @@
                     </div>
                 </div>
                 <div id="analyticsTablePanel" class="hide">
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible>
                         <div class="table-section-head">
                             <div>
                                 <h3>Incident Register</h3>
-                                <p>The former Incidents tab now lives here so analysis and registers stay together.</p>
+                                <p>Filtered operational incidents live directly in the Incident workspace.</p>
                             </div>
                         </div>
-                        <div id="analyticsIncidentRegisterHost"></div>
+                        <div class="incident-toolbar">
+                            <div>
+                                <h3>Incident Register</h3>
+                                <p>Filtered operational incident.</p>
+                            </div>
+                            <div class="incident-stats">
+                                <span id="incidentShown">0 shown</span>
+                                <span id="incidentOpen">0 open</span>
+                                <span id="incidentMajor">0 major</span>
+                            </div>
+                        </div>
+                        <div class="card column-panel" data-collapsible>
+                            <div class="column-panel-head">
+                                <div>
+                                    <h3>Incident Columns</h3>
+                                    <p>Select columns from the uploaded Excel data to show in the register.</p>
+                                </div>
+                                <div class="column-actions">
+                                    <button id="btnDefaultColumns">Default</button>
+                                    <button id="btnAllColumns">All</button>
+                                    <button id="btnClearColumns">Clear</button>
+                                </div>
+                            </div>
+                            <div id="incidentColumnList" class="column-list"></div>
+                        </div>
+                        <br>
+                        <div class="incident-table-wrap">
+                            <table class="incident-table">
+                                <thead id="incidentHead"></thead>
+                                <tbody id='incidentBody'></tbody>
+                            </table>
+                        </div>
                     </div>
                     <br>
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible>
                         <div class="table-section-head">
                             <div>
                                 <h3>Incident Tables</h3>
@@ -301,7 +334,7 @@
                         <div id="analyticsIncidentTables" class="table-grid"></div>
                     </div>
                     <br>
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible>
                         <div class="table-section-head">
                             <div>
                                 <h3>Rejection Tables</h3>
@@ -311,9 +344,25 @@
                         <div id="analyticsRejectionTables" class="table-grid"></div>
                     </div>
                 </div>
+                <div id="analyticsPivotPanel" class="hide">
+                    <div class="card section-box" data-collapsible>
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Pivot Builder</h3>
+                                <p>Generate pivot-style incident charts and tables from the current filtered incident dataset.</p>
+                            </div>
+                        </div>
+                        <div id="incidentPivotBuilder" class="pivot-builder"></div>
+                        <div class="card chart-card pivot-chart-card">
+                            <canvas id="incidentPivotChart"></canvas>
+                        </div>
+                        <br>
+                        <div id="incidentPivotTableWrap"></div>
+                    </div>
+                </div>
             </section>
             <section id='pivot' class='view hide'>
-                <div class="card section-box">
+                <div class="card section-box hide">
                     <div class="table-section-head">
                         <div>
                             <h3>Pivot Builder</h3>
@@ -343,42 +392,9 @@
                     <div id="pivotTableWrap"></div>
                 </div>
             </section>
-            <section id='incidents' class='view hide'>
-                <div class="incident-toolbar">
-                    <div>
-                        <h3>Incident Register</h3>
-                        <p>Filtered operational incident.</p>
-                    </div>
-                    <div class="incident-stats">
-                        <span id="incidentShown">0 shown</span>
-                        <span id="incidentOpen">0 open</span>
-                        <span id="incidentMajor">0 major</span>
-                    </div>
-                </div>
-                <div class="card column-panel">
-                    <div class="column-panel-head">
-                        <div>
-                            <h3>Incident Columns</h3>
-                            <p>Select columns from the uploaded Excel data to show in the register.</p>
-                        </div>
-                        <div class="column-actions">
-                            <button id="btnDefaultColumns">Default</button>
-                            <button id="btnAllColumns">All</button>
-                            <button id="btnClearColumns">Clear</button>
-                        </div>
-                    </div>
-                    <div id="incidentColumnList" class="column-list"></div>
-                </div>
-                <br>
-                <div class="incident-table-wrap">
-                    <table class="incident-table">
-                        <thead id="incidentHead"></thead>
-                        <tbody id='tbody'></tbody>
-                    </table>
-                </div>
-            </section>
+            <section id='incidents' class='view hide'></section>
             <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
-                <div class="rejection-filter-bar card">
+                <div class="rejection-filter-bar card" data-collapsible>
                     <div class="rejection-filter-bar__head">
                         <h4 class="rejection-filter-bar__title">Rejection filters</h4>
                         <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset
@@ -415,26 +431,19 @@
                     <div id="rejectionKpis" class="grid"></div>
                 </div>
 
-                <div class="card export-panel">
+                <div class="card export-panel" data-collapsible>
                     <div class="export-head">
                         <div>
                             <h3>Rejection Chart Options</h3>
                             <p>These charts stay synchronized with the current filtered rejection view.</p>
                         </div>
                         <div class="export-actions">
-                            <label class="chart-options-select">
-                                <span>Show top</span>
-                                <select id="rejectionsTopN">
-                                    <option value="">All</option>
-                                    <option value="5">5</option>
-                                    <option value="10">10</option>
-                                    <option value="20">20</option>
-                                </select>
-                            </label>
+                            <p class="chart-options-note">Rejection filters stay available at the top of this tab.</p>
                         </div>
                     </div>
                 </div>
                 <br>
+                <div id="rejectionChartsPanel" class="collapsible-panel" data-collapsible data-collapsible-title="Rejection Charts">
                 <div class="charts">
                     <div class="card wide"><canvas id="rc1"></canvas></div>
                     <div class="card"><canvas id="rc4"></canvas></div>
@@ -454,8 +463,24 @@
                     <div class="card wide"><canvas id="rc13"></canvas></div>
                     <div class="card wide"><canvas id="rc14"></canvas></div>
                 </div>
+                </div>
                 <br>
-                <div class="card column-panel">
+                <div class="card section-box" data-collapsible>
+                    <div class="table-section-head">
+                        <div>
+                            <h3>Rejection Pivot Builder</h3>
+                            <p>Generate pivot-style rejection charts and tables from the current filtered rejection dataset.</p>
+                        </div>
+                    </div>
+                    <div id="rejectionPivotBuilder" class="pivot-builder"></div>
+                    <div class="card chart-card pivot-chart-card">
+                        <canvas id="rejectionPivotChart"></canvas>
+                    </div>
+                    <br>
+                    <div id="rejectionPivotTableWrap"></div>
+                </div>
+                <br>
+                <div class="card column-panel" data-collapsible>
                     <div class="column-panel-head">
                         <div>
                             <h3>Rejection Register</h3>
@@ -497,16 +522,17 @@
                 </div>
             </section>
             <section id='guide' class='view hide'>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>Workbook Overview</h3>
                     <p>Supported sheets: <strong>DATA</strong>, <strong>REJECTIONDATA</strong>, <strong>CONFIG</strong>,
-                        <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. Add a
-                        workbook from the <code>data/</code> folder with Auto Load or upload it manually from the
-                        sidebar.</p>
-                    <p>Sheet-name casing and spacing are tolerated, including aliases such as <code>RejectionData</code>
-                        and <code>PayoutData</code>.</p>
+                        <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. The
+                        workbook should follow the WU standard column structure so filters, KPI cards, charts, RCA
+                        tables, and registers stay aligned.</p>
+                    <p>Sheet-name casing and spacing are tolerated. Rejection aliases such as
+                        <code>RejectionData</code>, <code>Rejection Data</code>, <code>PAYOUT_DATA</code>, and
+                        <code>PayoutData</code> are also accepted.</p>
                 </div>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>DATA Sheet Reference</h3>
                     <table class="guide-table">
                         <thead>
@@ -529,9 +555,9 @@
                             <tr>
                                 <td>Month</td>
                                 <td>Yes</td>
-                                <td>Jan-Dec</td>
-                                <td>Mar</td>
-                                <td>Year suffix stripped automatically</td>
+                                <td>Jan-Dec or month with year</td>
+                                <td>Mar or Jan-26</td>
+                                <td>Normalized to <code>Mon</code> or <code>Mon YYYY</code></td>
                             </tr>
                             <tr>
                                 <td>Partner</td>
@@ -576,6 +602,27 @@
                                 <td>Drives RCA tables</td>
                             </tr>
                             <tr>
+                                <td>Issue(WU/Partner)</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>WU issue</td>
+                                <td>Feeds Issue Owner normalization and RCA splits</td>
+                            </tr>
+                            <tr>
+                                <td>Platform</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>Core Platform</td>
+                                <td>Used in WU Platform RCA grouping</td>
+                            </tr>
+                            <tr>
+                                <td>Actual RCA</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>Partner timeout during payout confirmation</td>
+                                <td>Preferred RCA narrative when present</td>
+                            </tr>
+                            <tr>
                                 <td>Delayed Transaction</td>
                                 <td>Recommended</td>
                                 <td>Integer</td>
@@ -592,7 +639,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>REJECTIONDATA Sheet Reference</h3>
                     <table class="guide-table">
                         <thead>
@@ -607,7 +654,7 @@
                             <tr>
                                 <td>MONTH</td>
                                 <td>Yes</td>
-                                <td>Jan-26 or Jan</td>
+                                <td>Jan-26, Jan 2026, or Jan</td>
                                 <td>Jan-26</td>
                             </tr>
                             <tr>
@@ -664,10 +711,16 @@
                                 <td>Text</td>
                                 <td>AML_CHECK</td>
                             </tr>
+                            <tr>
+                                <td>BANKNAME / Wallet Name/Specific Bank</td>
+                                <td>Optional</td>
+                                <td>Text</td>
+                                <td>BDO</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>Auto-Normalization Reference</h3>
                     <table class="guide-table">
                         <thead>
@@ -686,7 +739,7 @@
                             <tr>
                                 <td>Month</td>
                                 <td><code>Jan-26</code></td>
-                                <td><code>Jan</code></td>
+                                <td><code>Jan 2026</code></td>
                             </tr>
                             <tr>
                                 <td>Partner</td>
@@ -711,19 +764,49 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>Common Mistakes</h3>
                     <ul class="guide-list">
                         <li>Mixing <code>WU Issue</code> and <code>wu issue</code> in the same column is fixed by
                             normalization.</li>
-                        <li>Leaving month as <code>Jan-26</code> or <code>01/2026</code> is fixed by normalization.</li>
+                        <li>Month values such as <code>Jan-26</code> or <code>01/2026</code> are normalized to
+                            <code>Jan 2026</code>.</li>
                         <li>Numeric priorities stored as text like <code>P2</code> are fixed by normalization.</li>
                         <li>Split delivery service values that are not in the synonym map still need to be consistent in
                             the source.</li>
                         <li>Duplicate sheet names with different casing use the first matching sheet.</li>
                     </ul>
                 </div>
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
+                    <h3>Operational Support Sheets</h3>
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Sheet</th>
+                                <th>Required Columns</th>
+                                <th>Current Use</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>REROUTE</td>
+                                <td><code>CREATED_DATE</code>, <code>COUNT(*)</code></td>
+                                <td>APN monthly transaction volume charts and totals</td>
+                            </tr>
+                            <tr>
+                                <td>APN_VOLUME</td>
+                                <td><code>TXN_COUNT</code>, <code>SENDAMOUNTINUSD</code></td>
+                                <td>Reroute transaction and USD impact metrics</td>
+                            </tr>
+                            <tr>
+                                <td>SUGGESTIONS</td>
+                                <td><code>priority</code>, <code>suggestion</code></td>
+                                <td>Executive suggestions list on the Overview tab</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card guide-section" data-collapsible>
                     <h3>CONFIG Sheet</h3>
                     <table class="guide-table">
                         <thead>
@@ -745,7 +828,7 @@
                     </table>
                 </div>
 
-                <div class="card guide-section">
+                <div class="card guide-section" data-collapsible>
                     <h3>Export Notes</h3>
                     <ul class="guide-list">
                         <li>PNG captures visible chart or table content with html2canvas.</li>

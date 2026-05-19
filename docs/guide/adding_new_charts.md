@@ -1,6 +1,6 @@
 # Adding New Charts And Tables
 
-This guide reflects the current dashboard structure as of `2026-05-06`.
+This guide reflects the live legacy dashboard structure as of `2026-05-18`.
 
 ## Column Access
 
@@ -12,9 +12,9 @@ The dashboard now normalizes column names before matching them. When adding char
 
 This keeps new visualizations compatible with inconsistent Excel column naming.
 
-## Current Analytics Layout
+## Current Incident Workspace Layout
 
-The `Analytics` tab currently contains 22 chart canvases:
+The `Incident` workspace currently contains the live incident chart suite:
 
 ```text
 c1   Monthly Incident Trend
@@ -51,13 +51,13 @@ To add a new chart and keep it aligned with the app:
 2. Add a chart renderer in `js/charts.js`.
 3. Add the canvas id to `APP.exportOrder` in `js/charts.js`.
 4. Call the renderer inside `APP.draw()`.
-5. Add a matching table entry in `APP.getGraphTables()` if the chart should appear in the `Analytics` tab table mode and global exports.
+5. Add a matching table entry in `APP.getGraphTables()` if the chart should appear in the Incident workspace table mode and global exports.
 
-For ad hoc analysis, note that the dashboard now also includes a pivot-style builder in the `Pivot` tab and graph-data tables in `Analytics` table mode. Use a fixed built-in chart only when the visualization needs to be part of the permanent product experience.
+For ad hoc analysis, note that the dashboard now also includes a pivot-style builder inside the Incident workspace, plus graph-data tables in the same workspace table mode. Use a fixed built-in chart only when the visualization needs to be part of the permanent product experience.
 
 ## Step 1: Add The Canvas
 
-Add a card in the `Analytics` section of `index.html`.
+Add a card in the Incident chart section of `index.html`.
 
 Standard card:
 
@@ -141,7 +141,7 @@ APP.draw = () => {
 
 ## Step 5: Add A Matching Table
 
-If the chart should appear in Analytics table mode and global table exports, add a table object inside `APP.getGraphTables()`.
+If the chart should appear in Incident workspace table mode and global table exports, add a table object inside `APP.getGraphTables()`.
 
 Simple mapped table:
 
@@ -196,7 +196,7 @@ That pattern keeps filtered charts, tables, and exports consistent.
 
 ## Chart Label Toggle
 
-The analytics page includes a `Show counts on charts` checkbox. New charts automatically participate in this behavior because labels are drawn by the shared Chart.js plugin registered at the top of `js/charts.js`.
+The Incident workspace includes a `Show counts on charts` checkbox. New charts automatically participate in this behavior because labels are drawn by the shared Chart.js plugin registered at the top of `js/charts.js`.
 
 Keep in mind:
 

@@ -201,6 +201,11 @@ window.ConfigService = (() => {
         "version": "1.0.0",
         "profiles": [
             {
+                "id": "base-profile",
+                "title": "Base Profile",
+                "itemIds": ["overview-kpis", "overview-priority", "overview-impact", "overview-builder", "c1", "c2", "rc1", "rc10", "incident-register", "rejection-register"]
+            },
+            {
                 "id": "executive-review",
                 "title": "Executive Review",
                 "widgetIds": ["overview-summary", "overview-kpi-incidents", "overview-kpi-rejections", "executive-summary-text"]

@@ -217,3 +217,233 @@
 #rejections .rej-filter-clear:active {
     transform: scale(0.98);
 }
+
+#rejections .rejection-filter-bar {
+    margin-bottom: 18px;
+    padding: 16px 20px;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+#rejections .rejection-filter-bar__head {
+    margin-bottom: 14px;
+}
+
+#rejections .rejection-filter-bar__title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94A3B8;
+}
+
+#rejections .rejection-filter-reset {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #E2E8F0;
+    background: #F1F5F9;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+#rejections .rejection-filter-reset:hover {
+    background: #E2E8F0;
+}
+
+#rejections .rejection-accordions {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 8px;
+}
+
+#rejections .rej-acc {
+    min-width: 160px;
+    border: none;
+    border-radius: 999px;
+    background: #F1F5F9;
+    overflow: visible;
+}
+
+#rejections .rej-acc__trigger {
+    gap: 8px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: transparent;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+#rejections .rej-acc__trigger:hover,
+#rejections .rej-acc--open .rej-acc__trigger {
+    background: #2563EB;
+    color: #fff;
+}
+
+#rejections .rej-acc__title,
+#rejections .rej-acc__summary {
+    font-size: 12px;
+    font-weight: 500;
+    color: inherit;
+}
+
+#rejections .rej-acc__chevron {
+    border-right-color: currentColor;
+    border-bottom-color: currentColor;
+}
+
+#rejections .rej-acc__panel {
+    margin-top: 8px;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+#rejections .rej-acc__panel-inner {
+    padding: 10px 12px 12px;
+}
+
+#rejections .rej-filter-option {
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+
+#rejections .rej-filter-option:hover {
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+}
+
+#rejections .rej-filter-option input {
+    accent-color: #2563EB;
+}
+
+#rejections .rej-filter-option-text {
+    font-size: 12px;
+    color: #334155;
+}
+
+#rejections .rej-acc__footer {
+    border-top: 1px solid #F1F5F9;
+}
+
+#rejections .rej-filter-clear {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #E2E8F0;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748B;
+}
+
+/* Final overrides for rejection filter presentation */
+
+#rejections .rejection-filter-bar {
+    padding: 18px 20px;
+    border: 1px solid #dbe7f3;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+#rejections .rejection-filter-bar__head {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+#rejections .rejection-filter-bar__title {
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+#rejections .rejection-filter-reset {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #d3dfec;
+    background: #eef4f9;
+    color: #334155;
+    font-weight: 700;
+}
+
+#rejections .rejection-accordions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+#rejections .rej-acc {
+    min-width: 0;
+    border: 1px solid #dbe7f3;
+    border-radius: 14px;
+    background: #f8fbff;
+}
+
+#rejections .rej-acc__trigger {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: transparent;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#rejections .rej-acc__trigger:hover,
+#rejections .rej-acc--open .rej-acc__trigger {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+#rejections .rej-acc__title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#rejections .rej-acc__summary {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#rejections .rej-acc__panel {
+    margin-top: 10px;
+    border: 1px solid #dbe7f3;
+    border-radius: 14px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+#rejections .rej-filter-option {
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+#rejections .rej-filter-option:hover {
+    background: #f8fbff;
+    border-color: #dbe7f3;
+}
+
+#rejections .rej-filter-option-text {
+    font-size: 13px;
+    color: #334155;
+}
+
+#rejections .rej-filter-clear {
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    #rejections .rejection-accordions {
+        grid-template-columns: 1fr;
+    }
+}

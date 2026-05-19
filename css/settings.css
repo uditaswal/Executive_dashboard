@@ -150,3 +150,110 @@
 .settings-modal-footer button:active {
     transform: scale(0.98);
 }
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-btn {
+    padding: 6px 14px;
+    background: #fff;
+    color: #0F172A;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.settings-btn:hover {
+    background: #F1F5F9;
+    border-color: #E2E8F0;
+}
+
+.settings-modal {
+    width: min(600px, 100%);
+    max-height: min(700px, calc(100vh - 44px));
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+}
+
+.settings-modal-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.settings-modal-head h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+.settings-modal-head p,
+.settings-section h4,
+.settings-actions button,
+.file-input-label,
+.settings-modal-footer button {
+    font-family: 'Inter', sans-serif;
+}
+
+.settings-modal-head p {
+    color: #64748B;
+    font-size: 13px;
+}
+
+.settings-modal-content {
+    padding: 16px 20px;
+    gap: 16px;
+}
+
+.settings-section {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.settings-section h4 {
+    margin: 0 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.settings-actions button,
+.file-input-label {
+    padding: 9px 12px;
+    background: #fff;
+    color: #0F172A;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.settings-actions button:hover,
+.file-input-label:hover {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+}
+
+.settings-modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #E2E8F0;
+}
+
+.settings-modal-footer button {
+    padding: 8px 14px;
+    background: #0F172A;
+    color: #fff;
+    border: 1px solid #0F172A;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}

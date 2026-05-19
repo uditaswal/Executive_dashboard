@@ -16,6 +16,10 @@ APP.view = (id) => {
         .querySelectorAll(".tab")
         .forEach((t) => t.classList.remove("active"));
     document.querySelector(`[data-view="${id}"]`).classList.add("active");
+    if (window.location.hash !== `#${id}`) {
+        history.replaceState(null, "", `#${id}`);
+    }
+    window.scrollTo(0, 0);
 
     if (id === "analytics" && APP.DATA.length) {
         setTimeout(APP.draw, 0);

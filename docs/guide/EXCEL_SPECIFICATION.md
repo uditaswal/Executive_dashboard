@@ -2,33 +2,34 @@
 
 ## Workbook Overview
 
-The dashboard currently reads up to five workbook sheets:
+The dashboard currently reads up to six workbook sheets:
 
 ```text
-DATA         Required
-CONFIG       Optional
-SUGGESTIONS  Optional
-REROUTE      Optional
-APN_VOLUME   Optional
+DATA            Required
+REJECTIONDATA   Optional but expected for rejection analytics
+CONFIG          Optional
+SUGGESTIONS     Optional
+REROUTE         Optional
+APN_VOLUME      Optional
 ```
 
 Notes:
 
 - `DATA` is the primary incident sheet.
 - If `DATA` is missing, the first worksheet is used as the incident dataset.
+- Rejection sheet aliases accepted today: `REJECTIONDATA`, `Rejection Data`, `RejectionData`, `PAYOUT_DATA`, and `PayoutData`.
 - `CONFIG` and `Config` are both accepted.
-- `REROUTE` and `APN_VOLUME` may be matched by required columns even if sheet names differ.
 - Sheet names are normalized before comparison, so minor casing, spacing, and punctuation differences are tolerated.
 
 ## Normalized Matching
 
-The dashboard now normalizes both sheet names and column names before checking them.
+The dashboard normalizes both sheet names and column names before checking them.
 
 Normalization currently:
 
 - trims whitespace
 - removes Excel `_x000d_` artifacts
-- lowercases text
+- lowercases text for matching
 - removes spaces and punctuation for matching
 
 Practical effect:
@@ -92,7 +93,7 @@ The app supports multiple naming styles for ownership and RCA logic:
 
 Use consistent values so filters and grouping remain clean:
 
-- `Month`: `Jan` to `Dec`
+- `Month`: `Jan` to `Dec`, or a month with year such as `Jan-26` or `Jan 2026`
 - `Status`: values such as `Open`, `Closed`, `Resolved`, `Monitoring`
 - `PRIORITY`: `1`, `2`, `3`, `4`
 - `Impact type`: keep naming consistent, especially if using `Major`
@@ -148,7 +149,57 @@ Rows are grouped by `Partner` and summarized with:
 
 The UI shows the top five vendor partners.
 
+## REJECTIONDATA Sheet
+
+Purpose: rejection analytics, rejection filters, rejection charts, and rejection register rows.
+
+### Common Columns Used By The Current UI
+
+| Column Name                | Usage                                  |
+| -------------------------- | -------------------------------------- |
+| `MONTH`                    | Filters and month-based charts         |
+| `PARTNERNAME`              | Filters and rejection partner charts   |
+| `RECEIVECOUNTRYCODE`       | Filters and geography charts           |
+| `SENDCOUNTRYCODE`          | Supplemental geography filter context  |
+| `DELIVERYSERVICE`          | Filters and delivery-service charts    |
+| `CHANNEL`                  | Filters and channel charts             |
+| `SENDINGCHANNEL`           | Supplemental sending-channel grouping  |
+| `SUBSTATE`                 | Filters and status charts              |
+| `PARTNER_REJECTREASON`     | Reject-reason breakdowns               |
+| `APN_REJECTREASON`         | Supplemental reject-reason analysis    |
+| `BANKNAME`                 | Bank-level grouping when present       |
+| `Wallet Name/Specific Bank`| Wallet/bank grouping fallback          |
+
+### Recommended Rejection Values
+
+- `MONTH`: month labels such as `Jan`, `Jan-26`, or `Jan 2026`
+- `DELIVERYSERVICE`: `BANK`, `CASH_PICKUP`, `CARD`, `WALLET`
+- `CHANNEL`: uppercase operational channel names such as `API`, `MOBILE`, `BRANCH`, `WEBMDC`
+- `SUBSTATE`: normalized values such as `Rejected`, `Pending`, `Completed`
+
 ## REROUTE Sheet
+
+Purpose: APN monthly transaction volume chart and table.
+
+### Required Columns
+
+```text
+CREATED_DATE
+COUNT(*)
+```
+
+Expected format:
+
+- `CREATED_DATE`: month label such as `Jan-26`
+- `COUNT(*)`: numeric transaction volume
+
+Current dashboard calculations from this sheet:
+
+- bar chart of monthly APN volume
+- average monthly volume metric for internal use
+- total APN volume metric for internal use
+
+## APN_VOLUME Sheet
 
 Purpose: reroute metrics shown in overview insights and supporting exports.
 
@@ -174,28 +225,6 @@ Current dashboard calculations from this sheet:
 
 - total rerouted transactions
 - total USD value rerouted or saved
-
-## APN_VOLUME Sheet
-
-Purpose: APN monthly transaction volume chart and table.
-
-### Required Columns
-
-```text
-CREATED_DATE
-COUNT(*)
-```
-
-Expected format:
-
-- `CREATED_DATE`: month label such as `Jan-26`
-- `COUNT(*)`: numeric transaction volume
-
-Current dashboard calculations from this sheet:
-
-- bar chart of monthly APN volume
-- average monthly volume metric for internal use
-- total APN volume metric for internal use
 
 ## SUGGESTIONS Sheet
 
@@ -243,7 +272,7 @@ Recommended checks before upload:
 - keep column names exact where possible
 - avoid leading or trailing spaces in headers and values
 - keep numeric columns numeric
-- keep month values consistent with `Jan` to `Dec` for the `DATA` sheet
+- keep month values consistent within the same business feed
 - use the same ownership/category wording throughout the workbook
 
 ## Current Dashboard Caveat

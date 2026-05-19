@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<!--
+  Dashboard Application Shell — Entry point HTML providing structure for all dashboard views, modals, and filter controls.
+  Loads external scripts (Chart.js, SheetJS, PptxGenJS, html2canvas) and CSS stylesheets; orchestrated by app.js.
+  Contains semantic markup for accessibility, data binding hooks (id, class selectors), and responsive layout grid.
+-->
+
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width,initial-scale=1'>
+    <title>Payments Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="assets/wu-favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel='stylesheet' href='css/style.css'>
+    <link rel='stylesheet' href='css/settings.css'>
+    <link rel='stylesheet' href='css/rejections.css'>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        page: "#F5F6FA",
+                        surface: "#FFFFFF",
+                        sidebar: "#0F172A",
+                        accent: {
+                            blue: "#2563EB",
+                            red: "#DC2626",
+                            green: "#16A34A",
+                            orange: "#EA580C",
+                            purple: "#7C3AED"
+                        },
+                        text: {
+                            primary: "#0F172A",
+                            muted: "#64748B"
+                        },
+                        border: "#E2E8F0",
+                        slate: {
+                            950: "#020617"
+                        }
+                    },
+                    boxShadow: {
+                        panel: "0 10px 30px rgba(15, 23, 42, 0.06)",
+                        float: "0 18px 50px rgba(15, 23, 42, 0.10)"
+                    }
+                }
+            }
+        };
+    </script>
+    <script src='https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/pptxgenjs/dist/pptxgen.bundle.js'></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <header class='top'>
+        <div id='title'>Payments Dashboard</div>
+        <div id='count'>0 records</div>
+    </header>
+    <button id="btnOpenSidebar" class="sidebar-toggle sidebar-toggle--floating hide" type="button"
+        aria-controls="filterSidebar" aria-expanded="false">Filters</button>
+    <div class='layout'>
+        <aside id="filterSidebar" class='side'>
+            <div class="filter-panel-title">
+                <span>Filters</span>
+                <div class="filter-panel-meta">
+                    <small id="filterRecordHint">Live view</small>
+                    <button id="btnCloseSidebar" class="sidebar-toggle sidebar-toggle--inline" type="button"
+                        aria-controls="filterSidebar" aria-expanded="true">Close</button>
+                </div>
+            </div>
+
+            <label class="filter-field upload-field">
+                <span>Workbook</span>
+                <input type='file' id='fileInput' accept='.xlsx,.xls,.csv'>
+            </label>
+
+            <label class="filter-field">
+                <span>Month</span>
+                <select id='fMonth' multiple>
+                    <option value=''>All Month</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Partner</span>
+                <select id='fPartner' multiple>
+                    <option value=''>All Partner</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Status</span>
+                <select id='fStatus' multiple>
+                    <option value=''>All Status</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Priority</span>
+                <select id='fPriority' multiple>
+                    <option value=''>All Priority</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Region</span>
+                <select id='fRegion' multiple>
+                    <option value=''>All Region</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Receive Country</span>
+                <select id='fCountry' multiple>
+                    <option value=''>All Country</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Issue Owner</span>
+                <select id='fOwner' multiple>
+                    <option value=''>All Owner</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Category</span>
+                <select id='fCategory' multiple>
+                    <option value=''>All Category</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Impact Type</span>
+                <select id='fImpact' multiple>
+                    <option value=''>All Impact</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Search Incident</span>
+                <input id='search' placeholder='Search all Incidents'>
+            </label>
+
+            <div class="filter-actions">
+                <button id='btnLoad'>Auto Load</button>
+                <button id='btnApply'>Apply</button>
+                <button id='btnReset'>Reset</button>
+            </div>
+        </aside>
+        <main class='main'>
+            <div class='main-head'>
+                <div class='tabs'>
+                    <button class='tab active' data-view='overview'>Overview</button>
+                    <button class='tab' data-view='analytics'>Incident</button>
+                    <button class='tab' data-view='rejections'>Rejections</button>
+                    <button class='tab guide-tab' data-view='guide'>Guide</button>
+                </div>
+                <div class="header-actions">
+                    <button id="btnSettings" class="settings-btn" type="button" title="Settings">⚙️</button>
+                    <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
+                </div>
+            </div>
+            <section id='overview' class='view'>
+                <div id="overviewKpiSection" class="card section-box" data-collapsible>
+                    <h3>KEY PERFORMANCE INDICATORS</h3>
+                    <div id="kpis" class="grid"></div>
+                </div>
+                <br>
+
+                <div id="overviewPrioritySection" class="card section-box" data-collapsible>
+                    <h3>Priority Breakdown</h3>
+                    <div id="priorityBreakdown" class="priority-grid"></div>
+                </div>
+                <br>
+
+                <!-- <div id="overviewTopStatsSection" class="card section-box">
+                    <h3>Top Statistics</h3>
+                    <div id="topStatsCards" class="stats-grid"></div>
+                </div>
+                <br>
+ -->
+                <div id="overviewImpactSection" class="card section-box" data-collapsible>
+                    <h3>Resolution & Impact Breakdown</h3>
+                    <div class="secondary-breakdowns">
+                        <div class="breakdown-panel">
+                            <h4>Time Taken to Resolve</h4>
+                            <div id="resolutionBreakdown" class="mini-breakdown"></div>
+                        </div>
+                        <div class="breakdown-panel">
+                            <h4>Impact Breakdown</h4>
+                            <div id="impactBreakdown" class="mini-breakdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="overviewBuilderSection" class="card section-box overview-builder" data-collapsible>
+                    <div class="overview-builder-head">
+                        <h3>Operational Insights</h3>
+                        <div class="overview-subtabs" role="tablist" aria-label="Executive overview tables">
+                            <button class="overview-subtab active" type="button"
+                                data-overview-tab="summary">Summary</button>
+                            <button class="overview-subtab" type="button"
+                                data-overview-tab="insights">Insights</button>
+                            <button class="overview-subtab" type="button"
+                                data-overview-tab="suggestions">Suggestions</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="metrics"><span
+                                    id="overviewPeriodTabLabel">Period</span> View</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="platform">WU Platform
+                                RCA</button>
+                            <button class="overview-subtab" type="button" data-overview-tab="vendor">Vendor
+                                Issues</button>
+                        </div>
+                    </div>
+                    <div id="overviewTabContent"></div>
+                </div>
+                <br>
+            </section>
+            <section id='analytics' class='view hide'>
+                <div class="card analytics-view-mode" data-collapsible>
+                    <div class="analytics-view-mode__head">
+                        <div>
+                            <h3>Incident Workspace</h3>
+                            <p>Switch between incident charts, registers, graph-data tables, and pivot output without leaving this tab.</p>
+                        </div>
+                        <div class="analytics-view-mode__actions" role="tablist" aria-label="Analytics display mode">
+                            <button type="button" class="analytics-mode-btn active" data-analytics-mode="charts">Charts</button>
+                            <button type="button" class="analytics-mode-btn" data-analytics-mode="tables">Tables</button>
+                            <button type="button" class="analytics-mode-btn" data-analytics-mode="pivot">Pivot</button>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div class="card export-panel" data-collapsible>
+                    <div class="export-head">
+                        <div>
+                            <h3>Chart Options</h3>
+                            <p>These charts stay synchronized with the current filtered view.</p>
+                        </div>
+                        <div class="export-actions">
+                            <button id="btnOpenIncidentFilters" type="button">Show filters</button>
+                            <label class="chart-options-toggle">
+                                <input type="checkbox" id="toggleChartLabels">
+                                <span>Show counts on charts</span>
+                            </label>
+                            <label class="chart-options-select">
+                                <span>Show top</span>
+                                <select id="analyticsTopN">
+                                    <option value="">All</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div id="analyticsChartPanel" class="collapsible-panel" data-collapsible data-collapsible-title="Incident Charts">
+                    <div class='charts'>
+                    <div class='card wide'><canvas id='c1'></canvas></div>
+                    <div class='card'><canvas id='c2'></canvas></div>
+                    <div class='card'><canvas id='c3'></canvas></div>
+                    </div>
+                    <br>
+                    <div class='charts'>
+                    <div class='card wide'><canvas id='c4'></canvas></div>
+                    <div class='card'><canvas id='c5'></canvas></div>
+                    <div class='card'><canvas id='c6'></canvas></div>
+                    <div class='card wide'><canvas id='c7'></canvas></div>
+                    <div class='card wide'><canvas id='c10'></canvas></div>
+                    <div class='card'><canvas id='c12'></canvas></div>
+                    <div class='card'><canvas id='c13'></canvas></div>
+                    <div class='card wide'><canvas id='c14'></canvas></div>
+                    <div class='card wide'><canvas id='c15'></canvas></div>
+                    <div class='card'><canvas id='c16'></canvas></div>
+                    <div class='card'><canvas id='c17'></canvas></div>
+                    <div class='card'><canvas id='c18'></canvas></div>
+                    <div class='card'><canvas id='c19'></canvas></div>
+                    <div class='card wide'><canvas id='c20'></canvas></div>
+                    <div class='card'><canvas id='c21'></canvas></div>
+                    <div class='card'><canvas id='c22'></canvas></div>
+                    <div class='card wide'><canvas id='c23'></canvas></div>
+                    <div class='card wide'><canvas id='c24'></canvas></div>
+                    </div>
+                    <div class="card chart-card tall">
+                        <canvas id="c11"></canvas>
+                    </div>
+                </div>
+                <div id="analyticsTablePanel" class="hide">
+                    <div class="card section-box" data-collapsible>
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Register</h3>
+                                <p>Filtered operational incidents live directly in the Incident workspace.</p>
+                            </div>
+                        </div>
+                        <div class="incident-toolbar">
+                            <div>
+                                <h3>Incident Register</h3>
+                                <p>Filtered operational incident.</p>
+                            </div>
+                            <div class="incident-stats">
+                                <span id="incidentShown">0 shown</span>
+                                <span id="incidentOpen">0 open</span>
+                                <span id="incidentMajor">0 major</span>
+                            </div>
+                        </div>
+                        <div class="card column-panel" data-collapsible>
+                            <div class="column-panel-head">
+                                <div>
+                                    <h3>Incident Columns</h3>
+                                    <p>Select columns from the uploaded Excel data to show in the register.</p>
+                                </div>
+                                <div class="column-actions">
+                                    <button id="btnDefaultColumns">Default</button>
+                                    <button id="btnAllColumns">All</button>
+                                    <button id="btnClearColumns">Clear</button>
+                                </div>
+                            </div>
+                            <div id="incidentColumnList" class="column-list"></div>
+                        </div>
+                        <br>
+                        <div class="incident-table-wrap">
+                            <table class="incident-table">
+                                <thead id="incidentHead"></thead>
+                                <tbody id='incidentBody'></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card section-box" data-collapsible>
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Tables</h3>
+                                <p>Tabular export of the filtered incident analytics.</p>
+                            </div>
+                        </div>
+                        <div id="analyticsIncidentTables" class="table-grid"></div>
+                    </div>
+                    <br>
+                    <div class="card section-box" data-collapsible>
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Rejection Tables</h3>
+                                <p>Tabular export of the filtered rejection analytics.</p>
+                            </div>
+                        </div>
+                        <div id="analyticsRejectionTables" class="table-grid"></div>
+                    </div>
+                </div>
+                <div id="analyticsPivotPanel" class="hide">
+                    <div class="card section-box" data-collapsible>
+                        <div class="table-section-head">
+                            <div>
+                                <h3>Incident Pivot Builder</h3>
+                                <p>Generate pivot-style incident charts and tables from the current filtered incident dataset.</p>
+                            </div>
+                        </div>
+                        <div id="incidentPivotBuilder" class="pivot-builder"></div>
+                        <div class="card chart-card pivot-chart-card">
+                            <canvas id="incidentPivotChart"></canvas>
+                        </div>
+                        <br>
+                        <div id="incidentPivotTableWrap"></div>
+                    </div>
+                </div>
+            </section>
+            <section id='pivot' class='view hide'>
+                <div class="card section-box hide">
+                    <div class="table-section-head">
+                        <div>
+                            <h3>Pivot Builder</h3>
+                            <p>Generate charts and tables on the fly from the currently filtered Excel data, similar to
+                                a pivot chart.</p>
+                        </div>
+                    </div>
+                    <div id="pivotDatasetToggle" class="pivot-dataset-toggle"></div>
+                    <div id="pivotBuilder" class="pivot-builder"></div>
+                    <div class="card pivot-save-panel" id="pivotSavePanel">
+                        <div class="pivot-save-panel__row">
+                            <button type="button" id="btnSavePivotToConfig" class="pivot-save-btn">Save chart to
+                                dashboard config</button>
+                            <button type="button" id="btnPivotSaveInfo" class="pivot-save-info" aria-label="About saved pivot charts"
+                                title="Saved pivot charts are added to the dashboard config in localStorage and can be exported or downloaded later.">?</button>
+                            <span id="pivotSaveStatus" class="pivot-save-status">Unique pivot charts only.</span>
+                        </div>
+                        <div class="pivot-saved-wrap">
+                            <h4 class="pivot-saved-heading">Saved from pivot builder</h4>
+                            <ul id="pivotSavedWidgetsList" class="pivot-saved-list"></ul>
+                        </div>
+                    </div>
+                    <div class="card chart-card pivot-chart-card">
+                        <canvas id="pivotChart"></canvas>
+                    </div>
+                    <br>
+                    <div id="pivotTableWrap"></div>
+                </div>
+            </section>
+            <section id='incidents' class='view hide'></section>
+            <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
+                <div class="rejection-filter-bar card" data-collapsible>
+                    <div class="rejection-filter-bar__head">
+                        <h4 class="rejection-filter-bar__title">Rejection filters</h4>
+                        <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset
+                            all</button>
+                    </div>
+                    <div id="rejectionAccordionMount" class="rejection-accordions" aria-label="Rejection filters"></div>
+                </div>
+                <div class="rejection-filter-sr" aria-hidden="true">
+                    <select id='fRejMonth' multiple>
+                        <option value=''>All Months</option>
+                    </select>
+                    <select id='fRejPartner' multiple>
+                        <option value=''>All Partners</option>
+                    </select>
+                    <select id='fRejDelivery' multiple>
+                        <option value=''>All Delivery Services</option>
+                    </select>
+                    <select id='fRejBankName' multiple>
+                        <option value=''>All Bank Names</option>
+                    </select>
+                    <select id='fRejBankCode' multiple>
+                        <option value=''>All Bank Codes</option>
+                    </select>
+                    <select id='fRejCountry' multiple>
+                        <option value=''>All Countries</option>
+                    </select>
+                    <select id='fRejStatus' multiple>
+                        <option value=''>All Statuses</option>
+                    </select>
+                </div>
+
+                <div class="card section-box">
+                    <h3>Rejection KPIs</h3>
+                    <div id="rejectionKpis" class="grid"></div>
+                </div>
+
+                <div class="card export-panel" data-collapsible>
+                    <div class="export-head">
+                        <div>
+                            <h3>Rejection Chart Options</h3>
+                            <p>These charts stay synchronized with the current filtered rejection view.</p>
+                        </div>
+                        <div class="export-actions">
+                            <button id="btnOpenRejectionFilters" type="button">Show filters</button>
+                            <label class="chart-options-select">
+                                <span>Show top</span>
+                                <select id="rejectionsTopN">
+                                    <option value="">All</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div id="rejectionChartsPanel" class="collapsible-panel" data-collapsible data-collapsible-title="Rejection Charts">
+                <div class="charts">
+                    <div class="card wide"><canvas id="rc1"></canvas></div>
+                    <div class="card"><canvas id="rc4"></canvas></div>
+                    <div class="card"><canvas id="rc5"></canvas></div>
+                </div>
+                <br>
+                <div class="charts">
+                    <div class="card wide"><canvas id="rc2"></canvas></div>
+                    <div class="card"><canvas id="rc3"></canvas></div>
+                    <div class="card"><canvas id="rc6"></canvas></div>
+                    <div class="card"><canvas id="rc7"></canvas></div>
+                    <div class="card"><canvas id="rc8"></canvas></div>
+                    <div class="card"><canvas id="rc9"></canvas></div>
+                    <div class="card wide"><canvas id="rc10"></canvas></div>
+                    <div class="card wide"><canvas id="rc11"></canvas></div>
+                    <div class="card wide"><canvas id="rc12"></canvas></div>
+                    <div class="card wide"><canvas id="rc13"></canvas></div>
+                    <div class="card wide"><canvas id="rc14"></canvas></div>
+                </div>
+                </div>
+                <br>
+                <div class="card section-box" data-collapsible>
+                    <div class="table-section-head">
+                        <div>
+                            <h3>Rejection Pivot Builder</h3>
+                            <p>Generate pivot-style rejection charts and tables from the current filtered rejection dataset.</p>
+                        </div>
+                    </div>
+                    <div id="rejectionPivotBuilder" class="pivot-builder"></div>
+                    <div class="card chart-card pivot-chart-card">
+                        <canvas id="rejectionPivotChart"></canvas>
+                    </div>
+                    <br>
+                    <div id="rejectionPivotTableWrap"></div>
+                </div>
+                <br>
+                <div class="card column-panel" data-collapsible>
+                    <div class="column-panel-head">
+                        <div>
+                            <h3>Rejection Register</h3>
+                            <p>Review the filtered rejection rows with selected columns and paging controls.</p>
+                        </div>
+                        <div class="incident-stats">
+                            <span id="rejectionShown">0 shown</span>
+                            <span id="rejectionFilteredCount">0 filtered</span>
+                            <span id="rejectionPageInfo">Page 1 of 1</span>
+                        </div>
+                    </div>
+                    <div class="column-actions">
+                        <button id="btnDefaultRejectionColumns">Default</button>
+                        <button id="btnAllRejectionColumns">All</button>
+                        <button id="btnClearRejectionColumns">Clear</button>
+                    </div>
+                    <br>
+                    <div id="rejectionColumnList" class="column-list"></div>
+                    <div class="rejection-table-toolbar">
+                        <label class="chart-options-select">
+                            <span>Rows per page</span>
+                            <select id="rejectionPageSize">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="250">250</option>
+                            </select>
+                        </label>
+                        <div class="rejection-page-actions">
+                            <button id="btnRejectionPrevPage" type="button">Prev</button>
+                            <button id="btnRejectionNextPage" type="button">Next</button>
+                        </div>
+                    </div>
+                    <div class="incident-table-wrap">
+                        <table class="incident-table">
+                            <thead id="rejectionHead"></thead>
+                            <tbody id="rejectionBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            <section id='guide' class='view hide'>
+                <div class="card guide-section" data-collapsible>
+                    <h3>Workbook Overview</h3>
+                    <p>Supported sheets: <strong>DATA</strong>, <strong>REJECTIONDATA</strong>, <strong>CONFIG</strong>,
+                        <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. Add a
+                        workbook from the <code>data/</code> folder with Auto Load or upload it manually from the
+                        sidebar.</p>
+                    <p>Sheet-name casing and spacing are tolerated, including aliases such as <code>RejectionData</code>
+                        and <code>PayoutData</code>.</p>
+                </div>
+                <div class="card guide-section" data-collapsible>
+                    <h3>DATA Sheet Reference</h3>
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Column Name</th>
+                                <th>Required</th>
+                                <th>Format</th>
+                                <th>Example</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Incident</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>INC5367010</td>
+                                <td>Unique incident ID</td>
+                            </tr>
+                            <tr>
+                                <td>Month</td>
+                                <td>Yes</td>
+                                <td>Jan-Dec</td>
+                                <td>Mar</td>
+                                <td>Year suffix stripped automatically</td>
+                            </tr>
+                            <tr>
+                                <td>Partner</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>GCASH</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Status</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>Resolved</td>
+                                <td>Normalized to title case</td>
+                            </tr>
+                            <tr>
+                                <td>PRIORITY</td>
+                                <td>Yes</td>
+                                <td>1-4</td>
+                                <td>2</td>
+                                <td>Accepts P1, Priority 1, p1</td>
+                            </tr>
+                            <tr>
+                                <td>Region</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>LACA</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Receive Country</td>
+                                <td>Recommended</td>
+                                <td>2-letter code</td>
+                                <td>PH</td>
+                                <td>Normalized to upper case</td>
+                            </tr>
+                            <tr>
+                                <td>Issue Category</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>Partner Side</td>
+                                <td>Drives RCA tables</td>
+                            </tr>
+                            <tr>
+                                <td>Delayed Transaction</td>
+                                <td>Recommended</td>
+                                <td>Integer</td>
+                                <td>12345</td>
+                                <td>Used in KPI and loss charts</td>
+                            </tr>
+                            <tr>
+                                <td>Delivery Breached</td>
+                                <td>Recommended</td>
+                                <td>Integer</td>
+                                <td>8900</td>
+                                <td>Used in SLA charts</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card guide-section" data-collapsible>
+                    <h3>REJECTIONDATA Sheet Reference</h3>
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Column Name</th>
+                                <th>Required</th>
+                                <th>Format</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>MONTH</td>
+                                <td>Yes</td>
+                                <td>Jan-26 or Jan</td>
+                                <td>Jan-26</td>
+                            </tr>
+                            <tr>
+                                <td>PARTNERNAME</td>
+                                <td>Yes</td>
+                                <td>Text</td>
+                                <td>MASTERCARD</td>
+                            </tr>
+                            <tr>
+                                <td>RECEIVECOUNTRYCODE</td>
+                                <td>Yes</td>
+                                <td>2-letter</td>
+                                <td>PH</td>
+                            </tr>
+                            <tr>
+                                <td>SENDCOUNTRYCODE</td>
+                                <td>Recommended</td>
+                                <td>2-letter</td>
+                                <td>US</td>
+                            </tr>
+                            <tr>
+                                <td>DELIVERYSERVICE</td>
+                                <td>Recommended</td>
+                                <td>BANK / CASH_PICKUP / CARD</td>
+                                <td>BANK</td>
+                            </tr>
+                            <tr>
+                                <td>CHANNEL</td>
+                                <td>Recommended</td>
+                                <td>API / MOBILE / BRANCH / WEBMDC</td>
+                                <td>MOBILE</td>
+                            </tr>
+                            <tr>
+                                <td>SENDINGCHANNEL</td>
+                                <td>Optional</td>
+                                <td>ONLINE / DIGITAL / AGENT</td>
+                                <td>ONLINE</td>
+                            </tr>
+                            <tr>
+                                <td>SUBSTATE</td>
+                                <td>Yes</td>
+                                <td>REJECTED / PENDING / COMPLETED</td>
+                                <td>REJECTED</td>
+                            </tr>
+                            <tr>
+                                <td>PARTNER_REJECTREASON</td>
+                                <td>Recommended</td>
+                                <td>Text</td>
+                                <td>LIMIT_EXCEEDED</td>
+                            </tr>
+                            <tr>
+                                <td>APN_REJECTREASON</td>
+                                <td>Optional</td>
+                                <td>Text</td>
+                                <td>AML_CHECK</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card guide-section" data-collapsible>
+                    <h3>Auto-Normalization Reference</h3>
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Raw value in Excel</th>
+                                <th>After normalization</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Month</td>
+                                <td><code>january</code></td>
+                                <td><code>Jan</code></td>
+                            </tr>
+                            <tr>
+                                <td>Month</td>
+                                <td><code>Jan-26</code></td>
+                                <td><code>Jan</code></td>
+                            </tr>
+                            <tr>
+                                <td>Partner</td>
+                                <td><code>gcash</code></td>
+                                <td><code>GCASH</code></td>
+                            </tr>
+                            <tr>
+                                <td>PRIORITY</td>
+                                <td><code>P1</code></td>
+                                <td><code>1</code></td>
+                            </tr>
+                            <tr>
+                                <td>DELIVERYSERVICE</td>
+                                <td><code>Cash Pickup</code></td>
+                                <td><code>CASH_PICKUP</code></td>
+                            </tr>
+                            <tr>
+                                <td>Receive Country</td>
+                                <td><code>ph</code></td>
+                                <td><code>PH</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card guide-section" data-collapsible>
+                    <h3>Common Mistakes</h3>
+                    <ul class="guide-list">
+                        <li>Mixing <code>WU Issue</code> and <code>wu issue</code> in the same column is fixed by
+                            normalization.</li>
+                        <li>Leaving month as <code>Jan-26</code> or <code>01/2026</code> is fixed by normalization.</li>
+                        <li>Numeric priorities stored as text like <code>P2</code> are fixed by normalization.</li>
+                        <li>Split delivery service values that are not in the synonym map still need to be consistent in
+                            the source.</li>
+                        <li>Duplicate sheet names with different casing use the first matching sheet.</li>
+                    </ul>
+                </div>
+                <div class="card guide-section" data-collapsible>
+                    <h3>CONFIG Sheet</h3>
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Example Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>title</td>
+                                <td>Payments Dashboard</td>
+                            </tr>
+                            <tr>
+                                <td>theme_color</td>
+                                <td>#0f2d52</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card guide-section" data-collapsible>
+                    <h3>Export Notes</h3>
+                    <ul class="guide-list">
+                        <li>PNG captures visible chart or table content with html2canvas.</li>
+                        <li>PPT uses PptxGenJS and adds each selected item as a slide.</li>
+                        <li>Excel writes each selected chart or table to its own worksheet.</li>
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    <div id="settingsModal" class="modal-backdrop hide" role="dialog" aria-modal="true"
+        aria-labelledby="settingsModalTitle">
+        <div class="settings-modal">
+            <div class="settings-modal-head">
+                <div>
+                    <h3 id="settingsModalTitle">Dashboard Settings</h3>
+                    <p>Manage your dashboard configuration and export profiles.</p>
+                </div>
+                <button id="btnCloseSettingsModal" class="icon-btn" type="button" aria-label="Close settings">X</button>
+            </div>
+            <div class="settings-modal-content">
+                <div class="settings-section">
+                    <h4>Dashboard Configuration</h4>
+                    <div class="settings-actions">
+                        <button id="btnDownloadDashboardConfig" type="button">Download Config</button>
+                        <label id="labelImportDashboardConfig" class="file-input-label">
+                            <span>Import Config</span>
+                            <input type="file" id="inputImportDashboardConfig" accept=".json" style="display: none;">
+                        </label>
+                        <button id="btnResetDashboardConfig" type="button">Reset to Default</button>
+                        <button id="btnDownloadNormalizedWorkbook" type="button">Download Normalized Data</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Export Profiles</h4>
+                    <div class="settings-actions">
+                        <button id="btnDownloadExportProfiles" type="button">Download Profiles</button>
+                        <label id="labelImportExportProfiles" class="file-input-label">
+                            <span>Import Profiles</span>
+                            <input type="file" id="inputImportExportProfiles" accept=".json" style="display: none;">
+                        </label>
+                        <button id="btnResetExportProfiles" type="button">Reset to Default</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-modal-footer">
+                <button id="btnCloseSettings" type="button">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="exportModal" class="modal-backdrop hide" role="dialog" aria-modal="true"
+        aria-labelledby="exportModalTitle">
+        <div class="export-modal">
+            <div class="export-modal-head">
+                <div>
+                    <h3 id="exportModalTitle">Export Dashboard</h3>
+                    <p>Choose a profile or custom checkboxes, then export to PNG, PowerPoint, or Excel.</p>
+                </div>
+                <button id="btnCloseExportModal" class="icon-btn" type="button" aria-label="Close export">X</button>
+            </div>
+            <div class="export-modal-toolbar">
+                <label class="export-toolbar-field">
+                    <span>Profile</span>
+                    <select id="exportProfileSelect" aria-label="Export profile"></select>
+                </label>
+                <label class="export-toolbar-field">
+                    <span>Saved preset</span>
+                    <select id="exportUserPresetSelect" aria-label="Saved export presets"></select>
+                </label>
+                <div class="export-toolbar-field export-preset-save">
+                    <span>New preset</span>
+                    <div class="export-preset-save-row">
+                        <input type="text" id="exportPresetNameInput" maxlength="80" placeholder="Name"
+                            aria-label="New preset name">
+                        <button id="btnSaveExportPreset" type="button">Save preset</button>
+                    </div>
+                </div>
+            </div>
+            <div class="export-modal-actions">
+                <button id="btnExportSelectAll" type="button">Select All</button>
+                <button id="btnExportClearAll" type="button">Clear</button>
+            </div>
+            <div id="globalExportList" class="global-export-list"></div>
+            <div class="export-modal-foot">
+                <button id="btnExportPngGlobal" type="button">PNG</button>
+                <button id="btnExportPptGlobal" type="button">PPT</button>
+                <button id="btnExportExcelGlobal" type="button">Excel</button>
+            </div>
+        </div>
+    </div>
+    <script src='js/data.js'></script>
+    <script src='js/filters.js'></script>
+    <script src='js/rejection-filter-bar.js'></script>
+    <script src='js/charts.js'></script>
+    <script src='js/views.js'></script>
+    <script src='services/config-service.js'></script>
+    <script src='js/app.js'></script>
+    <script src='js/widget-renderer.js'></script>
+    <script src='js/tab-manager.js'></script>
+</body>
+
+</html>

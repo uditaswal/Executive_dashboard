@@ -864,7 +864,7 @@ APP.getOverviewMetrics = () => {
 };
 
 APP.getOverviewTab = () =>
-    APP.activeOverviewTab || "insights";
+    APP.activeOverviewTab || "summary";
 
 APP.setOverviewTab = (tab) => {
     APP.activeOverviewTab =
@@ -903,14 +903,60 @@ APP.renderOverviewTabs = () => {
         });
 
     const renderers = {
+        summary: APP.renderOverviewSummaryTab,
         insights: APP.renderOverviewInsights,
+        suggestions: APP.renderOverviewSuggestionsTab,
         metrics: APP.renderOverviewMetricTable,
         platform: APP.renderOverviewPlatformTable,
         vendor: APP.renderOverviewVendorTable
     };
 
     content.innerHTML =
-        (renderers[active] || renderers.insights)();
+        (renderers[active] || renderers.summary)();
+};
+
+APP.renderOverviewSummaryTab = () => {
+    const metrics =
+        APP.getOverviewMetrics();
+    const summaryLines = [
+        `${metrics.partnerSidePct} partner-side incidents in the filtered period`,
+        `Funding failures count is ${APP.formatNum(metrics.fundingCount)}, representing ${metrics.fundingPct} of incidents`,
+        `Top partners (${metrics.topPartners}) cause ${metrics.topPartnerShare}% of incidents`,
+        `Mostly impacted region is ${metrics.topRegion} with ${APP.formatNum(metrics.topRegionDelayed)} delayed transactions${metrics.topRegionBreached ? ` and ${APP.formatNum(metrics.topRegionBreached)} breached transactions` : ""}`,
+        `Repeated geographies: ${metrics.countries}`,
+        `${metrics.breachedPct} of delayed transactions breached delivery sla`,
+        `${metrics.resolvedWithinOneDayPct} issues were resolved within 1 day`,
+        `Approx ${APP.formatNum(metrics.reroute.txnCount)} transactions worth ${APP.formatNum(metrics.reroute.usd)} USD were manually rerouted to save transactions`
+    ];
+
+    return `
+<div class="summary-box">
+    <p><b>${APP.formatNum(metrics.total)}</b> incidents and <b>${APP.formatNum(APP.filteredRejections.length)}</b> rejection rows are currently in scope.</p>
+    <p>Top partners: <b>${APP.escape(metrics.topPartners)}</b>. Primary root causes: <b>${APP.escape(metrics.primaryRootCauses)}</b>.</p>
+</div>
+<ul class="overview-bullets summary-detail-list">
+    ${summaryLines.map((line) => `<li>${APP.escape(line)}</li>`).join("")}
+</ul>
+`;
+};
+
+APP.renderOverviewSuggestionsTab = () => {
+    const suggestions =
+        APP.SUGGESTIONS.length
+            ? APP.SUGGESTIONS.map((row) =>
+                APP.rowValue(row, ["Suggestion", "suggestion", "Recommendation", "recommendation"])
+            ).filter(Boolean)
+            : [
+                "Review the highest-volume partner-side incidents first.",
+                "Investigate the top rejection partner and bank combination in the current filter scope.",
+                "Use the pivot builder to compare impacted countries and issue categories before export."
+            ];
+
+    return `
+<ul class="overview-bullets">
+    ${suggestions.map((item) => `<li>${APP.escape(item)}</li>`).join("")}
+</ul>
+`;
 };
 
 APP.renderOverviewInsights = () => {
@@ -1944,38 +1990,11 @@ APP.download = (href, filename) => {
 };
 
 APP.renderSummary = APP.renderSummary || (() => {
-    const box =
-        APP.g("execSummary");
-
-    if (!box) return;
-
-    const metrics =
-        APP.getOverviewMetrics();
-    box.innerHTML = `
-<p><b>${APP.formatNum(metrics.total)}</b> incidents and <b>${APP.formatNum(APP.filteredRejections.length)}</b> rejection rows are currently in scope.</p>
-<p>Top partners: <b>${APP.escape(metrics.topPartners)}</b>. Primary root causes: <b>${APP.escape(metrics.primaryRootCauses)}</b>.</p>
-`;
+    return;
 });
 
 APP.renderSuggestions = APP.renderSuggestions || (() => {
-    const list =
-        APP.g("suggestions");
-
-    if (!list) return;
-
-    const suggestions =
-        APP.SUGGESTIONS.length
-            ? APP.SUGGESTIONS.map((row) =>
-                APP.rowValue(row, ["Suggestion", "suggestion", "Recommendation", "recommendation"])
-            ).filter(Boolean)
-            : [
-                "Review the highest-volume partner-side incidents first.",
-                "Investigate the top rejection partner and bank combination in the current filter scope.",
-                "Use the pivot builder to compare impacted countries and issue categories before export."
-            ];
-
-    list.innerHTML =
-        suggestions.map((item) => `<li>${APP.escape(item)}</li>`).join("");
+    return;
 });
 
 APP.getIncidentRegisterTable = () => {
@@ -2196,7 +2215,7 @@ APP.renderManagedTableCard = (table, tableId, titleOverride = "") => {
 <article class="data-table-card" data-table-card="${APP.escape(tableId)}">
     <div class="data-table-head">
         <div class="data-table-head-main">
-            <button type="button" class="table-controls-toggle" data-table-toggle="${APP.escape(tableId)}">${state.controlsOpen ? "Hide filters" : "Show filters"}</button>
+            <button type="button" class="table-controls-toggle" data-table-toggle="${APP.escape(tableId)}">${state.controlsOpen ? "Hide controls" : "Table controls"}</button>
             <h4>${APP.escape(titleOverride || table.title)}</h4>
         </div>
         <span>${managed.rows.length} rows</span>
@@ -2330,21 +2349,305 @@ APP.handleTableExcludeToggle = (event) => {
 
 APP.getOverviewExportSections = () => [
     {
-        id: "overview-summary",
-        title: "Overview Summary",
-        elementId: "overviewSummarySection"
+        id: "overview-kpis",
+        title: "Key Performance Indicators",
+        elementId: "overviewKpiSection"
+    },
+    {
+        id: "overview-priority",
+        title: "Priority Breakdown",
+        elementId: "overviewPrioritySection"
+    },
+    {
+        id: "overview-impact",
+        title: "Resolution and Impact Breakdown",
+        elementId: "overviewImpactSection"
     },
     {
         id: "overview-builder",
         title: "Operational Insights",
         elementId: "overviewBuilderSection"
-    },
-    {
-        id: "overview-suggestions",
-        title: "Suggestions",
-        elementId: "overviewSuggestionsSection"
     }
 ];
+
+APP.exportPresetStorageKey = APP.exportPresetStorageKey || "dashboardExportPresetsV1";
+APP.exportProfileStorageKey = APP.exportProfileStorageKey || "dashboardExportLastProfileV1";
+APP.exportPresetSelectionKey = APP.exportPresetSelectionKey || "dashboardExportLastPresetV1";
+
+APP.getDefaultExportProfiles = () => [
+    {
+        id: "base-profile",
+        title: "Base Profile",
+        itemIds: [
+            "overview-kpis",
+            "overview-priority",
+            "overview-impact",
+            "overview-builder",
+            "c1",
+            "c2",
+            "rc1",
+            "rc10",
+            "incident-register",
+            "rejection-register"
+        ]
+    }
+];
+
+APP.getDefaultExportPresets = () => [
+    {
+        id: "base-preset",
+        title: "Base Preset",
+        itemIds: [
+            "overview-kpis",
+            "overview-priority",
+            "overview-impact",
+            "overview-builder",
+            "c1",
+            "rc1",
+            "incident-register",
+            "rejection-register"
+        ]
+    }
+];
+
+APP.getStoredExportPresets = () => {
+    try {
+        const saved =
+            JSON.parse(localStorage.getItem(APP.exportPresetStorageKey) || "[]");
+        return Array.isArray(saved) ? saved : [];
+    } catch (error) {
+        console.warn("Could not read saved export presets.", error);
+        return [];
+    }
+};
+
+APP.saveStoredExportPresets = (presets) => {
+    localStorage.setItem(
+        APP.exportPresetStorageKey,
+        JSON.stringify(presets)
+    );
+};
+
+APP.exportProfileAliasMap = APP.exportProfileAliasMap || {
+    "overview-summary": ["overview-kpis", "overview-priority", "overview-impact"],
+    "overview-kpi-incidents": ["overview-kpis"],
+    "overview-kpi-rejections": ["overview-kpis"],
+    "overview-kpi-partner": ["overview-kpis"],
+    "executive-summary-text": ["overview-builder"],
+    "incidents-monthly-trend": ["c1"],
+    "incidents-by-partner": ["c2"],
+    "rejections-monthly-trend": ["rc1"],
+    "rejections-by-bank": ["rc10"],
+    "rejections-register": ["rejection-register"],
+    "vendor-rca-table": ["overview-builder"]
+};
+
+APP.resolveExportProfileIds = (profile) => {
+    const directIds =
+        Array.isArray(profile?.itemIds) ? profile.itemIds : [];
+    const widgetIds =
+        Array.isArray(profile?.widgetIds) ? profile.widgetIds : [];
+
+    return [
+        ...directIds,
+        ...widgetIds.flatMap((id) => APP.exportProfileAliasMap[id] || [id])
+    ];
+};
+
+APP.applyExportSelection = (itemIds) => {
+    const selected =
+        new Set((itemIds || []).map(String));
+
+    document.querySelectorAll(".global-export-check").forEach((input) => {
+        input.checked =
+            selected.has(input.value);
+    });
+};
+
+APP.getExportModalProfiles = async () => {
+    const defaults =
+        APP.getDefaultExportProfiles();
+
+    if (!window.ConfigService?.loadExportProfiles) {
+        return defaults;
+    }
+
+    try {
+        const config =
+            await ConfigService.loadExportProfiles();
+        const loaded =
+            Array.isArray(config?.profiles) ? config.profiles : [];
+        const deduped =
+            new Map();
+
+        [...defaults, ...loaded].forEach((profile) => {
+            if (profile?.id) {
+                deduped.set(profile.id, profile);
+            }
+        });
+
+        return [...deduped.values()];
+    } catch (error) {
+        console.warn("Could not load export profiles.", error);
+        return defaults;
+    }
+};
+
+APP.getExportModalPresets = () => {
+    const defaults =
+        APP.getDefaultExportPresets();
+    const stored =
+        APP.getStoredExportPresets();
+    const existing =
+        new Set(defaults.map((preset) => preset.id));
+
+    return [
+        ...defaults,
+        ...stored.filter((preset) => !existing.has(preset.id))
+    ];
+};
+
+APP.populateExportProfileSelect = async () => {
+    const select =
+        APP.g("exportProfileSelect");
+
+    if (!select) return;
+
+    const profiles =
+        await APP.getExportModalProfiles();
+
+    select.innerHTML = [
+        `<option value="">Choose profile</option>`,
+        ...profiles.map((profile) =>
+            `<option value="${APP.escape(profile.id)}">${APP.escape(profile.title || profile.id)}</option>`
+        )
+    ].join("");
+
+    const preferredId =
+        localStorage.getItem(APP.exportProfileStorageKey) || "base-profile";
+    const hasPreferred =
+        profiles.some((profile) => profile.id === preferredId);
+
+    select.value =
+        hasPreferred ? preferredId : "";
+
+    if (select.value) {
+        const chosen =
+            profiles.find((profile) => profile.id === select.value);
+        APP.applyExportSelection(APP.resolveExportProfileIds(chosen));
+    }
+};
+
+APP.populateExportPresetSelect = () => {
+    const select =
+        APP.g("exportUserPresetSelect");
+
+    if (!select) return;
+
+    const presets =
+        APP.getExportModalPresets();
+
+    select.innerHTML = [
+        `<option value="">Choose preset</option>`,
+        ...presets.map((preset) =>
+            `<option value="${APP.escape(preset.id)}">${APP.escape(preset.title || preset.id)}</option>`
+        )
+    ].join("");
+
+    const preferredId =
+        localStorage.getItem(APP.exportPresetSelectionKey) || "base-preset";
+    const hasPreferred =
+        presets.some((preset) => preset.id === preferredId);
+
+    select.value =
+        hasPreferred ? preferredId : "";
+};
+
+APP.applyExportProfileById = async (profileId) => {
+    if (!profileId) return;
+
+    const profiles =
+        await APP.getExportModalProfiles();
+    const profile =
+        profiles.find((item) => item.id === profileId);
+
+    if (!profile) return;
+
+    APP.applyExportSelection(APP.resolveExportProfileIds(profile));
+    localStorage.setItem(APP.exportProfileStorageKey, profileId);
+
+    const presetSelect =
+        APP.g("exportUserPresetSelect");
+    if (presetSelect) {
+        presetSelect.value = "";
+    }
+};
+
+APP.applyExportPresetById = (presetId) => {
+    if (!presetId) return;
+
+    const presets =
+        APP.getExportModalPresets();
+    const preset =
+        presets.find((item) => item.id === presetId);
+
+    if (!preset) return;
+
+    APP.applyExportSelection(preset.itemIds || []);
+    localStorage.setItem(APP.exportPresetSelectionKey, presetId);
+
+    const profileSelect =
+        APP.g("exportProfileSelect");
+    if (profileSelect) {
+        profileSelect.value = "";
+    }
+};
+
+APP.saveCurrentExportPreset = () => {
+    const input =
+        APP.g("exportPresetNameInput");
+
+    if (!input) return;
+
+    const title =
+        input.value.trim();
+
+    if (!title) {
+        alert("Enter a preset name first.");
+        return;
+    }
+
+    const itemIds =
+        [...document.querySelectorAll(".global-export-check:checked")]
+            .map((inputEl) => inputEl.value);
+
+    if (!itemIds.length) {
+        alert("Select at least one export item before saving a preset.");
+        return;
+    }
+
+    const presets =
+        APP.getStoredExportPresets();
+    const id =
+        `preset-${APP.slug(title)}-${Date.now()}`;
+
+    presets.push({
+        id,
+        title,
+        itemIds
+    });
+    APP.saveStoredExportPresets(presets);
+    APP.populateExportPresetSelect();
+
+    const presetSelect =
+        APP.g("exportUserPresetSelect");
+    if (presetSelect) {
+        presetSelect.value = id;
+    }
+
+    localStorage.setItem(APP.exportPresetSelectionKey, id);
+    input.value = "";
+};
 
 APP.getRejectionRegisterTable = () => {
     const columns =
@@ -2569,7 +2872,7 @@ APP.renderAnalyticsTables = () => {
 
 APP.renderRejectionTables = APP.renderAnalyticsTables;
 
-APP.renderExportOptions = () => {
+APP.renderExportOptions = async () => {
     const list =
         APP.g("globalExportList");
 
@@ -2625,6 +2928,15 @@ APP.renderExportOptions = () => {
                 });
         };
     });
+
+    await APP.populateExportProfileSelect();
+    APP.populateExportPresetSelect();
+
+    const presetSelect =
+        APP.g("exportUserPresetSelect");
+    if (presetSelect?.value) {
+        APP.applyExportPresetById(presetSelect.value);
+    }
 };
 
 APP.getSelectedExportItems = () => {
@@ -3047,8 +3359,8 @@ APP.bindSettingsModal = () => {
 APP.bindExportModal = () => {
     const modal =
         APP.g("exportModal");
-    const open = () => {
-        APP.renderExportOptions();
+    const open = async () => {
+        await APP.renderExportOptions();
         modal?.classList.remove("hide");
     };
     const close = () => modal?.classList.add("hide");
@@ -3072,6 +3384,13 @@ APP.bindExportModal = () => {
     APP.g("btnExportPngGlobal")?.addEventListener("click", () => {
         void APP.exportSelectedItemsToPng();
     });
+    APP.g("exportProfileSelect")?.addEventListener("change", (event) => {
+        void APP.applyExportProfileById(event.target.value);
+    });
+    APP.g("exportUserPresetSelect")?.addEventListener("change", (event) => {
+        APP.applyExportPresetById(event.target.value);
+    });
+    APP.g("btnSaveExportPreset")?.addEventListener("click", APP.saveCurrentExportPreset);
 };
 
 APP.renderPivotBuilder = () => {
@@ -3165,14 +3484,284 @@ APP.renderPivotBuilder = () => {
     void APP.renderPivotSavedWidgetsList();
 };
 
+APP.pivotViewState = APP.pivotViewState || {
+    incidents: null,
+    rejections: null
+};
+APP.embeddedPivotCharts = APP.embeddedPivotCharts || {};
+
+APP.getPivotRowsFor = (dataset) =>
+    dataset === "rejections"
+        ? (APP.filteredRejections || [])
+        : (APP.DATA || []);
+
+APP.getPivotColumnsFor = (dataset) => {
+    const rows =
+        APP.getPivotRowsFor(dataset);
+
+    return rows.length
+        ? Object.keys(rows[0]).filter(Boolean)
+        : [];
+};
+
+APP.getPivotStateFor = (dataset) => {
+    const columns =
+        APP.getPivotColumnsFor(dataset);
+    const rows =
+        APP.getPivotRowsFor(dataset);
+    const numericFallback =
+        columns.find((column) =>
+            rows.some((row) =>
+                APP.n(APP.rowValue(row, column)) > 0
+            )
+        ) || "";
+    const defaultRow =
+        columns.includes(dataset === "rejections" ? "PARTNERNAME" : "Partner")
+            ? (dataset === "rejections" ? "PARTNERNAME" : "Partner")
+            : (columns[0] || "");
+
+    if (!APP.pivotViewState[dataset]) {
+        APP.pivotViewState[dataset] = {
+            row: defaultRow,
+            column: "",
+            value: numericFallback,
+            agg: "count",
+            chartType: "bar",
+            topN: "20"
+        };
+    }
+
+    const state =
+        APP.pivotViewState[dataset];
+
+    if (state.row && !columns.includes(state.row)) {
+        state.row = defaultRow;
+    }
+
+    if (state.column && !columns.includes(state.column)) {
+        state.column = "";
+    }
+
+    if (state.value && !columns.includes(state.value)) {
+        state.value = numericFallback;
+    }
+
+    return state;
+};
+
+APP.getPivotRowLimitFor = (state) =>
+    String(state.topN || "20").toLowerCase() === "all"
+        ? Number.POSITIVE_INFINITY
+        : Math.max(1, Number(state.topN) || 20);
+
+APP.getPivotResultFor = (dataset) => {
+    const state =
+        APP.getPivotStateFor(dataset);
+    const rows =
+        APP.getPivotRowsFor(dataset);
+    const rowKey =
+        state.row;
+
+    if (!rowKey) {
+        return {
+            title: "Pivot Result",
+            headers: [],
+            rows: [],
+            chart: null
+        };
+    }
+
+    const columnKey =
+        state.column;
+    const valueKey =
+        state.value;
+    const useCount =
+        state.agg === "count" ||
+        !valueKey;
+    const matrix = {};
+    const columnLabels =
+        new Set();
+
+    rows.forEach((row) => {
+        const rowLabel =
+            APP.rowValue(row, rowKey) || "Unknown";
+        const columnLabel =
+            columnKey
+                ? (APP.rowValue(row, columnKey) || "Unknown")
+                : "Value";
+
+        matrix[rowLabel] =
+            matrix[rowLabel] || {};
+        matrix[rowLabel][columnLabel] =
+            (matrix[rowLabel][columnLabel] || 0) +
+            (useCount ? 1 : APP.n(APP.rowValue(row, valueKey)));
+        columnLabels.add(columnLabel);
+    });
+
+    const orderedColumns =
+        [...columnLabels];
+    const limit =
+        APP.getPivotRowLimitFor(state);
+    const bodyRows =
+        Object.entries(matrix)
+            .map(([label, values]) => {
+                const cells =
+                    orderedColumns.map((key) => APP.n(values[key]));
+                return [
+                    label,
+                    ...cells,
+                    cells.reduce((sum, value) => sum + value, 0)
+                ];
+            })
+            .sort((a, b) => APP.n(b[b.length - 1]) - APP.n(a[a.length - 1]))
+            .slice(0, limit === Number.POSITIVE_INFINITY ? undefined : limit);
+
+    const title =
+        `${useCount ? "Count" : "Sum"} of ${valueKey || "Rows"} by ${rowKey}${columnKey ? ` and ${columnKey}` : ""}`;
+
+    return {
+        title,
+        headers: [
+            rowKey,
+            ...orderedColumns,
+            "Total"
+        ],
+        rows: bodyRows.map((row) => [
+            row[0],
+            ...row.slice(1).map((value) => APP.formatNum(value))
+        ]),
+        chart: {
+            labels: bodyRows.map((row) => row[0]),
+            datasets: orderedColumns.map((label, index) => ({
+                label,
+                data: bodyRows.map((row) => APP.n(row[index + 1])),
+                backgroundColor: APP.colors[index % APP.colors.length],
+                borderColor: APP.colors[index % APP.colors.length],
+                borderRadius: 6
+            }))
+        }
+    };
+};
+
+APP.drawPivotChartFor = (dataset, canvasId) => {
+    const pivot =
+        APP.getPivotResultFor(dataset);
+    const canvas =
+        APP.g(canvasId);
+
+    if (!canvas || !pivot.chart) return;
+
+    if (APP.embeddedPivotCharts[dataset]) {
+        APP.embeddedPivotCharts[dataset].destroy();
+    }
+
+    const state =
+        APP.getPivotStateFor(dataset);
+    const isCircular =
+        state.chartType === "pie" ||
+        state.chartType === "doughnut";
+    const chartData =
+        isCircular
+            ? {
+                labels: pivot.chart.labels,
+                datasets: [{
+                    label: pivot.chart.datasets[0]?.label || pivot.title,
+                    data: pivot.chart.datasets[0]?.data || [],
+                    backgroundColor: pivot.chart.labels.map((_, index) => APP.colors[index % APP.colors.length])
+                }]
+            }
+            : pivot.chart;
+
+    APP.embeddedPivotCharts[dataset] =
+        new Chart(canvas, {
+            type: state.chartType,
+            data: chartData,
+            options: APP.chartOptions(
+                pivot.title,
+                isCircular ? { scales: {} } : {}
+            )
+        });
+};
+
+APP.renderScopedPivotBuilder = ({ dataset, builderId, tableWrapId, canvasId }) => {
+    const panel =
+        APP.g(builderId);
+    const tableBox =
+        APP.g(tableWrapId);
+
+    if (!panel || !tableBox) return;
+
+    const columns =
+        APP.getPivotColumnsFor(dataset);
+    const state =
+        APP.getPivotStateFor(dataset);
+
+    panel.innerHTML =
+        columns.length
+            ? `
+<label class="pivot-field"><span>Rows</span><select data-pivot-input="${dataset}" data-pivot-key="row">${APP.pivotOptions(columns, state.row)}</select></label>
+<label class="pivot-field"><span>Columns</span><select data-pivot-input="${dataset}" data-pivot-key="column">${APP.pivotOptions(columns, state.column, true)}</select></label>
+<label class="pivot-field"><span>Values</span><select data-pivot-input="${dataset}" data-pivot-key="value">${APP.pivotOptions(columns, state.value, true)}</select></label>
+<label class="pivot-field"><span>Aggregation</span><select data-pivot-input="${dataset}" data-pivot-key="agg"><option value="count" ${state.agg === "count" ? "selected" : ""}>Count</option><option value="sum" ${state.agg === "sum" ? "selected" : ""}>Sum</option></select></label>
+<label class="pivot-field"><span>Chart Type</span><select data-pivot-input="${dataset}" data-pivot-key="chartType"><option value="bar" ${state.chartType === "bar" ? "selected" : ""}>Bar</option><option value="line" ${state.chartType === "line" ? "selected" : ""}>Line</option><option value="doughnut" ${state.chartType === "doughnut" ? "selected" : ""}>Doughnut</option><option value="pie" ${state.chartType === "pie" ? "selected" : ""}>Pie</option></select></label>
+<label class="pivot-field"><span>Top Rows</span><select data-pivot-input="${dataset}" data-pivot-key="topN"><option value="5" ${String(state.topN) === "5" ? "selected" : ""}>5</option><option value="10" ${String(state.topN) === "10" ? "selected" : ""}>10</option><option value="20" ${String(state.topN) === "20" ? "selected" : ""}>20</option><option value="50" ${String(state.topN) === "50" ? "selected" : ""}>50</option><option value="all" ${String(state.topN) === "all" ? "selected" : ""}>All</option></select></label>
+`
+            : `<div class="empty-state">Load workbook data to build pivot-style charts and tables.</div>`;
+
+    const syncPivot = () => {
+        const pivot =
+            APP.getPivotResultFor(dataset);
+
+        tableBox.innerHTML =
+            pivot.rows.length
+                ? APP.renderManagedTableCard(
+                    {
+                        ...pivot,
+                        id: `${dataset}-pivot-output-table`
+                    },
+                    `${dataset}-pivot-output-table`,
+                    pivot.title
+                )
+                : `<div class="empty-state">No pivot output is available for the current setup.</div>`;
+
+        APP.drawPivotChartFor(dataset, canvasId);
+        APP.bindTableControlEvents(tableBox);
+    };
+
+    panel.querySelectorAll(`[data-pivot-input="${dataset}"]`).forEach((input) => {
+        input.onchange = () => {
+            APP.pivotViewState[dataset][input.dataset.pivotKey] = input.value;
+            syncPivot();
+        };
+    });
+
+    syncPivot();
+};
+
+APP.renderEmbeddedPivots = () => {
+    APP.renderScopedPivotBuilder({
+        dataset: "incidents",
+        builderId: "incidentPivotBuilder",
+        tableWrapId: "incidentPivotTableWrap",
+        canvasId: "incidentPivotChart"
+    });
+    APP.renderScopedPivotBuilder({
+        dataset: "rejections",
+        builderId: "rejectionPivotBuilder",
+        tableWrapId: "rejectionPivotTableWrap",
+        canvasId: "rejectionPivotChart"
+    });
+};
+
 APP.setAnalyticsMode = (mode) => {
     APP.analyticsMode =
-        mode === "tables"
-            ? "tables"
+        mode === "tables" || mode === "pivot"
+            ? mode
             : "charts";
 
     APP.g("analyticsChartPanel")?.classList.toggle("hide", APP.analyticsMode !== "charts");
     APP.g("analyticsTablePanel")?.classList.toggle("hide", APP.analyticsMode !== "tables");
+    APP.g("analyticsPivotPanel")?.classList.toggle("hide", APP.analyticsMode !== "pivot");
 
     document.querySelectorAll(".analytics-mode-btn").forEach((button) => {
         button.classList.toggle("active", button.dataset.analyticsMode === APP.analyticsMode);
@@ -3196,6 +3785,109 @@ APP.setSidebarCollapsed = (collapsed) => {
     localStorage.setItem(APP.sidebarStorageKey, collapsed ? "1" : "0");
 };
 
+APP.sectionCollapseState = APP.sectionCollapseState || {};
+
+APP.getCollapsibleSectionId = (section, index) =>
+    section.dataset.collapseId ||
+    section.id ||
+    `collapsible-section-${index}`;
+
+APP.handleSectionCollapseToggle = (event) => {
+    const button =
+        event.currentTarget;
+    const sectionId =
+        button.dataset.sectionToggle;
+
+    if (!sectionId) return;
+
+    APP.sectionCollapseState[sectionId] =
+        !APP.sectionCollapseState[sectionId];
+    APP.enhanceCollapsibleSections?.();
+};
+
+APP.enhanceCollapsibleSections = () => {
+    const sections =
+        [...document.querySelectorAll("[data-collapsible]")];
+
+    sections.forEach((section, index) => {
+        const sectionId =
+            APP.getCollapsibleSectionId(section, index);
+        section.dataset.collapseId = sectionId;
+
+        let header =
+            section.querySelector(":scope > .section-collapse-header");
+        let body =
+            section.querySelector(":scope > .section-collapse-body");
+
+        if (!header) {
+            const existingHeader =
+                [
+                    ".table-section-head",
+                    ".column-panel-head",
+                    ".export-head",
+                    ".analytics-view-mode__head",
+                    ".overview-builder-head",
+                    ".rejection-filter-bar__head",
+                    ".incident-toolbar",
+                    "h3"
+                ]
+                    .map((selector) => section.querySelector(`:scope > ${selector}`))
+                    .find(Boolean);
+
+            if (existingHeader) {
+                header =
+                    existingHeader;
+                header.classList.add("section-collapse-header");
+            } else {
+                header =
+                    document.createElement("div");
+                header.className = "section-collapse-header";
+                header.innerHTML = `<h3>${APP.escape(section.dataset.collapsibleTitle || "Section")}</h3>`;
+                section.prepend(header);
+            }
+        }
+
+        if (!body) {
+            body =
+                document.createElement("div");
+            body.className = "section-collapse-body";
+            const children =
+                [...section.children].filter((child) => child !== header);
+            children.forEach((child) => body.appendChild(child));
+            section.appendChild(body);
+        }
+
+        let actions =
+            header.querySelector(".section-collapse-actions");
+        if (!actions) {
+            actions =
+                document.createElement("div");
+            actions.className = "section-collapse-actions";
+            header.appendChild(actions);
+        }
+
+        let button =
+            actions.querySelector(`[data-section-toggle="${sectionId}"]`);
+        if (!button) {
+            button =
+                document.createElement("button");
+            button.type = "button";
+            button.className = "section-collapse-toggle";
+            button.dataset.sectionToggle = sectionId;
+            button.addEventListener("click", APP.handleSectionCollapseToggle);
+            actions.appendChild(button);
+        }
+
+        const collapsed =
+            Boolean(APP.sectionCollapseState[sectionId]);
+
+        section.classList.toggle("is-collapsed", collapsed);
+        body.classList.toggle("hide", collapsed);
+        button.textContent = collapsed ? "Show" : "Hide";
+        button.setAttribute("aria-expanded", String(!collapsed));
+    });
+};
+
 APP.bindSidebar = () => {
     const collapsed =
         localStorage.getItem(APP.sidebarStorageKey) === "1";
@@ -3207,35 +3899,14 @@ APP.bindSidebar = () => {
         APP.setSidebarCollapsed(false);
     });
 
-    APP.setSidebarCollapsed(collapsed && window.innerWidth <= 1200);
+    APP.setSidebarCollapsed(window.innerWidth <= 1000 ? true : collapsed);
 };
 
 APP.renderOverviewInsights = () => {
     const metrics =
         APP.getOverviewMetrics();
-    const rejectionRows =
-        APP.rejectionRows?.() || [];
-    const topRejectReason =
-        APP.groupCountEntries?.(rejectionRows, "PARTNER_REJECTREASON", "rejections")?.[0];
-    const topRejectPartner =
-        APP.groupCountEntries?.(rejectionRows, "PARTNERNAME", "rejections")?.[0];
-    const monthCount =
-        APP.sortedMonths?.().length || 0;
-    const incidentRate =
-        monthCount
-            ? Math.round((APP.DATA.length / monthCount) * 10) / 10
-            : APP.DATA.length;
 
     return `
-<div class="card section-box">
-    <h4>Summary & Suggestions</h4>
-    <ul class="overview-bullets">
-        <li>Top rejection reason is <b>${APP.escape(topRejectReason?.[0] || "N/A")}</b>${topRejectReason ? ` with <b>${APP.formatNum(topRejectReason[1])}</b> rows` : ""}</li>
-        <li>Partner with the highest rejection volume is <b>${APP.escape(topRejectPartner?.[0] || "N/A")}</b></li>
-        <li>Average filtered incident volume is <b>${APP.escape(String(incidentRate))}</b> per active month</li>
-        <li>Suggested action: review routing and operational follow-up for the highest-rejection partner and bank combination in the current filter scope</li>
-    </ul>
-</div>
 <ul class="overview-bullets">
     <li><b>${metrics.partnerSidePct}</b> partner-side incidents in the filtered period</li>
     <li>Funding failures count is <b>${APP.formatNum(metrics.fundingCount)}</b>, representing <b>${metrics.fundingPct}</b> of incidents</li>
@@ -3390,9 +4061,13 @@ APP.render = () => {
     APP.renderRejectionTable?.();
     APP.draw?.();
     APP.renderAnalyticsTables?.();
+    APP.renderRejectionTables?.();
     APP.renderPivotBuilder?.();
+    APP.renderEmbeddedPivots?.();
     APP.renderExportOptions?.();
+    APP.syncChartFilterMirrors?.();
     APP.setAnalyticsMode?.(APP.analyticsMode);
+    APP.enhanceCollapsibleSections?.();
 };
 
 APP.bindLegacyControls = () => {
@@ -3406,6 +4081,13 @@ APP.bindLegacyControls = () => {
     });
     APP.g("btnApply")?.addEventListener("click", APP.apply);
     APP.g("btnReset")?.addEventListener("click", APP.reset);
+    APP.g("btnOpenIncidentFilters")?.addEventListener("click", () => {
+        APP.setSidebarCollapsed(false);
+        APP.g("filterSidebar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    APP.g("btnOpenRejectionFilters")?.addEventListener("click", () => {
+        APP.g("rejectionAccordionMount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     APP.g("btnDefaultColumns")?.addEventListener("click", () => {
         const excelColumns =
             APP.getExcelColumns();
@@ -3496,6 +4178,11 @@ APP.initLegacyDashboard = () => {
     APP.bindExportModal();
     APP.setPivotSaveStatus("Unique pivot charts only.");
     void APP.renderPivotSavedWidgetsList();
+    const initialView =
+        String(window.location.hash || "").replace(/^#/, "").trim();
+    if (initialView && APP.g(initialView)) {
+        APP.view(initialView);
+    }
     void APP.loadLocal();
 };
 

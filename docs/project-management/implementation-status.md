@@ -11,16 +11,19 @@
 - Kept runtime migration code out of the live HTML shell
 - Added clean `file://` handling for sample workbook autoload
 - Added collapsible filter sidebar behavior
-- Merged graph-data tables into the `Analytics` tab
-- Added shared table controls for Analytics table mode and pivot table output
+- Merged graph-data tables into the Incident workspace
+- Added shared table controls for Incident workspace table mode and pivot table output
 - Added a visible rejection register with selected-column support and paging
 - Added pivot-save deduplication and compact saved-widget UX
 - Wired settings modal import/export/reset actions
 - Added normalized workbook download
 - Wired legacy export modal actions with broader native-first PPT behavior, including expanded builder bundle handling
+- Added bundled export defaults with `Base Profile` and `Base Preset`
+- Aligned the Guide, Excel specification, README, and project-management docs with the live WU workbook contract
 
 ## Still Open
 
+- Browser validation of the refreshed guide and filter/export styling
 - Deeper native PPT chart coverage
 - Optional chart-level include/exclude and Bottom N controls if product wants parity with table mode
 - Large-table virtualization only if live workbook sizes require it
