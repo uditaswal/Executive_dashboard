@@ -1,51 +1,32 @@
 /**
  * Settings Modal Styles — Header settings button, modal dialog, and config management UI for dashboard and export profile import/export.
- * Provides visual styling for file upload, download buttons, section grouping, and footer actions with consistent theming.\n * Modular design allows reuse across different modal contexts; transitions and hover states enhance UX feedback.\n */\n\n/* Header Actions */
+ * Provides visual styling for file upload, download buttons, section grouping, and footer actions with consistent theming.\n * Modular design allows reuse across different modal contexts; transitions and hover states enhance UX feedback.\n */
+\n\n
+
+/* Header Actions */
 .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+    @apply flex gap-2 items-center;
 }
 
 .settings-btn {
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, .15);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
+    @apply px-3 py-2 bg-white/15 text-white border border-white/20 rounded-md cursor-pointer text-base transition-all;
 }
 
 .settings-btn:hover {
-    background: rgba(255, 255, 255, .25);
-    border-color: rgba(255, 255, 255, .4);
+    @apply bg-white/25 border-white/40;
 }
 
 .settings-btn:active {
-    transform: scale(0.98);
+    @apply scale-95;
 }
 
 /* Settings Modal */
 .settings-modal {
-    width: min(600px, 100%);
-    max-height: min(700px, calc(100vh - 44px));
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 24px 80px rgba(15, 23, 42, .35);
+    @apply w-full max-w-lg max-h-[700px] flex flex-col overflow-hidden rounded-lg bg-white shadow-2xl;
 }
 
 .settings-modal-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid #e8edf4;
+    @apply flex justify-between items-start gap-3 p-4 border-b border-gray-200;
 }
 
 .settings-modal-head h3 {

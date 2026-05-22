@@ -42,6 +42,27 @@ May 18, 2026
 - Month normalization guidance now matches actual behavior, including year preservation such as `Jan-26 -> Jan 2026`
 - Support-sheet guidance now explicitly covers `REROUTE`, `APN_VOLUME`, `SUGGESTIONS`, and `CONFIG`
 
+## Tailwind CSS Migration
+
+The project has been successfully migrated to Tailwind CSS. Below are the key steps completed:
+
+1. **Integration**:
+   - Tailwind CSS was integrated using the CDN link in all HTML files.
+
+2. **CSS Refactoring**:
+   - Existing CSS files (`rejections.css`, `settings.css`, `style.css`) were refactored to use Tailwind utility classes.
+
+3. **HTML Updates**:
+   - Inline styles and class-based styles in HTML files (`index.html`, `incident-shot.html`, `rejections-shot.html`) were replaced with Tailwind utility classes.
+
+4. **Optimization**:
+   - Tailwind's purge feature was enabled to remove unused CSS in production builds.
+
+5. **Testing and Validation**:
+   - The application was tested to ensure the UI matches the original design and all components are styled correctly.
+
+This migration improves maintainability, reduces CSS file size, and ensures a consistent design system across the application.
+
 ## Validation Notes
 
 - Localhost smoke check succeeded for `http://127.0.0.1:8000/index.html`

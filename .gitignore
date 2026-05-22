@@ -8,4 +8,8 @@ exports/image/
 exports/ppt/
 docs/task/*.md
 
+node_modules/
 
+dev-index-backup.html
+
+*.restored

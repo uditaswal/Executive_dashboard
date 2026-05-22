@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rejections Shot</title>
-  <style>
-    html, body, iframe { margin: 0; width: 100%; height: 100%; border: 0; }
-    body { background: #f5f6fa; }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-  <iframe id="app" src="/index.html"></iframe>
+<body class="bg-gray-100">
+  <iframe id="app" class="w-full h-full border-0" src="/index.html"></iframe>
   <script>
     const frame = document.getElementById("app");
     frame.addEventListener("load", () => {
