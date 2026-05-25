@@ -991,9 +991,9 @@ APP.renderOverviewMetricTable = () => {
         </thead>
         <tbody>
             ${table.rows.map((row, index) => `
-            <tr class="${index % 2 === 0 ? "metric-blue-row" : ""}">
-                <td>${APP.escape(row[0])}</td>
-                <td>${APP.escape(row[1])}</td>
+            <tr class="${index % 2 === 0 ? "metric-blue-row" : "metric-white-row"}">
+                <td class="${index % 2 === 0 ? "bg-sky-100" : "bg-cyan-50"}">${APP.escape(row[0])}</td>
+                <td class="${index % 2 === 0 ? "bg-sky-100" : "bg-cyan-50"}">${APP.escape(row[1])}</td>
             </tr>
             `).join("")}
         </tbody>
