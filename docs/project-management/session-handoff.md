@@ -2,7 +2,7 @@
 
 ## Last Updated
 
-May 18, 2026
+May 25, 2026
 
 ## Current Source Of Truth
 
@@ -12,8 +12,8 @@ May 18, 2026
 
 ## Current Live Product Shape
 
-- Tabs: `Overview`, `Incident`, `Rejections`, `Guide`
-- Incident charts, graph-data tables, and incident pivots live in the same workspace
+- Tabs: `Overview`, `Pivot`, `Incidents Overview`, `Rejections`, `Guide`
+- Incident charts, the incident register, and graph-data tables now live in the same `Incidents Overview` workspace
 - Rejection filters stay in the `Rejections` tab rather than the main sidebar
 - Export opens a modal and is profile/preset driven
 - Bundled export defaults include `Base Profile` and `Base Preset`
@@ -42,8 +42,8 @@ May 18, 2026
 ### Incident Workspace
 
 - `Charts` mode renders the incident chart suite
-- `Tables` mode renders graph-data tables plus the incident register
-- `Pivot` mode renders the embedded incident pivot builder and output table/chart
+- `Tables` mode renders the incident register plus incident/rejection graph-data tables
+- The old `analytics` / `incidents` routes should resolve into `incidents-overview`
 
 ### Export
 
@@ -61,6 +61,8 @@ May 18, 2026
 ## Recommended Next Checks
 
 - Open the dashboard in a real browser and visually verify:
+  - merged Incidents Overview tab behavior
+  - collapsible section persistence
   - Guide content layout
   - sidebar filter styling
   - rejection filter styling

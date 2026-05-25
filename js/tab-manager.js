@@ -12,7 +12,7 @@ APP.TabManager = {
         {
             id: "overview",
             title: "Overview",
-            icon: "📊",
+            icon: "Overview",
             visible: true,
             order: 1,
             exportable: true
@@ -20,49 +20,33 @@ APP.TabManager = {
         {
             id: "pivot",
             title: "Pivot",
-            icon: "🔄",
+            icon: "Pivot",
             visible: true,
             order: 2,
             exportable: false
         },
         {
-            id: "analytics",
-            title: "Analytics",
-            icon: "📈",
+            id: "incidents-overview",
+            title: "Incidents Overview",
+            icon: "Incidents",
             visible: true,
             order: 3,
             exportable: true
         },
         {
-            id: "tables",
-            title: "Tables",
-            icon: "📋",
+            id: "rejections",
+            title: "Rejections",
+            icon: "Rejections",
             visible: true,
             order: 4,
             exportable: true
         },
         {
-            id: "incidents",
-            title: "Incidents",
-            icon: "⚠️",
-            visible: true,
-            order: 5,
-            exportable: true
-        },
-        {
-            id: "rejections",
-            title: "Rejections",
-            icon: "❌",
-            visible: true,
-            order: 6,
-            exportable: true
-        },
-        {
             id: "guide",
             title: "Guide",
-            icon: "❓",
+            icon: "Guide",
             visible: true,
-            order: 7,
+            order: 5,
             exportable: false
         }
     ],
@@ -119,30 +103,28 @@ APP.TabManager = {
         const tabs = this.getVisibleTabs()
             .sort((a, b) => a.order - b.order);
 
-        // Clear existing tabs except guide
         const existingTabs = tabsContainer.querySelectorAll(".tab:not(.guide-tab)");
         existingTabs.forEach(tab => tab.remove());
 
-        // Add new tabs before guide
-        const guidetab = tabsContainer.querySelector(".guide-tab");
+        const guideTab = tabsContainer.querySelector(".guide-tab");
         tabs.forEach((tab, index) => {
             if (tab.id !== "guide") {
                 const button = document.createElement("button");
                 button.className = "tab";
                 button.dataset.view = tab.id;
-                button.textContent = `${tab.icon || ""} ${tab.title}`;
-                
+                button.textContent = tab.title;
+
                 if (index === 0) {
                     button.classList.add("active");
                 }
-                
+
                 button.onclick = (e) => {
                     e.preventDefault();
                     APP.view(tab.id);
                 };
 
-                if (guidetab) {
-                    tabsContainer.insertBefore(button, guidetab);
+                if (guideTab) {
+                    tabsContainer.insertBefore(button, guideTab);
                 } else {
                     tabsContainer.appendChild(button);
                 }
@@ -161,13 +143,11 @@ APP.PPTExporter = {
      */
     exportDirectPPT: async function() {
         try {
-            // Create presentation
             const pres = new PptxGenJS();
-            pres.defineLayout({name: 'LAYOUT1', master: 'MASTER1'});
+            pres.defineLayout({ name: "LAYOUT1", master: "MASTER1" });
 
-            // Add title slide
             const titleSlide = pres.addSlide();
-            titleSlide.background = {color: "0f2d52"};
+            titleSlide.background = { color: "0f2d52" };
             titleSlide.addText("Payments Dashboard Report", {
                 x: 0.5,
                 y: 2,
@@ -188,7 +168,6 @@ APP.PPTExporter = {
                 align: "center"
             });
 
-            // Add content from each exportable tab
             const tabs = APP.TabManager.getExportableTabs();
             for (const tab of tabs) {
                 if (tab.id === "guide") continue;
@@ -199,9 +178,7 @@ APP.PPTExporter = {
                 }
             }
 
-            // Save presentation
-            pres.writeFile({fileName: `Dashboard_${new Date().toISOString().split('T')[0]}.pptx`});
-
+            pres.writeFile({ fileName: `Dashboard_${new Date().toISOString().split("T")[0]}.pptx` });
         } catch (error) {
             console.error("PPT Export Error:", error);
             alert("Error exporting to PPT: " + error.message);
@@ -212,6 +189,10 @@ APP.PPTExporter = {
      * Get content from a tab
      */
     getTabContent: function(tabId) {
+        if (tabId === "analytics" || tabId === "incidents") {
+            tabId = "incidents-overview";
+        }
+
         const tabElement = APP.g(tabId);
         if (!tabElement) return null;
 
@@ -228,7 +209,6 @@ APP.PPTExporter = {
     addContentToPresentation: async function(pres, tab, content) {
         const slide = pres.addSlide();
 
-        // Add section title
         slide.addText(tab.title, {
             x: 0.5,
             y: 0.3,
@@ -239,9 +219,8 @@ APP.PPTExporter = {
             color: "0f2d52"
         });
 
-        // Add charts
         for (const canvas of content.canvases) {
-            if (canvas.offsetParent !== null) { // Check if visible
+            if (canvas.offsetParent !== null) {
                 try {
                     const imgData = canvas.toDataURL("image/png");
                     slide.addImage({
@@ -259,7 +238,6 @@ APP.PPTExporter = {
     }
 };
 
-// Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
     const tabsContainer = document.querySelector(".tabs");
     const hasStaticTabs =

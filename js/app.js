@@ -8,10 +8,7 @@ APP.render = () => {
     APP.g("count").textContent =
         `${APP.DATA.length} records`;
 
-    if (APP.g("filterRecordHint")) {
-        APP.g("filterRecordHint").textContent =
-            `${APP.DATA.length} incidents | ${APP.filteredRejections.length} rejections`;
-    }
+    APP.updateFilterStats?.(APP.DATA.length, APP.filteredRejections.length);
 
     APP.renderSummary();
     APP.renderKPIs();
@@ -1943,6 +1940,8 @@ APP.getGlobalExportComponents = () => {
 
 APP.analyticsMode = APP.analyticsMode || "charts";
 APP.sidebarStorageKey = "payments-dashboard-sidebar-collapsed";
+APP.collapsibleStorageKey = "payments-dashboard-collapsible-state";
+APP.showChartLabels = APP.showChartLabels !== false;
 
 APP.setPivotSaveStatus = (message, tone = "muted") => {
     const el =
@@ -2241,29 +2240,7 @@ APP.renderManagedTableCard = (table, tableId, titleOverride = "") => {
 };
 
 APP.mergeIncidentSectionIntoAnalytics = () => {
-    const host =
-        APP.g("analyticsIncidentRegisterHost");
-    const section =
-        APP.g("incidents");
-    const tab =
-        APP.g("tabIncidents");
-
-    if (!host || !section || section.dataset.merged === "1") {
-        if (tab) {
-            tab.classList.add("hide");
-        }
-        return;
-    }
-
-    while (section.firstChild) {
-        host.appendChild(section.firstChild);
-    }
-
-    section.dataset.merged = "1";
-    section.classList.add("hide");
-    if (tab) {
-        tab.classList.add("hide");
-    }
+    return;
 };
 
 APP.bindTableControlEvents = (scope = document) => {
@@ -3787,7 +3764,31 @@ APP.setSidebarCollapsed = (collapsed) => {
 
 APP.sectionCollapseState = APP.sectionCollapseState || {};
 
+APP.loadSectionCollapseState = () => {
+    if (APP.sectionCollapseStateLoaded) {
+        return APP.sectionCollapseState;
+    }
+
+    try {
+        APP.sectionCollapseState =
+            JSON.parse(localStorage.getItem(APP.collapsibleStorageKey) || "{}") || {};
+    } catch {
+        APP.sectionCollapseState = {};
+    }
+
+    APP.sectionCollapseStateLoaded = true;
+    return APP.sectionCollapseState;
+};
+
+APP.saveSectionCollapseState = () => {
+    localStorage.setItem(
+        APP.collapsibleStorageKey,
+        JSON.stringify(APP.sectionCollapseState || {})
+    );
+};
+
 APP.getCollapsibleSectionId = (section, index) =>
+    section.dataset.sectionKey ||
     section.dataset.collapseId ||
     section.id ||
     `collapsible-section-${index}`;
@@ -3802,10 +3803,12 @@ APP.handleSectionCollapseToggle = (event) => {
 
     APP.sectionCollapseState[sectionId] =
         !APP.sectionCollapseState[sectionId];
+    APP.saveSectionCollapseState();
     APP.enhanceCollapsibleSections?.();
 };
 
 APP.enhanceCollapsibleSections = () => {
+    APP.loadSectionCollapseState();
     const sections =
         [...document.querySelectorAll("[data-collapsible]")];
 
@@ -3879,13 +3882,25 @@ APP.enhanceCollapsibleSections = () => {
         }
 
         const collapsed =
-            Boolean(APP.sectionCollapseState[sectionId]);
+            APP.sectionCollapseState[sectionId] === true;
 
         section.classList.toggle("is-collapsed", collapsed);
         body.classList.toggle("hide", collapsed);
         button.textContent = collapsed ? "Show" : "Hide";
         button.setAttribute("aria-expanded", String(!collapsed));
     });
+};
+
+APP.updateFilterStats = (incidentCount, rejectionCount) => {
+    const el =
+        APP.g("filterDataStats");
+
+    if (!el) return;
+
+    el.innerHTML = `
+<span class="stat-pill stat-pill--incidents"><b>${Number(incidentCount || 0).toLocaleString()}</b> incidents</span>
+<span class="stat-pill stat-pill--rejections"><b>${Number(rejectionCount || 0).toLocaleString()}</b> rejections</span>
+`;
 };
 
 APP.bindSidebar = () => {
@@ -4043,10 +4058,7 @@ APP.render = () => {
     APP.g("count").textContent =
         `${APP.DATA.length} records`;
 
-    if (APP.g("filterRecordHint")) {
-        APP.g("filterRecordHint").textContent =
-            `${APP.DATA.length} incidents | ${APP.filteredRejections.length} rejections`;
-    }
+    APP.updateFilterStats?.(APP.DATA.length, APP.filteredRejections.length);
 
     APP.renderSummary?.();
     APP.renderKPIs?.();
@@ -4075,9 +4087,6 @@ APP.bindLegacyControls = () => {
         button.addEventListener("click", () => {
             APP.view(button.dataset.view);
         });
-    });
-    APP.g("btnLoad")?.addEventListener("click", () => {
-        void APP.loadLocal();
     });
     APP.g("btnApply")?.addEventListener("click", APP.apply);
     APP.g("btnReset")?.addEventListener("click", APP.reset);
@@ -4119,6 +4128,10 @@ APP.bindLegacyControls = () => {
     APP.g("analyticsTopN")?.addEventListener("change", (e) => {
         APP.analyticsTopN = e.target.value ? Number(e.target.value) : null;
         APP.render();
+    });
+    APP.g("toggleChartLabels")?.addEventListener("change", (event) => {
+        APP.showChartLabels = event.target.checked;
+        APP.draw?.();
     });
     APP.g("rejectionsTopN")?.addEventListener("change", (e) => {
         APP.rejectionsTopN = e.target.value ? Number(e.target.value) : null;
@@ -4180,9 +4193,13 @@ APP.initLegacyDashboard = () => {
     void APP.renderPivotSavedWidgetsList();
     const initialView =
         String(window.location.hash || "").replace(/^#/, "").trim();
-    if (initialView && APP.g(initialView)) {
+    if (initialView) {
         APP.view(initialView);
     }
+    if (APP.g("toggleChartLabels")) {
+        APP.g("toggleChartLabels").checked = APP.showChartLabels;
+    }
+    APP.updateFilterStats?.(APP.DATA.length || 0, APP.filteredRejections?.length || 0);
     void APP.loadLocal();
 };
 

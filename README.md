@@ -4,12 +4,13 @@ Browser-based dashboard for payment incidents and rejection data. The live app r
 
 ## Current App Behavior
 
-- Tabs: `Overview`, `Incident`, `Rejections`, `Guide`
-- The old standalone `Incidents`, `Tables`, and dedicated `Pivot` tabs have been folded into the live workspace
+- Tabs: `Overview`, `Pivot`, `Incidents Overview`, `Rejections`, `Guide`
+- Incident charts, graph-data tables, and the incident register now share the `Incidents Overview` workspace
 - The left filter panel can be collapsed and reopened
 - Analytics table mode and pivot table output now share Bottom N, sort, label filter, and exclude controls
 - Pivot saves are deduplicated by chart definition, so saving the same pivot twice is blocked
 - The `Rejections` tab includes a visible rejection register with column selection and paging
+- The sidebar shows live incident and rejection count pills instead of raw text
 - Export modal includes a bundled `Base Profile` and `Base Preset`
 - Dashboard config and export profiles can be downloaded, imported, and reset from `Settings`
 - Normalized workbook data can be downloaded from `Settings`
@@ -51,11 +52,11 @@ Direct `file://` usage is still supported for manual workbook upload. These limi
 - Rejection-specific filters live inside the `Rejections` tab
 - Record counts, charts, KPIs, tables, and pivot output all refresh from the same filtered state
 
-### Analytics
+### Incidents Overview
 
 - `Charts` view shows the canvas-based chart suite
-- `Tables` view shows the matching graph-data tables inside the same tab
-- `Pivot` view inside the Incident workspace supports ad hoc incident pivots without leaving the tab
+- `Tables` view shows the incident register plus incident and rejection graph-data tables inside the same tab
+- `Show counts on charts` re-renders the live charts using the shared Chart.js label plugin
 - Table-mode cards include Top/Bottom N, label filtering, sort, and exclusion controls after aggregation
 
 ### Rejections

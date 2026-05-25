@@ -55,6 +55,17 @@
 - The accordion UI syncs checkbox state to the selects so filtering stays consistent without rewriting the incident/rejection split in `filters.js`.
 - Keeps the static GitHub Pages deployment simple (no build step).
 
+## Why extend the existing collapsible behavior instead of adding `js/collapsible.js`?
+
+- `js/app.js` already owned live section enhancement and render timing.
+- Extending that path avoided duplicate DOM wrappers and competing click handlers.
+- LocalStorage persistence could be added without changing the live module boundary.
+
+## Why keep compatibility for `analytics` / `incidents` tab ids?
+
+- Older hash links, export helpers, and WIP config paths still referenced those legacy ids.
+- Mapping both to `incidents-overview` let the visible UI simplify without breaking those callers in one risky pass.
+
 ## Why `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()`?
 
 - Gives embedders a single hook when rejection-only filters change, without parsing the DOM or patching `APP.apply()`.

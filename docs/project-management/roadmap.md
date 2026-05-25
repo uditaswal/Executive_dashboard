@@ -3,6 +3,7 @@
 ## High Priority
 
 - Keep the legacy dashboard rendering stable and browser-test all existing graphs.
+- Browser-test the new `Incidents Overview` merged workspace and collapsible sections with the real workbook.
 - Verify the current workbook mappings still behave correctly:
   - `APN_VOLUME` -> reroute-style metrics
   - `REROUTE` -> monthly volume metrics
@@ -12,6 +13,7 @@
 
 ## Medium Priority
 
+- Review the skipped phases in `docs/task/plan.md` and only revive them if they still fit the live shell.
 - Reintroduce the runtime/config architecture only in small slices if/when the live dashboard is stable.
 - If runtime work resumes:
   - Load it behind a controlled flag or isolated entrypoint

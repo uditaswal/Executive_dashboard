@@ -50,7 +50,7 @@
             <div class="filter-panel-title">
                 <span>Filters</span>
                 <div class="filter-panel-meta">
-                    <small id="filterRecordHint">Live view</small>
+                    <div id="filterDataStats" class="filter-stats-row" aria-live="polite"></div>
                     <button id="btnCloseSidebar" class="sidebar-toggle sidebar-toggle--inline" type="button"
                         aria-controls="filterSidebar" aria-expanded="true">Close</button>
                 </div>
@@ -130,7 +130,6 @@
             </label>
 
             <div class="filter-actions">
-                <button id='btnLoad'>Auto Load</button>
                 <button id='btnApply'>Apply</button>
                 <button id='btnReset'>Reset</button>
             </div>
@@ -140,8 +139,7 @@
                 <div class='tabs'>
                     <button class='tab active' data-view='overview'>Overview</button>
                     <button class='tab' data-view='pivot'>Pivot</button>
-                    <button class='tab' data-view='analytics'>Analytics</button>
-                    <button class='tab' data-view='incidents' id="tabIncidents">Incidents</button>
+                    <button class='tab' data-view='incidents-overview'>Incidents Overview</button>
                     <button class='tab' data-view='rejections'>Rejections</button>
                     <button class='tab guide-tab' data-view='guide'>Guide</button>
                 </div>
@@ -151,13 +149,13 @@
                 </div>
             </div>
             <section id='overview' class='view'>
-                <div id="overviewKpiSection" class="card section-box">
+                <div id="overviewKpiSection" class="card section-box" data-collapsible data-section-key="cs-ov-kpis">
                     <h3>KEY PERFORMANCE INDICATORS</h3>
                     <div id="kpis" class="grid"></div>
                 </div>
                 <br>
 
-                <div id="overviewPrioritySection" class="card section-box">
+                <div id="overviewPrioritySection" class="card section-box" data-collapsible data-section-key="cs-ov-priority">
                     <h3>Priority Breakdown</h3>
                     <div id="priorityBreakdown" class="priority-grid"></div>
                 </div>
@@ -169,7 +167,7 @@
                 </div>
                 <br>
  -->
-                <div id="overviewImpactSection" class="card section-box">
+                <div id="overviewImpactSection" class="card section-box" data-collapsible data-section-key="cs-ov-impact">
                     <h3>Resolution & Impact Breakdown</h3>
                     <div class="secondary-breakdowns">
                         <div class="breakdown-panel">
@@ -183,12 +181,12 @@
                     </div>
                 </div>
 
-                <div id="overviewSummarySection" class="card summary-box">
+                <div id="overviewSummarySection" class="card summary-box" data-collapsible data-section-key="cs-ov-summary">
                     <h3>Summary</h3>
                     <div id="execSummary"></div>
                 </div>
                 <br>
-                <div id="overviewBuilderSection" class="card section-box overview-builder">
+                <div id="overviewBuilderSection" class="card section-box overview-builder" data-collapsible data-section-key="cs-ov-insights">
                     <div class="overview-builder-head">
                         <h3>Operational Insights</h3>
                         <div class="overview-subtabs" role="tablist" aria-label="Executive overview tables">
@@ -205,17 +203,17 @@
                     <div id="overviewTabContent"></div>
                 </div>
                 <br>
-                <div id="overviewSuggestionsSection" class="card section-box">
+                <div id="overviewSuggestionsSection" class="card section-box" data-collapsible data-section-key="cs-ov-suggestions">
                     <h3>SUGGESTIONS</h3>
                     <ul id="suggestions"></ul>
                 </div>
                 <br>
             </section>
-            <section id='analytics' class='view hide'>
-                <div class="card analytics-view-mode">
+            <section id='incidents-overview' class='view hide'>
+                <div id="incidentsOverviewModeSection" class="card analytics-view-mode" data-collapsible data-section-key="cs-inc-mode">
                     <div class="analytics-view-mode__head">
                         <div>
-                            <h3>Analytics Workspace</h3>
+                            <h3>Incidents Overview Workspace</h3>
                             <p>Switch between chart canvases and the matching graph-data tables without leaving this tab.</p>
                         </div>
                         <div class="analytics-view-mode__actions" role="tablist" aria-label="Analytics display mode">
@@ -225,7 +223,7 @@
                     </div>
                 </div>
                 <br>
-                <div class="card export-panel">
+                <div class="card export-panel" data-collapsible data-section-key="cs-inc-chart-opts">
                     <div class="export-head">
                         <div>
                             <h3>Chart Options</h3>
@@ -249,7 +247,7 @@
                     </div>
                 </div>
                 <br>
-                <div id="analyticsChartPanel">
+                <div id="analyticsChartPanel" data-collapsible data-section-key="cs-inc-charts">
                     <div class='charts'>
                     <div class='card wide'><canvas id='c1'></canvas></div>
                     <div class='card'><canvas id='c2'></canvas></div>
@@ -281,17 +279,44 @@
                     </div>
                 </div>
                 <div id="analyticsTablePanel" class="hide">
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible data-section-key="cs-inc-register">
                         <div class="table-section-head">
                             <div>
                                 <h3>Incident Register</h3>
                                 <p>The former Incidents tab now lives here so analysis and registers stay together.</p>
                             </div>
                         </div>
-                        <div id="analyticsIncidentRegisterHost"></div>
+                        <div class="incident-toolbar">
+                            <div class="incident-stats">
+                                <span id="incidentShown">0 shown</span>
+                                <span id="incidentOpen">0 open</span>
+                                <span id="incidentMajor">0 major</span>
+                            </div>
+                        </div>
+                        <div class="column-panel">
+                            <div class="column-panel-head">
+                                <div>
+                                    <h3>Incident Columns</h3>
+                                    <p>Select columns from the uploaded Excel data to show in the register.</p>
+                                </div>
+                                <div class="column-actions">
+                                    <button id="btnDefaultColumns">Default</button>
+                                    <button id="btnAllColumns">All</button>
+                                    <button id="btnClearColumns">Clear</button>
+                                </div>
+                            </div>
+                            <div id="incidentColumnList" class="column-list"></div>
+                            <br>
+                            <div class="incident-table-wrap">
+                                <table class="incident-table">
+                                    <thead id="incidentHead"></thead>
+                                    <tbody id='tbody'></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     <br>
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible data-section-key="cs-inc-tables">
                         <div class="table-section-head">
                             <div>
                                 <h3>Incident Tables</h3>
@@ -301,7 +326,7 @@
                         <div id="analyticsIncidentTables" class="table-grid"></div>
                     </div>
                     <br>
-                    <div class="card section-box">
+                    <div class="card section-box" data-collapsible data-section-key="cs-inc-rej-tables">
                         <div class="table-section-head">
                             <div>
                                 <h3>Rejection Tables</h3>
@@ -343,42 +368,8 @@
                     <div id="pivotTableWrap"></div>
                 </div>
             </section>
-            <section id='incidents' class='view hide'>
-                <div class="incident-toolbar">
-                    <div>
-                        <h3>Incident Register</h3>
-                        <p>Filtered operational incident.</p>
-                    </div>
-                    <div class="incident-stats">
-                        <span id="incidentShown">0 shown</span>
-                        <span id="incidentOpen">0 open</span>
-                        <span id="incidentMajor">0 major</span>
-                    </div>
-                </div>
-                <div class="card column-panel">
-                    <div class="column-panel-head">
-                        <div>
-                            <h3>Incident Columns</h3>
-                            <p>Select columns from the uploaded Excel data to show in the register.</p>
-                        </div>
-                        <div class="column-actions">
-                            <button id="btnDefaultColumns">Default</button>
-                            <button id="btnAllColumns">All</button>
-                            <button id="btnClearColumns">Clear</button>
-                        </div>
-                    </div>
-                    <div id="incidentColumnList" class="column-list"></div>
-                </div>
-                <br>
-                <div class="incident-table-wrap">
-                    <table class="incident-table">
-                        <thead id="incidentHead"></thead>
-                        <tbody id='tbody'></tbody>
-                    </table>
-                </div>
-            </section>
             <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
-                <div class="rejection-filter-bar card">
+                <div class="rejection-filter-bar card" data-collapsible data-section-key="cs-rej-filters">
                     <div class="rejection-filter-bar__head">
                         <h4 class="rejection-filter-bar__title">Rejection filters</h4>
                         <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset
@@ -410,12 +401,12 @@
                     </select>
                 </div>
 
-                <div class="card section-box">
+                <div class="card section-box" data-collapsible data-section-key="cs-rej-kpis">
                     <h3>Rejection KPIs</h3>
                     <div id="rejectionKpis" class="grid"></div>
                 </div>
 
-                <div class="card export-panel">
+                <div class="card export-panel" data-collapsible data-section-key="cs-rej-chart-opts">
                     <div class="export-head">
                         <div>
                             <h3>Rejection Chart Options</h3>
@@ -435,27 +426,29 @@
                     </div>
                 </div>
                 <br>
-                <div class="charts">
-                    <div class="card wide"><canvas id="rc1"></canvas></div>
-                    <div class="card"><canvas id="rc4"></canvas></div>
-                    <div class="card"><canvas id="rc5"></canvas></div>
+                <div data-collapsible data-section-key="cs-rej-charts">
+                    <div class="charts">
+                        <div class="card wide"><canvas id="rc1"></canvas></div>
+                        <div class="card"><canvas id="rc4"></canvas></div>
+                        <div class="card"><canvas id="rc5"></canvas></div>
+                    </div>
+                    <br>
+                    <div class="charts">
+                        <div class="card wide"><canvas id="rc2"></canvas></div>
+                        <div class="card"><canvas id="rc3"></canvas></div>
+                        <div class="card"><canvas id="rc6"></canvas></div>
+                        <div class="card"><canvas id="rc7"></canvas></div>
+                        <div class="card"><canvas id="rc8"></canvas></div>
+                        <div class="card"><canvas id="rc9"></canvas></div>
+                        <div class="card wide"><canvas id="rc10"></canvas></div>
+                        <div class="card wide"><canvas id="rc11"></canvas></div>
+                        <div class="card wide"><canvas id="rc12"></canvas></div>
+                        <div class="card wide"><canvas id="rc13"></canvas></div>
+                        <div class="card wide"><canvas id="rc14"></canvas></div>
+                    </div>
                 </div>
                 <br>
-                <div class="charts">
-                    <div class="card wide"><canvas id="rc2"></canvas></div>
-                    <div class="card"><canvas id="rc3"></canvas></div>
-                    <div class="card"><canvas id="rc6"></canvas></div>
-                    <div class="card"><canvas id="rc7"></canvas></div>
-                    <div class="card"><canvas id="rc8"></canvas></div>
-                    <div class="card"><canvas id="rc9"></canvas></div>
-                    <div class="card wide"><canvas id="rc10"></canvas></div>
-                    <div class="card wide"><canvas id="rc11"></canvas></div>
-                    <div class="card wide"><canvas id="rc12"></canvas></div>
-                    <div class="card wide"><canvas id="rc13"></canvas></div>
-                    <div class="card wide"><canvas id="rc14"></canvas></div>
-                </div>
-                <br>
-                <div class="card column-panel">
+                <div class="card column-panel" data-collapsible data-section-key="cs-rej-register">
                     <div class="column-panel-head">
                         <div>
                             <h3>Rejection Register</h3>
@@ -498,10 +491,16 @@
             </section>
             <section id='guide' class='view hide'>
                 <div class="card guide-section">
+                    <h3>How The App Works</h3>
+                    <p>The live dashboard is driven by the legacy shell in <code>index.html</code> with behavior wired through <code>js/app.js</code>, <code>js/views.js</code>, <code>js/filters.js</code>, and <code>js/charts.js</code>.</p>
+                    <p><strong>Data flow:</strong> workbook upload or sample autoload → SheetJS parse → normalization in <code>js/data.js</code> → shared filtered state → Chart.js canvases, KPI cards, tables, pivots, and exports.</p>
+                    <p><strong>Adding a new chart:</strong> add the canvas in the live view, register its title/export id, render it from <code>APP.draw()</code>, and verify label-toggle plus export behavior.</p>
+                </div>
+                <div class="card guide-section">
                     <h3>Workbook Overview</h3>
                     <p>Supported sheets: <strong>DATA</strong>, <strong>REJECTIONDATA</strong>, <strong>CONFIG</strong>,
                         <strong>SUGGESTIONS</strong>, <strong>REROUTE</strong>, and <strong>APN_VOLUME</strong>. Add a
-                        workbook from the <code>data/</code> folder with Auto Load or upload it manually from the
+                        workbook from the <code>data/</code> folder by serving the app locally, or upload it manually from the
                         sidebar.</p>
                     <p>Sheet-name casing and spacing are tolerated, including aliases such as <code>RejectionData</code>
                         and <code>PayoutData</code>.</p>

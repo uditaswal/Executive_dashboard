@@ -5,9 +5,13 @@
  */
 
 APP.view = (id) => {
-    if (id === "incidents") {
-        id = "analytics";
+    if (id === "incidents" || id === "analytics") {
+        id = "incidents-overview";
         APP.analyticsMode = "tables";
+    }
+
+    if (!APP.g(id)) {
+        id = "overview";
     }
 
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hide"));
@@ -21,7 +25,7 @@ APP.view = (id) => {
     }
     window.scrollTo(0, 0);
 
-    if (id === "analytics" && APP.DATA.length) {
+    if (id === "incidents-overview" && APP.DATA.length) {
         setTimeout(APP.draw, 0);
     }
 
