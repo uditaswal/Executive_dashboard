@@ -26,6 +26,9 @@ window.APP = {
     rejectionsTopN: null,
     pivotDataset: "incidents"
 };
+APP.workbookCacheKey = "payments-dashboard-workbook-meta";
+APP.workbookDbName = "payments-dashboard-cache";
+APP.workbookStoreName = "files";
 APP.g = (id) => document.getElementById(id);
 APP.u = (arr) => [
     ...new Set(arr.filter(Boolean))
@@ -356,6 +359,70 @@ APP.parse = (buffer) => {
     APP.populate();
     APP.apply();
 };
+APP.openWorkbookCache = () =>
+    new Promise((resolve, reject) => {
+        const request = indexedDB.open(APP.workbookDbName, 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(APP.workbookStoreName)) {
+                db.createObjectStore(APP.workbookStoreName);
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+APP.cacheWorkbook = async (buffer, meta = {}) => {
+    try {
+        const db = await APP.openWorkbookCache();
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(APP.workbookStoreName, "readwrite");
+            tx.objectStore(APP.workbookStoreName).put(buffer, "latest");
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+        localStorage.setItem(
+            APP.workbookCacheKey,
+            JSON.stringify({
+                name: meta.name || "uploaded-workbook",
+                updatedAt: new Date().toISOString()
+            })
+        );
+        db.close();
+    } catch (error) {
+        console.warn("Workbook cache write failed.", error);
+    }
+};
+APP.loadCachedWorkbook = async () => {
+    try {
+        const db = await APP.openWorkbookCache();
+        const data = await new Promise((resolve, reject) => {
+            const tx = db.transaction(APP.workbookStoreName, "readonly");
+            const request = tx.objectStore(APP.workbookStoreName).get("latest");
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+        db.close();
+        return data;
+    } catch (error) {
+        return null;
+    }
+};
+APP.clearWorkbookCache = async () => {
+    try {
+        const db = await APP.openWorkbookCache();
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(APP.workbookStoreName, "readwrite");
+            tx.objectStore(APP.workbookStoreName).delete("latest");
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+    } catch (error) {
+        console.warn("Workbook cache clear failed.", error);
+    }
+
+    localStorage.removeItem(APP.workbookCacheKey);
+};
 APP.applyConfig = () => {
     if (!APP.CONFIG.length) return;
     const cfg = {};
@@ -376,6 +443,13 @@ APP.applyConfig = () => {
     APP.SETTINGS = cfg;
 };
 APP.loadLocal = async () => {
+    const cached =
+        await APP.loadCachedWorkbook();
+    if (cached) {
+        APP.parse(cached);
+        return;
+    }
+
     if (
         typeof window !== "undefined" &&
         window.location &&
@@ -425,6 +499,7 @@ APP.bindUpload = () => {
             const buf =
                 await file.arrayBuffer();
             APP.parse(buf);
+            void APP.cacheWorkbook(buf, { name: file.name });
         }
     );
 };

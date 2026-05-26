@@ -327,6 +327,13 @@ window.ConfigService = (() => {
 
             return defaults;
         },
+        async getExportProfiles() {
+            const loaded =
+                await this.loadExportProfiles();
+            return Array.isArray(loaded?.profiles)
+                ? loaded.profiles
+                : [];
+        },
         saveDashboardConfig(config) {
             localStorage.setItem(
                 DASHBOARD_KEY,

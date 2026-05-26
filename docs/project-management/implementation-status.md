@@ -4,9 +4,17 @@
 
 - Production shell: legacy dashboard in `index.html` with `js/app.js`, `js/data.js`, `js/filters.js`, and `js/charts.js`
 - Parked WIP: `js/runtime.js`
+- Plan baseline: `docs/task/plan.md` is now a completed implementation record for the live shell
 
 ## Done
 
+- Moved rejection filters into the shared sidebar and retired the live in-tab rejection accordion
+- Removed the last live-shell collapse-header fallback that still referenced the retired rejection filter bar
+- Added a shared chip-based sidebar multi-select UI for incident and rejection filters
+- Added chart overlay controls for average, max, and trend lines plus global incident overlay toggles
+- Added IndexedDB-backed workbook caching so uploaded workbooks restore across reloads
+- Hardened export profile and preset selection with stable export keys and duplicate preset-name validation
+- Added persistent dark mode and a broader visual polish pass across the live shell
 - Merged the visible `Analytics` and `Incidents` tabs into a single `Incidents Overview` workspace
 - Added persistent collapsible section controls across Overview, Incidents Overview, and Rejections
 - Replaced the sidebar raw record text with incident/rejection stat pills
@@ -27,10 +35,11 @@
 - Added bundled export defaults with `Base Profile` and `Base Preset`
 - Aligned the Guide, Excel specification, README, and project-management docs with the live WU workbook contract
 
-## Still Open
+## Remaining Manual QA / Follow-on Work
 
 - Browser validation of the refreshed guide and filter/export styling
-- Decide later whether any skipped `docs/task/plan.md` phases should be revived against the live shell
+- Browser validation of dark mode contrast and overlay readability on the real workbook
+- Decide later whether any non-essential ideas from `docs/task/plan.md` should be revived against the live shell
 - Deeper native PPT chart coverage
 - Optional chart-level include/exclude and Bottom N controls if product wants parity with table mode
 - Large-table virtualization only if live workbook sizes require it

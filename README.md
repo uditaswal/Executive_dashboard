@@ -7,10 +7,13 @@ Browser-based dashboard for payment incidents and rejection data. The live app r
 - Tabs: `Overview`, `Pivot`, `Incidents Overview`, `Rejections`, `Guide`
 - Incident charts, graph-data tables, and the incident register now share the `Incidents Overview` workspace
 - The left filter panel can be collapsed and reopened
+- Rejection filters switch into the same sidebar when the `Rejections` tab is active
 - Analytics table mode and pivot table output now share Bottom N, sort, label filter, and exclude controls
 - Pivot saves are deduplicated by chart definition, so saving the same pivot twice is blocked
 - The `Rejections` tab includes a visible rejection register with column selection and paging
 - The sidebar shows live incident and rejection count pills instead of raw text
+- Sidebar multi-selects use a chip/dropdown UI while keeping the original select state for compatibility
+- Uploaded workbooks are cached in-browser so the last workbook can be restored on reload
 - Export modal includes a bundled `Base Profile` and `Base Preset`
 - Dashboard config and export profiles can be downloaded, imported, and reset from `Settings`
 - Normalized workbook data can be downloaded from `Settings`
@@ -49,7 +52,7 @@ Direct `file://` usage is still supported for manual workbook upload. These limi
 ### Filters
 
 - Incident filters live in the left sidebar
-- Rejection-specific filters live inside the `Rejections` tab
+- Rejection-specific filters live in the same sidebar and appear for the `Rejections` tab
 - Record counts, charts, KPIs, tables, and pivot output all refresh from the same filtered state
 
 ### Incidents Overview
@@ -57,11 +60,11 @@ Direct `file://` usage is still supported for manual workbook upload. These limi
 - `Charts` view shows the canvas-based chart suite
 - `Tables` view shows the incident register plus incident and rejection graph-data tables inside the same tab
 - `Show counts on charts` re-renders the live charts using the shared Chart.js label plugin
+- Eligible charts support optional average, max, and trend overlays
 - Table-mode cards include Top/Bottom N, label filtering, sort, and exclusion controls after aggregation
 
 ### Rejections
 
-- Rejection-specific filters remain inside the `Rejections` tab
 - Rejection chart options no longer duplicate the tab filter controls
 - The visible rejection register uses the filtered rejection dataset as its source of truth
 - Selected rejection columns affect both the visible register and exports

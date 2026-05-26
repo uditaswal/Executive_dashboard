@@ -11,6 +11,16 @@ APP.fill = (id, vals) => {
     vals.forEach((v) => (e.innerHTML += `<option>${v}</option>`));
 };
 
+APP.rejectionSidebarFilterMap = [
+    ["fRejMonth", "fRejMonthSb"],
+    ["fRejPartner", "fRejPartnerSb"],
+    ["fRejDelivery", "fRejDeliverySb"],
+    ["fRejBankName", "fRejBankNameSb"],
+    ["fRejBankCode", "fRejBankCodeSb"],
+    ["fRejCountry", "fRejCountrySb"],
+    ["fRejStatus", "fRejStatusSb"]
+];
+
 APP.filterValues = (id) => {
     const el = APP.g(id);
 
@@ -69,6 +79,51 @@ APP.syncChartFilterMirrors = () => {
     if (APP.g("cfSearch") && APP.g("search")) {
         APP.g("cfSearch").value = APP.g("search").value;
     }
+};
+
+APP.syncSidebarRejectionFilterMirrors = () => {
+    APP.rejectionSidebarFilterMap.forEach(([sourceId, mirrorId]) => {
+        APP.copySelectOptions(sourceId, mirrorId);
+        APP.syncSelectSelection(sourceId, mirrorId);
+    });
+
+    APP.initMultiSelects?.();
+};
+
+APP.applySidebarRejectionMirrors = () => {
+    APP.rejectionSidebarFilterMap.forEach(([sourceId, mirrorId]) => {
+        APP.copyMirrorSelectionBack(mirrorId, sourceId);
+    });
+};
+
+APP.bindSidebarRejectionFilterMirrors = () => {
+    APP.rejectionSidebarFilterMap.forEach(([sourceId, mirrorId]) => {
+        const mirror = APP.g(mirrorId);
+        const source = APP.g(sourceId);
+
+        if (mirror && mirror.dataset.boundMirror !== "1") {
+            mirror.dataset.boundMirror = "1";
+            mirror.addEventListener("change", () => {
+                APP.copyMirrorSelectionBack(mirrorId, sourceId);
+                APP.apply();
+            });
+        }
+
+        if (source && source.dataset.boundMirrorBack !== "1") {
+            source.dataset.boundMirrorBack = "1";
+            source.addEventListener("change", () => {
+                APP.syncSidebarRejectionFilterMirrors();
+            });
+        }
+    });
+};
+
+APP.setSidebarFilterContext = (viewId) => {
+    const showRejections =
+        viewId === "rejections";
+
+    APP.g("sidebarIncidentFilters")?.classList.toggle("hide", showRejections);
+    APP.g("sidebarRejectionFilters")?.classList.toggle("hide", !showRejections);
 };
 
 APP.copyMirrorSelectionBack = (mirrorId, sourceId) => {
@@ -147,13 +202,13 @@ APP.populate = () => {
     APP.fill("fRejBankCode", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "BANKCODE"))));
     APP.fill("fRejStatus", APP.u(APP.REJECTIONS.map((x) => APP.getValue(x, "STATUS"))));
 
-    if (typeof APP.syncRejectionFilterAccordion === "function") {
-        APP.syncRejectionFilterAccordion();
-    }
-
     APP.syncChartFilterMirrors?.();
+    APP.syncSidebarRejectionFilterMirrors?.();
+    APP.bindSidebarRejectionFilterMirrors?.();
+    APP.initMultiSelects?.();
 };
 APP.apply = () => {
+    APP.applySidebarRejectionMirrors?.();
     const q = APP.g("search").value.toLowerCase();
     const monthMatches = (value) =>
         APP.matchesFilter("fMonth", value);
@@ -219,12 +274,9 @@ APP.reset = () => {
     APP.analyticsTopN = null;
     APP.rejectionsTopN = null;
 
-    if (typeof APP.syncRejectionFilterAccordion === "function") {
-        APP.syncRejectionFilterAccordion();
-    }
-
     APP.apply();
     APP.syncChartFilterMirrors?.();
+    APP.syncSidebarRejectionFilterMirrors?.();
 
     if (typeof APP.notifyRejectionFilterChange === "function") {
         APP.notifyRejectionFilterChange();
@@ -242,12 +294,9 @@ APP.resetRejectionFilters = () => {
         },
     );
 
-    if (typeof APP.syncRejectionFilterAccordion === "function") {
-        APP.syncRejectionFilterAccordion();
-    }
-
     APP.apply();
     APP.syncChartFilterMirrors?.();
+    APP.syncSidebarRejectionFilterMirrors?.();
 
     if (typeof APP.notifyRejectionFilterChange === "function") {
         APP.notifyRejectionFilterChange();

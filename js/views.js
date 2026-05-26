@@ -20,6 +20,7 @@ APP.view = (id) => {
         .querySelectorAll(".tab")
         .forEach((t) => t.classList.remove("active"));
     document.querySelector(`[data-view="${id}"]`).classList.add("active");
+    APP.setSidebarFilterContext?.(id);
     if (window.location.hash !== `#${id}`) {
         history.replaceState(null, "", `#${id}`);
     }

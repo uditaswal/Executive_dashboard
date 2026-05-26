@@ -145,6 +145,7 @@ APP.destroy = () => {
         );
 
     APP.charts = {};
+    APP.chartRegistry?.clear?.();
 };
 
 APP.colors = [
@@ -175,7 +176,7 @@ APP.chartOptions = (title, overrides = {}) => ({
             position: "bottom",
             labels: {
                 boxWidth: 12,
-                color: "#475569",
+                color: document.documentElement.classList.contains("dark") ? "#cbd5e1" : "#475569",
                 font: {
                     size: 12,
                     weight: "600"
@@ -190,14 +191,14 @@ APP.chartOptions = (title, overrides = {}) => ({
                 size: 16,
                 weight: "800"
             },
-            color: "#0f172a",
+            color: document.documentElement.classList.contains("dark") ? "#e2e8f0" : "#0f172a",
             padding: {
                 bottom: 14
             }
         },
         tooltip: {
             enabled: true,
-            backgroundColor: "#0f172a",
+            backgroundColor: document.documentElement.classList.contains("dark") ? "#020617" : "#0f172a",
             padding: 12
         }
     },
@@ -205,10 +206,10 @@ APP.chartOptions = (title, overrides = {}) => ({
         y: {
             beginAtZero: true,
             grid: {
-                color: "#e5e7eb"
+                color: document.documentElement.classList.contains("dark") ? "#334155" : "#e5e7eb"
             },
             ticks: {
-                color: "#64748b"
+                color: document.documentElement.classList.contains("dark") ? "#94a3b8" : "#64748b"
             }
         },
         x: {
@@ -216,7 +217,7 @@ APP.chartOptions = (title, overrides = {}) => ({
                 display: false
             },
             ticks: {
-                color: "#64748b"
+                color: document.documentElement.classList.contains("dark") ? "#94a3b8" : "#64748b"
             }
         }
     },
@@ -231,6 +232,11 @@ APP.chart = (id, config) => {
 
     APP.charts[id] =
         new Chart(el, config);
+
+    APP.registerChartForOverlays?.(
+        id,
+        APP.charts[id]
+    );
 
     APP.chartTitles =
         APP.chartTitles || {};

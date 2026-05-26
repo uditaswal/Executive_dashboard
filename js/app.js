@@ -1623,6 +1623,7 @@ APP.drawPivotChart = () => {
                     : {}
             )
         });
+    APP.registerChartForOverlays?.("pivotChart", APP.pivotChart);
 };
 
 APP.renderPivotBuilder = () => {
@@ -2350,6 +2351,7 @@ APP.getOverviewExportSections = () => [
 APP.exportPresetStorageKey = APP.exportPresetStorageKey || "dashboardExportPresetsV1";
 APP.exportProfileStorageKey = APP.exportProfileStorageKey || "dashboardExportLastProfileV1";
 APP.exportPresetSelectionKey = APP.exportPresetSelectionKey || "dashboardExportLastPresetV1";
+APP.themeStorageKey = APP.themeStorageKey || "payments-dashboard-theme";
 
 APP.getDefaultExportProfiles = () => [
     {
@@ -2445,15 +2447,13 @@ APP.getExportModalProfiles = async () => {
     const defaults =
         APP.getDefaultExportProfiles();
 
-    if (!window.ConfigService?.loadExportProfiles) {
+    if (!window.ConfigService?.getExportProfiles) {
         return defaults;
     }
 
     try {
-        const config =
-            await ConfigService.loadExportProfiles();
         const loaded =
-            Array.isArray(config?.profiles) ? config.profiles : [];
+            await ConfigService.getExportProfiles();
         const deduped =
             new Map();
 
@@ -2598,13 +2598,19 @@ APP.saveCurrentExportPreset = () => {
         [...document.querySelectorAll(".global-export-check:checked")]
             .map((inputEl) => inputEl.value);
 
+    const presets =
+        APP.getStoredExportPresets();
+
+    if (presets.some((preset) => String(preset.title || "").trim().toLowerCase() === title.toLowerCase())) {
+        alert("A preset with that name already exists.");
+        return;
+    }
+
     if (!itemIds.length) {
         alert("Select at least one export item before saving a preset.");
         return;
     }
 
-    const presets =
-        APP.getStoredExportPresets();
     const id =
         `preset-${APP.slug(title)}-${Date.now()}`;
 
@@ -2878,7 +2884,7 @@ APP.renderExportOptions = async () => {
     <div class="global-export-items">
         ${items.map((item) => `
         <label class="global-export-item">
-            <input type="checkbox" class="global-export-check" data-export-group-index="${groupIndex}" value="${APP.escape(item.id)}" ${item.checked === false ? "" : "checked"}>
+            <input type="checkbox" class="global-export-check" data-export-group-index="${groupIndex}" data-export-key="${APP.escape(item.id)}" value="${APP.escape(item.id)}" ${item.checked === false ? "" : "checked"}>
             <span>${APP.escape(item.title)}</span>
         </label>`).join("")}
     </div>
@@ -3297,12 +3303,15 @@ APP.bindSettingsModal = () => {
 
     APP.g("btnResetDashboardConfig")?.addEventListener("click", () => {
         localStorage.removeItem("payments-dashboard-config");
+        void APP.clearWorkbookCache?.();
         APP.setPivotSaveStatus("Dashboard config reset to bundled defaults.", "success");
         void APP.renderPivotSavedWidgetsList();
     });
 
     APP.g("btnResetExportProfiles")?.addEventListener("click", () => {
         localStorage.removeItem("payments-dashboard-export-profiles");
+        localStorage.removeItem(APP.exportProfileStorageKey);
+        localStorage.removeItem(APP.exportPresetSelectionKey);
         APP.setPivotSaveStatus("Export profiles reset to bundled defaults.", "success");
     });
 
@@ -3658,6 +3667,7 @@ APP.drawPivotChartFor = (dataset, canvasId) => {
                 isCircular ? { scales: {} } : {}
             )
         });
+    APP.registerChartForOverlays?.(canvasId, APP.embeddedPivotCharts[dataset]);
 };
 
 APP.renderScopedPivotBuilder = ({ dataset, builderId, tableWrapId, canvasId }) => {
@@ -3830,7 +3840,6 @@ APP.enhanceCollapsibleSections = () => {
                     ".export-head",
                     ".analytics-view-mode__head",
                     ".overview-builder-head",
-                    ".rejection-filter-bar__head",
                     ".incident-toolbar",
                     "h3"
                 ]
@@ -4082,6 +4091,41 @@ APP.render = () => {
     APP.enhanceCollapsibleSections?.();
 };
 
+APP.syncThemeToggleIcons = () => {
+    const isDark =
+        document.documentElement.classList.contains("dark");
+    APP.g("iconSun")?.classList.toggle("hide", !isDark);
+    APP.g("iconMoon")?.classList.toggle("hide", isDark);
+};
+
+APP.initTheme = () => {
+    const root =
+        document.documentElement;
+    const stored =
+        localStorage.getItem(APP.themeStorageKey);
+    const prefersDark =
+        window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+    const useDark =
+        stored
+            ? stored === "dark"
+            : Boolean(prefersDark);
+
+    root.classList.toggle("dark", useDark);
+    APP.syncThemeToggleIcons();
+
+    APP.g("btnDarkMode")?.addEventListener("click", () => {
+        root.classList.toggle("dark");
+        localStorage.setItem(
+            APP.themeStorageKey,
+            root.classList.contains("dark")
+                ? "dark"
+                : "light"
+        );
+        APP.syncThemeToggleIcons();
+        APP.draw?.();
+    });
+};
+
 APP.bindLegacyControls = () => {
     document.querySelectorAll(".tab[data-view]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -4095,7 +4139,8 @@ APP.bindLegacyControls = () => {
         APP.g("filterSidebar")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     APP.g("btnOpenRejectionFilters")?.addEventListener("click", () => {
-        APP.g("rejectionAccordionMount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        APP.setSidebarCollapsed(false);
+        APP.g("filterSidebar")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     APP.g("btnDefaultColumns")?.addEventListener("click", () => {
         const excelColumns =
@@ -4133,9 +4178,18 @@ APP.bindLegacyControls = () => {
         APP.showChartLabels = event.target.checked;
         APP.draw?.();
     });
+    APP.g("toggleGlobalAvg")?.addEventListener("change", (event) => {
+        APP.applyGlobalOverlayToggle?.("avg", event.target.checked);
+    });
+    APP.g("toggleGlobalTrend")?.addEventListener("change", (event) => {
+        APP.applyGlobalOverlayToggle?.("trend", event.target.checked);
+    });
     APP.g("rejectionsTopN")?.addEventListener("change", (e) => {
         APP.rejectionsTopN = e.target.value ? Number(e.target.value) : null;
         APP.render();
+    });
+    APP.g("btnRejFiltersResetAll")?.addEventListener("click", () => {
+        APP.resetRejectionFilters?.();
     });
     APP.g("btnSavePivotToConfig")?.addEventListener("click", () => {
         void APP.savePivotBuilderToDashboardConfig();
@@ -4187,6 +4241,7 @@ APP.initLegacyDashboard = () => {
     APP.bindLegacyControls();
     APP.bindSidebar();
     APP.bindAnalyticsMode();
+    APP.initTheme?.();
     APP.bindSettingsModal();
     APP.bindExportModal();
     APP.setPivotSaveStatus("Unique pivot charts only.");
@@ -4199,7 +4254,14 @@ APP.initLegacyDashboard = () => {
     if (APP.g("toggleChartLabels")) {
         APP.g("toggleChartLabels").checked = APP.showChartLabels;
     }
+    if (APP.g("toggleGlobalAvg")) {
+        APP.g("toggleGlobalAvg").checked = Boolean(APP.globalChartOverlays?.avg);
+    }
+    if (APP.g("toggleGlobalTrend")) {
+        APP.g("toggleGlobalTrend").checked = Boolean(APP.globalChartOverlays?.trend);
+    }
     APP.updateFilterStats?.(APP.DATA.length || 0, APP.filteredRejections?.length || 0);
+    APP.setSidebarFilterContext?.(initialView || "overview");
     void APP.loadLocal();
 };
 

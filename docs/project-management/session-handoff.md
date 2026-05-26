@@ -2,7 +2,7 @@
 
 ## Last Updated
 
-May 25, 2026
+May 26, 2026
 
 ## Current Source Of Truth
 
@@ -14,10 +14,11 @@ May 25, 2026
 
 - Tabs: `Overview`, `Pivot`, `Incidents Overview`, `Rejections`, `Guide`
 - Incident charts, the incident register, and graph-data tables now live in the same `Incidents Overview` workspace
-- Rejection filters stay in the `Rejections` tab rather than the main sidebar
+- Rejection filters now live in the main sidebar and switch with the active view
 - Export opens a modal and is profile/preset driven
 - Bundled export defaults include `Base Profile` and `Base Preset`
 - Guide/workbook docs describe the WU workbook contract first, with sample autoload treated as optional
+- Theme choice and workbook cache state persist in-browser
 
 ## Verified In This Pass
 
@@ -36,14 +37,15 @@ May 25, 2026
 ### Filtering
 
 - Incident filters live in the left sidebar
-- Rejection filters are rendered from `js/rejection-filter-bar.js`
-- Rejection accordion selections sync back into the underlying select-based filter state in `js/filters.js`
+- Rejection sidebar clone selects sync back into the hidden `fRej*` source selects in `js/filters.js`
+- The shared `js/multi-select.js` component is the live filter UI for both filter groups
 
 ### Incident Workspace
 
 - `Charts` mode renders the incident chart suite
 - `Tables` mode renders the incident register plus incident/rejection graph-data tables
 - The old `analytics` / `incidents` routes should resolve into `incidents-overview`
+- Eligible charts can show average, max, and trend overlays through `js/chart-overlays.js`
 
 ### Export
 
@@ -63,9 +65,11 @@ May 25, 2026
 - Open the dashboard in a real browser and visually verify:
   - merged Incidents Overview tab behavior
   - collapsible section persistence
+  - sidebar filter switching and multi-select behavior
+  - dark mode contrast
+  - overlay readability on busy charts
   - Guide content layout
   - sidebar filter styling
-  - rejection filter styling
   - export modal defaults and readability
 - If business owners provide a stricter WU workbook schema, update docs and parser expectations together
 
@@ -75,5 +79,6 @@ May 25, 2026
 - `js/app.js`
 - `js/data.js`
 - `js/filters.js`
-- `js/rejection-filter-bar.js`
+- `js/multi-select.js`
+- `js/chart-overlays.js`
 - `docs/task/plan.md`

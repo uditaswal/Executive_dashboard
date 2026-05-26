@@ -66,6 +66,12 @@
 - Older hash links, export helpers, and WIP config paths still referenced those legacy ids.
 - Mapping both to `incidents-overview` let the visible UI simplify without breaking those callers in one risky pass.
 
+## Why use IndexedDB for workbook cache instead of literal localStorage?
+
+- The uploaded workbook is binary and can exceed safe `localStorage` limits quickly.
+- IndexedDB keeps the cache browser-local without changing the parser contract in `js/data.js`.
+- A small metadata record in `localStorage` still works well for lightweight preferences and reset flows.
+
 ## Why `APP.onRejectionFilterChange` / `APP.getRejectionFilterState()`?
 
 - Gives embedders a single hook when rejection-only filters change, without parsing the DOM or patching `APP.apply()`.

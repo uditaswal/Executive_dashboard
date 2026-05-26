@@ -17,6 +17,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: "class",
             theme: {
                 extend: {
                     colors: {
@@ -61,77 +62,127 @@
                 <input type='file' id='fileInput' accept='.xlsx,.xls,.csv'>
             </label>
 
-            <label class="filter-field">
-                <span>Month</span>
-                <select id='fMonth' multiple>
-                    <option value=''>All Month</option>
-                </select>
-            </label>
+            <div id="sidebarIncidentFilters" class="sidebar-filter-group">
+                <div class="sidebar-group-head">
+                    <h3>Incident Filters</h3>
+                    <p>Drive overview, pivots, and incident analytics from one filter set.</p>
+                </div>
 
-            <label class="filter-field">
-                <span>Partner</span>
-                <select id='fPartner' multiple>
-                    <option value=''>All Partner</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Month</span>
+                    <select id='fMonth' class="js-enhance-select" multiple>
+                        <option value=''>All Month</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Status</span>
-                <select id='fStatus' multiple>
-                    <option value=''>All Status</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Partner</span>
+                    <select id='fPartner' class="js-enhance-select" multiple>
+                        <option value=''>All Partner</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Priority</span>
-                <select id='fPriority' multiple>
-                    <option value=''>All Priority</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select id='fStatus' class="js-enhance-select" multiple>
+                        <option value=''>All Status</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Region</span>
-                <select id='fRegion' multiple>
-                    <option value=''>All Region</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Priority</span>
+                    <select id='fPriority' class="js-enhance-select" multiple>
+                        <option value=''>All Priority</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Receive Country</span>
-                <select id='fCountry' multiple>
-                    <option value=''>All Country</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Region</span>
+                    <select id='fRegion' class="js-enhance-select" multiple>
+                        <option value=''>All Region</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Issue Owner</span>
-                <select id='fOwner' multiple>
-                    <option value=''>All Owner</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Receive Country</span>
+                    <select id='fCountry' class="js-enhance-select" multiple>
+                        <option value=''>All Country</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Category</span>
-                <select id='fCategory' multiple>
-                    <option value=''>All Category</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Issue Owner</span>
+                    <select id='fOwner' class="js-enhance-select" multiple>
+                        <option value=''>All Owner</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Impact Type</span>
-                <select id='fImpact' multiple>
-                    <option value=''>All Impact</option>
-                </select>
-            </label>
+                <label class="filter-field">
+                    <span>Category</span>
+                    <select id='fCategory' class="js-enhance-select" multiple>
+                        <option value=''>All Category</option>
+                    </select>
+                </label>
 
-            <label class="filter-field">
-                <span>Search Incident</span>
-                <input id='search' placeholder='Search all Incidents'>
-            </label>
+                <label class="filter-field">
+                    <span>Impact Type</span>
+                    <select id='fImpact' class="js-enhance-select" multiple>
+                        <option value=''>All Impact</option>
+                    </select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Search Incident</span>
+                    <input id='search' placeholder='Search all Incidents'>
+                </label>
+            </div>
+
+            <div id="sidebarRejectionFilters" class="sidebar-filter-group hide">
+                <div class="sidebar-group-head">
+                    <h3>Rejection Filters</h3>
+                    <p>Filter rejection charts and the rejection register from the sidebar.</p>
+                </div>
+
+                <label class="filter-field">
+                    <span>Month</span>
+                    <select id='fRejMonthSb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Partner</span>
+                    <select id='fRejPartnerSb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Delivery Service</span>
+                    <select id='fRejDeliverySb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Bank Name</span>
+                    <select id='fRejBankNameSb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Bank Code</span>
+                    <select id='fRejBankCodeSb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Country</span>
+                    <select id='fRejCountrySb' class="js-enhance-select" multiple></select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select id='fRejStatusSb' class="js-enhance-select" multiple></select>
+                </label>
+            </div>
 
             <div class="filter-actions">
                 <button id='btnApply'>Apply</button>
                 <button id='btnReset'>Reset</button>
+                <button id='btnRejFiltersResetAll' type="button">Reset Rejections</button>
             </div>
         </aside>
         <main class='main'>
@@ -144,6 +195,10 @@
                     <button class='tab guide-tab' data-view='guide'>Guide</button>
                 </div>
                 <div class="header-actions">
+                    <button id="btnDarkMode" class="theme-toggle" type="button" title="Toggle theme" aria-label="Toggle dark mode">
+                        <span id="iconMoon" aria-hidden="true">Moon</span>
+                        <span id="iconSun" class="hide" aria-hidden="true">Sun</span>
+                    </button>
                     <button id="btnSettings" class="settings-btn" type="button" title="Settings">ΓÜÖ∩╕Å</button>
                     <button id="btnGlobalExport" class="global-export-btn" type="button">Export</button>
                 </div>
@@ -233,6 +288,14 @@
                             <label class="chart-options-toggle">
                                 <input type="checkbox" id="toggleChartLabels">
                                 <span>Show counts on charts</span>
+                            </label>
+                            <label class="chart-options-toggle">
+                                <input type="checkbox" id="toggleGlobalAvg">
+                                <span>Avg lines</span>
+                            </label>
+                            <label class="chart-options-toggle">
+                                <input type="checkbox" id="toggleGlobalTrend">
+                                <span>Trend lines</span>
                             </label>
                             <label class="chart-options-select">
                                 <span>Show top</span>
@@ -369,14 +432,6 @@
                 </div>
             </section>
             <section id='rejections' class='view hide' style="--primary: #dc2626; --accent: #f97316;">
-                <div class="rejection-filter-bar card" data-collapsible data-section-key="cs-rej-filters">
-                    <div class="rejection-filter-bar__head">
-                        <h4 class="rejection-filter-bar__title">Rejection filters</h4>
-                        <button type="button" id="btnRejFiltersResetAll" class="rejection-filter-reset">Reset
-                            all</button>
-                    </div>
-                    <div id="rejectionAccordionMount" class="rejection-accordions" aria-label="Rejection filters"></div>
-                </div>
                 <div class="rejection-filter-sr" aria-hidden="true">
                     <select id='fRejMonth' multiple>
                         <option value=''>All Months</option>
@@ -838,8 +893,9 @@
     </div>
     <script src='js/data.js'></script>
     <script src='js/filters.js'></script>
-    <script src='js/rejection-filter-bar.js'></script>
+    <script src='js/multi-select.js'></script>
     <script src='js/charts.js'></script>
+    <script src='js/chart-overlays.js'></script>
     <script src='js/views.js'></script>
     <script src='services/config-service.js'></script>
     <script src='js/app.js'></script>

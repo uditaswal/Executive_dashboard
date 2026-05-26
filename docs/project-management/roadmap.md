@@ -4,6 +4,7 @@
 
 - Keep the legacy dashboard rendering stable and browser-test all existing graphs.
 - Browser-test the new `Incidents Overview` merged workspace and collapsible sections with the real workbook.
+- Browser-test the new sidebar rejection filters, multi-select UX, dark mode, and chart overlays with the real workbook.
 - Verify the current workbook mappings still behave correctly:
   - `APN_VOLUME` -> reroute-style metrics
   - `REROUTE` -> monthly volume metrics
@@ -13,7 +14,8 @@
 
 ## Medium Priority
 
-- Review the skipped phases in `docs/task/plan.md` and only revive them if they still fit the live shell.
+- Review any non-essential ideas from `docs/task/plan.md` and only revive them if they still fit the live shell.
+- If workbook sizes grow, revisit the IndexedDB cache with stronger clear-cache UX and error handling.
 - Reintroduce the runtime/config architecture only in small slices if/when the live dashboard is stable.
 - If runtime work resumes:
   - Load it behind a controlled flag or isolated entrypoint
@@ -27,4 +29,3 @@
 - Migrate parked runtime adapter widgets into native chart/table/summary renderers.
 - Add richer widget layout controls using existing `layout.width`, `layout.height`, and `layout.order`.
 - Add widget create/edit UX for runtime-generated widgets.
-- Verify the functionality of rejection accordion filters (multi-select, Clear, Reset all, `APP.onRejectionFilterChange`).
